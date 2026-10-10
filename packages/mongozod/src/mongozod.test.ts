@@ -255,4 +255,45 @@ describe('schemas', () => {
     expect((await TagsModel.insertOne({ name: 'home' })).document).toMatchObject({ name: 'home' })
     await expect(TagsModel.insertOne({ name: '' })).rejects.toBeInstanceOf(z.ZodError)
   })
+
+  test('rejects field names with a dot or a leading $, at any level', () => {
+    expect(() =>
+      mongozod({ collection: 'notes', db, schema: z.object({ 'a.b': z.string() }) })
+    ).toThrow('"a.b" is not a valid field name')
+    expect(() =>
+      mongozod({
+        collection: 'notes',
+        db,
+        schema: z.object({ items: z.array(z.object({ $price: z.number() })).optional() })
+      })
+    ).toThrow('"$price" in "items" is not a valid field name')
+    expect(() =>
+      mongozod({
+        collection: 'notes',
+        db,
+        schema: z.object({
+          payment: z.discriminatedUnion('method', [
+            z.object({ 'card.last4': z.string(), 'method': z.literal('card') })
+          ])
+        })
+      })
+    ).toThrow('"card.last4" in "payment" is not a valid field name')
+  })
+
+  test('accepts recursive schemas and leaves record keys to the writes', () => {
+    const nodeSchema = z.object({
+      value: z.string(),
+      get children() {
+        return z.array(nodeSchema)
+      }
+    })
+
+    expect(() =>
+      mongozod({
+        collection: 'trees',
+        db,
+        schema: z.object({ metadata: z.record(z.string(), z.number()), root: nodeSchema })
+      })
+    ).not.toThrow()
+  })
 })

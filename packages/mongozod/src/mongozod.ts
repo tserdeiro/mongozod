@@ -16,6 +16,7 @@ import type * as core from 'zod/v4/core'
 
 import { z } from 'zod'
 
+import { checkFieldNames } from './check-field-names'
 import { ModelCursor } from './model-cursor'
 import { ModelFindCursor } from './model-find-cursor'
 import { parseDocument } from './parse-document'
@@ -56,6 +57,8 @@ export interface MongozodOptions<S extends ModelSchema> {
 export function mongozod<S extends ModelSchema>(options: MongozodOptions<S>): Model<S>
 // The implementation works with plain documents: the signature above types them with the schema.
 export function mongozod(options: MongozodOptions<ModelSchema>) {
+  checkFieldNames(options.schema)
+
   let db: Db | undefined
   let collection: Collection | undefined
 
