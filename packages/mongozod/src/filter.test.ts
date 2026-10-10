@@ -98,9 +98,14 @@ test('undefined does not compile, and string keys must be literal', () => {
 
 test('filters composed from other types still check', () => {
   const fromInput: { status?: 'draft' | { $in: Array<'draft' | 'published'> }; title?: string } = {}
+  const withOptionalOperators: {
+    scores?: { $elemMatch?: { $gte?: number; $lt?: number }; $size?: number }
+    title?: { $exists?: boolean; $not?: { $regex?: string } }
+  } = {}
 
   filter({ $and: [fromInput, { views: 1 }] })
   filter(fromInput)
+  filter(withOptionalOperators)
   expect(true).toBe(true)
 })
 

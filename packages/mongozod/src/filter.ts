@@ -134,7 +134,7 @@ type OperatorCheck<T, Op, C, V = core.output<T>> = Op extends '$eq' | '$ne'
                             ? GeoOperators[Op]
                             : `"${Op & string}" is not a query operator`
 
-type OperatorsCheck<T, C> = { [Op in keyof C]: OperatorCheck<T, Op, C[Op]> }
+type OperatorsCheck<T, C> = { [Op in keyof C]: OperatorCheck<T, Op, Exclude<C[Op], undefined>> }
 
 /** A condition on one field: a value, or an object with operators. */
 export type ConditionCheck<T, C> = C extends unknown
