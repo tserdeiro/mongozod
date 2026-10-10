@@ -1,6 +1,7 @@
-import type { ModelSchema } from './model'
+import type { ModelSchema, Output } from './model'
+import type { Projected, ProjectionCheck, SuggestedProjection } from './projection'
 import type { SortCheck, SuggestedSort } from './sort'
-import type { Document, FindCursor, Sort } from 'mongodb'
+import type { Document, FindCursor, Sort, WithId } from 'mongodb'
 
 import { ModelCursor } from './model-cursor'
 
@@ -40,8 +41,14 @@ export class ModelFindCursor<T, S extends ModelSchema = ModelSchema> extends Mod
     return this
   }
 
-  /** Sets the projection, like the driver's `FindCursor.project`. */
-  project<P extends Document = Document>(projection: Document): ModelFindCursor<P, S> {
-    return new ModelFindCursor(this.#cursor.project<P>(projection))
+  /**
+   * Sets the projection, checked against the schema, and types the documents it returns. Like the
+   * driver's, it replaces the projection of `find`.
+   */
+  project<const P extends ProjectionCheck<S, P>>(
+    projection: P & SuggestedProjection<S>
+  ): ModelFindCursor<Projected<WithId<Output<S>>, P>, S>
+  project(projection: Document): ModelFindCursor<Document, S> {
+    return new ModelFindCursor<Document, S>(this.#cursor.project(projection))
   }
 }

@@ -103,6 +103,21 @@ export function mongozod(options: MongozodOptions<ModelSchema>): Model<ModelSche
     return new ModelCursor(cursor.map((document) => z.parse(schema, document)))
   }
 
+  // The operations that return documents have several signatures, like the driver's. TypeScript
+  // then compares them with the interface's erasing its type parameters, which the projected
+  // result depends on.
+  function find(): ModelFindCursor<WithId<Document>>
+  function find(filter: Document, findOptions?: Document): ModelFindCursor<WithId<Document>>
+  function find(filter: Document = {}, findOptions?: Document) {
+    return new ModelFindCursor(getCollection().find(filter, findOptions))
+  }
+
+  function findOne(): Promise<WithId<Document> | null>
+  function findOne(filter: Document, findOptions?: Document): Promise<WithId<Document> | null>
+  function findOne(filter: Document = {}, findOptions: Document = {}) {
+    return getCollection().findOne(filter, findOptions)
+  }
+
   function findOneAndDelete(
     filter: Document,
     deleteOptions: Document & { includeResultMetadata: true }
@@ -214,14 +229,8 @@ export function mongozod(options: MongozodOptions<ModelSchema>): Model<ModelSche
       return getCollection().estimatedDocumentCount(countOptions)
     },
 
-    find(filter: Document = {}, findOptions?: Document) {
-      return new ModelFindCursor(getCollection().find(filter, findOptions))
-    },
-
-    findOne(filter: Document = {}, findOptions: Document = {}) {
-      return getCollection().findOne(filter, findOptions)
-    },
-
+    find,
+    findOne,
     findOneAndDelete,
     findOneAndReplace,
     findOneAndUpdate,

@@ -47,9 +47,10 @@ test('chains sort, skip, limit and project like the driver', async () => {
     .sort({ position: -1 })
     .skip(1)
     .limit(2)
-    .project<{ title: string }>({ _id: 0, title: 1 })
+    .project({ _id: 0, title: 1 })
 
   expect(notes).toEqual([{ title: 'Note 3' }, { title: 'Note 2' }])
+  expectTypeOf(notes).toEqualTypeOf<Array<{ title: string }>>()
 })
 
 test('gives the same array with toArray', async () => {

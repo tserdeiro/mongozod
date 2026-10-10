@@ -3,6 +3,7 @@ import type { ModelCursor } from './model-cursor'
 import type { ModelFindCursor } from './model-find-cursor'
 import type { PathSuggestions } from './path-suggestions'
 import type { PipelineCheck } from './pipeline'
+import type { Projected, ProjectionCheck, SuggestedProjection } from './projection'
 import type { FieldAt, NotAPath } from './schema-at'
 import type { SortCheck, SuggestedSort } from './sort'
 import type {
@@ -61,9 +62,29 @@ export type Input<S extends ModelSchema> = core.input<S>
 /** Driver options whose `sort` is checked against the schema, with the keys the editor suggests. */
 type Sorted<S, O, Sort> = Omit<O, 'sort'> & { sort?: Sort & SuggestedSort<S> }
 
+/** Driver options whose `sort` and `projection` are checked against the schema. */
+type ReadOptions<S, O, Sort, P> = Omit<O, 'projection' | 'sort'> & {
+  projection?: P & SuggestedProjection<S>
+  sort?: Sort & SuggestedSort<S>
+}
+
+/** The keys the editor suggests in the `sort` and `projection` of options checked elsewhere. */
+interface ReadSuggestions<S> {
+  projection?: SuggestedProjection<S>
+  sort?: SuggestedSort<S>
+}
+
+type ProjectionOf<O> = O extends { projection: infer P } ? P : unknown
+
+/** The driver's `ModifyResult`, with the document as the projection returns it. */
+type ModifyResultOf<S extends ModelSchema, P> = Omit<ModifyResult<Output<S>>, 'value'> & {
+  value: Projected<WithId<Output<S>>, P> | null
+}
+
 /** Driver options of an update, whose `arrayFilters` and `sort` `UpdateOptionsCheck` checks. */
-type UpdateOptionsBase<O> = Omit<O, 'arrayFilters' | 'sort'> & {
+type UpdateOptionsBase<O> = Omit<O, 'arrayFilters' | 'projection' | 'sort'> & {
   arrayFilters?: ReadonlyArray<Document>
+  projection?: Document
   sort?: Document
 }
 
@@ -189,40 +210,64 @@ export interface Model<S extends ModelSchema> {
 
   /**
    * Finds the documents that match the filter. The cursor can be awaited for the array, iterated
-   * with `for await` and chained like the driver's.
+   * with `for await` and chained like the driver's. A projection adjusts the type of the documents.
    */
-  find<const F extends FilterCheck<S, F>, const Sort extends SortCheck<S, Sort>>(
+  find<
+    const F extends FilterCheck<S, F>,
+    const Sort extends SortCheck<S, Sort>,
+    const P extends ProjectionCheck<S, P>
+  >(
     filter?: F & SuggestedFilter<S>,
-    options?: Sorted<S, FindOptions, Sort> & Abortable
-  ): ModelFindCursor<WithId<Output<S>>, S>
+    options?: ReadOptions<S, FindOptions, Sort, P> & Abortable
+  ): ModelFindCursor<Projected<WithId<Output<S>>, P>, S>
 
   /** Finds the first document that matches the filter. */
-  findOne<const F extends FilterCheck<S, F>, const Sort extends SortCheck<S, Sort>>(
+  findOne<
+    const F extends FilterCheck<S, F>,
+    const Sort extends SortCheck<S, Sort>,
+    const P extends ProjectionCheck<S, P>
+  >(
     filter?: F & SuggestedFilter<S>,
-    options?: Sorted<S, Omit<FindOneOptions, 'timeoutMode'>, Sort> & Abortable
-  ): Promise<WithId<Output<S>> | null>
+    options?: ReadOptions<S, Omit<FindOneOptions, 'timeoutMode'>, Sort, P> & Abortable
+  ): Promise<Projected<WithId<Output<S>>, P> | null>
 
   /** Deletes the first document that matches the filter and returns it. */
-  findOneAndDelete<const F extends FilterCheck<S, F>, const Sort extends SortCheck<S, Sort>>(
+  findOneAndDelete<
+    const F extends FilterCheck<S, F>,
+    const Sort extends SortCheck<S, Sort>,
+    const P extends ProjectionCheck<S, P>
+  >(
     filter: F & SuggestedFilter<S>,
-    options: Sorted<S, FindOneAndDeleteOptions, Sort> & { includeResultMetadata: true }
-  ): Promise<ModifyResult<Output<S>>>
-  findOneAndDelete<const F extends FilterCheck<S, F>, const Sort extends SortCheck<S, Sort>>(
+    options: ReadOptions<S, FindOneAndDeleteOptions, Sort, P> & { includeResultMetadata: true }
+  ): Promise<ModifyResultOf<S, P>>
+  findOneAndDelete<
+    const F extends FilterCheck<S, F>,
+    const Sort extends SortCheck<S, Sort>,
+    const P extends ProjectionCheck<S, P>
+  >(
     filter: F & SuggestedFilter<S>,
-    options?: Sorted<S, FindOneAndDeleteOptions, Sort>
-  ): Promise<WithId<Output<S>> | null>
+    options?: ReadOptions<S, FindOneAndDeleteOptions, Sort, P>
+  ): Promise<Projected<WithId<Output<S>>, P> | null>
 
   /** Replaces the first document that matches the filter, validated like `replaceOne`. */
-  findOneAndReplace<const F extends FilterCheck<S, F>, const Sort extends SortCheck<S, Sort>>(
+  findOneAndReplace<
+    const F extends FilterCheck<S, F>,
+    const Sort extends SortCheck<S, Sort>,
+    const P extends ProjectionCheck<S, P>
+  >(
     filter: F & SuggestedFilter<S>,
     replacement: Input<S>,
-    options: Sorted<S, FindOneAndReplaceOptions, Sort> & { includeResultMetadata: true }
-  ): Promise<ModifyResult<Output<S>>>
-  findOneAndReplace<const F extends FilterCheck<S, F>, const Sort extends SortCheck<S, Sort>>(
+    options: ReadOptions<S, FindOneAndReplaceOptions, Sort, P> & { includeResultMetadata: true }
+  ): Promise<ModifyResultOf<S, P>>
+  findOneAndReplace<
+    const F extends FilterCheck<S, F>,
+    const Sort extends SortCheck<S, Sort>,
+    const P extends ProjectionCheck<S, P>
+  >(
     filter: F & SuggestedFilter<S>,
     replacement: Input<S>,
-    options?: Sorted<S, FindOneAndReplaceOptions, Sort>
-  ): Promise<WithId<Output<S>> | null>
+    options?: ReadOptions<S, FindOneAndReplaceOptions, Sort, P>
+  ): Promise<Projected<WithId<Output<S>>, P> | null>
 
   /** Updates the first document that matches the filter and returns it. */
   findOneAndUpdate<
@@ -232,8 +277,8 @@ export interface Model<S extends ModelSchema> {
   >(
     filter: F & SuggestedFilter<S>,
     update: U & SuggestedUpdate<S>,
-    options: O & { includeResultMetadata: true }
-  ): Promise<ModifyResult<Output<S>>>
+    options: O & ReadSuggestions<S> & { includeResultMetadata: true }
+  ): Promise<ModifyResultOf<S, ProjectionOf<O>>>
   findOneAndUpdate<
     const F extends FilterCheck<S, F>,
     const U extends UpdateCheck<S, U, F, O>,
@@ -241,8 +286,8 @@ export interface Model<S extends ModelSchema> {
   >(
     filter: F & SuggestedFilter<S>,
     update: U & SuggestedUpdate<S>,
-    options?: O
-  ): Promise<WithId<Output<S>> | null>
+    options?: O & ReadSuggestions<S>
+  ): Promise<Projected<WithId<Output<S>>, ProjectionOf<O>> | null>
 
   /**
    * Validates the documents with the schema and inserts them. Returns the driver's result plus the

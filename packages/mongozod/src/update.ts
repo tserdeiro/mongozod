@@ -1,6 +1,7 @@
 import type { ConditionCheck, ElementConditionCheck, ElementSchema, KeyCheck } from './filter'
 import type { Loose } from './loose'
 import type { PathSuggestions } from './path-suggestions'
+import type { ProjectionCheck } from './projection'
 import type { Def, ExtraKey, IsIdentifier, NotAPath, SchemaAt, Wrapper } from './schema-at'
 import type { SortCheck } from './sort'
 import type * as core from 'zod/v4/core'
@@ -424,11 +425,16 @@ type ArrayFiltersCheck<X, AF> = { [I in keyof AF]: EntryCheck<X, AF[I]> }
 /** Checks the entries of `arrayFilters` against the identifiers of an update. */
 export type ArrayFiltersEntriesCheck<S, U, AF> = ArrayFiltersCheck<Identifiers<S, U>, AF>
 
-/** Checks the options of an update: its `arrayFilters` and, where it takes one, its `sort`. */
+/**
+ * Checks the options of an update: its `arrayFilters` and, where it takes them, its `sort` and its
+ * `projection`.
+ */
 export type UpdateOptionsCheck<S, U, O> = {
   [K in keyof O]: K extends 'arrayFilters'
     ? ArrayFiltersCheck<Identifiers<S, U>, O[K]>
     : K extends 'sort'
       ? SortCheck<S, O[K]>
-      : O[K]
+      : K extends 'projection'
+        ? ProjectionCheck<S, O[K]>
+        : O[K]
 }

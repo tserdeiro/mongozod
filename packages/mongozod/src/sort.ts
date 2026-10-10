@@ -11,14 +11,19 @@ export type SortDirection =
   | 'descending'
   | { readonly $meta: 'textScore' }
 
-/** Checks a sort key by key: each one must be a path of the document. */
+/**
+ * Checks a sort key by key: each one must be a path of the document, except one that sorts by text
+ * search relevance, whose key is any name, like the field a projection adds with `$meta`.
+ */
 export type SortCheck<S, Sort> = {
   [K in keyof Sort]: K extends string
-    ? string extends K
-      ? 'a sort key must be a literal path'
-      : [FieldAt<S, K, 'filter'>] extends [never]
-        ? NotAPath<K>
-        : SortDirection
+    ? Sort[K] extends { $meta: unknown }
+      ? { readonly $meta: 'textScore' }
+      : string extends K
+        ? 'a sort key must be a literal path'
+        : [FieldAt<S, K, 'filter'>] extends [never]
+          ? NotAPath<K>
+          : SortDirection
     : never
 }
 
