@@ -53,7 +53,7 @@ type IsAlphanumeric<S extends string> = S extends ''
     : false
 
 /** An `arrayFilters` identifier: a lowercase letter, then letters and digits. */
-type IsIdentifier<S extends string> = S extends `${infer C}${infer R}`
+export type IsIdentifier<S extends string> = S extends `${infer C}${infer R}`
   ? C extends Lower
     ? IsAlphanumeric<R>
     : false
@@ -64,7 +64,7 @@ type IsIdentifier<S extends string> = S extends `${infer C}${infer R}`
  * of the object only keep the catchall's input and output, so the key works like `z.unknown()`
  * with those types.
  */
-type ExtraKey<S> = S extends { _zod: { config: { in: infer I; out: infer O } } }
+export type ExtraKey<S> = S extends { _zod: { config: { in: infer I; out: infer O } } }
   ? string extends keyof O
     ? { _zod: { def: { type: 'unknown' }; input: I[keyof I]; output: O[keyof O] } }
     : never

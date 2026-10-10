@@ -1,10 +1,16 @@
-import type { ModelFilter } from './filter'
+import type { FilterCheck, SuggestedFilter } from './filter'
 import type { ModelCursor } from './model-cursor'
 import type { ModelFindCursor } from './model-find-cursor'
 import type { PathSuggestions } from './path-suggestions'
 import type { PipelineCheck } from './pipeline'
 import type { FieldAt, NotAPath } from './schema-at'
-import type { ModelSort } from './sort'
+import type { SortCheck, SuggestedSort } from './sort'
+import type {
+  ArrayFiltersEntriesCheck,
+  SuggestedUpdate,
+  UpdateCheck,
+  UpdateOptionsCheck
+} from './update'
 import type {
   Abortable,
   AggregateOptions,
@@ -32,7 +38,6 @@ import type {
   ModifyResult,
   ReplaceOneModel,
   ReplaceOptions,
-  UpdateFilter,
   UpdateManyModel,
   UpdateOneModel,
   UpdateOptions,
@@ -53,8 +58,14 @@ export type Output<S extends ModelSchema> = Extract<core.output<S>, Document>
 /** A document to write: the input of the schema. */
 export type Input<S extends ModelSchema> = core.input<S>
 
-/** Driver options whose `sort` is checked against the schema. */
-type Sorted<O, Sort> = Omit<O, 'sort'> & { sort?: Sort }
+/** Driver options whose `sort` is checked against the schema, with the keys the editor suggests. */
+type Sorted<S, O, Sort> = Omit<O, 'sort'> & { sort?: Sort & SuggestedSort<S> }
+
+/** Driver options of an update, whose `arrayFilters` and `sort` `UpdateOptionsCheck` checks. */
+type UpdateOptionsBase<O> = Omit<O, 'arrayFilters' | 'sort'> & {
+  arrayFilters?: ReadonlyArray<Document>
+  sort?: Document
+}
 
 /**
  * A `distinct` key: a path of the document, suggested by the editor. A `string` key matches no
@@ -65,26 +76,42 @@ type DistinctKey<S, K extends string> =
   | '_id'
   | (string extends K ? never : [FieldAt<S, K, 'filter'>] extends [never] ? NotAPath<K> : K)
 
-/** One `bulkWrite` operation: filters are checked, and inserts and replacements take the input. */
+/** An `updateOne` or `updateMany` of `bulkWrite`, checked like the operation of the same name. */
+type BulkUpdateCheck<
+  S extends ModelSchema,
+  Base,
+  M extends { filter: unknown; update: unknown }
+> = Omit<Base, 'arrayFilters' | 'filter' | 'update'> & {
+  arrayFilters?: M extends { arrayFilters: infer AF }
+    ? ArrayFiltersEntriesCheck<S, M['update'], AF>
+    : never
+  filter: FilterCheck<S, M['filter']>
+  update: UpdateCheck<S, M['update'], M['filter'], M>
+}
+
+/**
+ * One `bulkWrite` operation: filters and updates are checked, and inserts and replacements take the
+ * input.
+ */
 type BulkWriteOperationCheck<S extends ModelSchema, O> = O extends { insertOne: unknown }
   ? { insertOne: { document: Input<S> } }
   : O extends { replaceOne: { filter: infer F } }
     ? {
         replaceOne: Omit<ReplaceOneModel<Output<S>>, 'filter' | 'replacement'> & {
-          filter: ModelFilter<S, F>
+          filter: FilterCheck<S, F>
           replacement: Input<S>
         }
       }
-    : O extends { updateOne: { filter: infer F } }
-      ? { updateOne: Omit<UpdateOneModel<Output<S>>, 'filter'> & { filter: ModelFilter<S, F> } }
-      : O extends { updateMany: { filter: infer F } }
-        ? { updateMany: Omit<UpdateManyModel<Output<S>>, 'filter'> & { filter: ModelFilter<S, F> } }
+    : O extends { updateOne: infer M extends { filter: unknown; update: unknown } }
+      ? { updateOne: BulkUpdateCheck<S, UpdateOneModel<Output<S>>, M> }
+      : O extends { updateMany: infer M extends { filter: unknown; update: unknown } }
+        ? { updateMany: BulkUpdateCheck<S, UpdateManyModel<Output<S>>, M> }
         : O extends { deleteOne: { filter: infer F } }
-          ? { deleteOne: Omit<DeleteOneModel<Output<S>>, 'filter'> & { filter: ModelFilter<S, F> } }
+          ? { deleteOne: Omit<DeleteOneModel<Output<S>>, 'filter'> & { filter: FilterCheck<S, F> } }
           : O extends { deleteMany: { filter: infer F } }
             ? {
                 deleteMany: Omit<DeleteManyModel<Output<S>>, 'filter'> & {
-                  filter: ModelFilter<S, F>
+                  filter: FilterCheck<S, F>
                 }
               }
             : 'an operation is insertOne, replaceOne, updateOne, updateMany, deleteOne or deleteMany'
@@ -133,27 +160,27 @@ export interface Model<S extends ModelSchema> {
   ): Promise<BulkWriteResult>
 
   /** Counts the documents that match the filter. */
-  countDocuments<const F extends ModelFilter<S, F>>(
-    filter?: F,
+  countDocuments<const F extends FilterCheck<S, F>>(
+    filter?: F & SuggestedFilter<S>,
     options?: CountDocumentsOptions & Abortable
   ): Promise<number>
 
   /** Deletes every document that matches the filter. */
-  deleteMany<const F extends ModelFilter<S, F>>(
-    filter?: F,
+  deleteMany<const F extends FilterCheck<S, F>>(
+    filter?: F & SuggestedFilter<S>,
     options?: DeleteOptions
   ): Promise<DeleteResult>
 
   /** Deletes the first document that matches the filter. */
-  deleteOne<const F extends ModelFilter<S, F>>(
-    filter?: F,
+  deleteOne<const F extends FilterCheck<S, F>>(
+    filter?: F & SuggestedFilter<S>,
     options?: DeleteOptions
   ): Promise<DeleteResult>
 
   /** The distinct values of a path among the documents that match the filter. */
-  distinct<const K extends string, const F extends ModelFilter<S, F>>(
+  distinct<const K extends string, const F extends FilterCheck<S, F>>(
     key: K & DistinctKey<S, K>,
-    filter?: F,
+    filter?: F & SuggestedFilter<S>,
     options?: DistinctOptions
   ): Promise<Array<Exclude<Flatten<core.output<FieldAt<S, K, 'filter'>>>, undefined>>>
 
@@ -164,49 +191,57 @@ export interface Model<S extends ModelSchema> {
    * Finds the documents that match the filter. The cursor can be awaited for the array, iterated
    * with `for await` and chained like the driver's.
    */
-  find<const F extends ModelFilter<S, F>, const Sort extends ModelSort<S, Sort>>(
-    filter?: F,
-    options?: Sorted<FindOptions, Sort> & Abortable
+  find<const F extends FilterCheck<S, F>, const Sort extends SortCheck<S, Sort>>(
+    filter?: F & SuggestedFilter<S>,
+    options?: Sorted<S, FindOptions, Sort> & Abortable
   ): ModelFindCursor<WithId<Output<S>>, S>
 
   /** Finds the first document that matches the filter. */
-  findOne<const F extends ModelFilter<S, F>, const Sort extends ModelSort<S, Sort>>(
-    filter?: F,
-    options?: Sorted<Omit<FindOneOptions, 'timeoutMode'>, Sort> & Abortable
+  findOne<const F extends FilterCheck<S, F>, const Sort extends SortCheck<S, Sort>>(
+    filter?: F & SuggestedFilter<S>,
+    options?: Sorted<S, Omit<FindOneOptions, 'timeoutMode'>, Sort> & Abortable
   ): Promise<WithId<Output<S>> | null>
 
   /** Deletes the first document that matches the filter and returns it. */
-  findOneAndDelete<const F extends ModelFilter<S, F>, const Sort extends ModelSort<S, Sort>>(
-    filter: F,
-    options: Sorted<FindOneAndDeleteOptions, Sort> & { includeResultMetadata: true }
+  findOneAndDelete<const F extends FilterCheck<S, F>, const Sort extends SortCheck<S, Sort>>(
+    filter: F & SuggestedFilter<S>,
+    options: Sorted<S, FindOneAndDeleteOptions, Sort> & { includeResultMetadata: true }
   ): Promise<ModifyResult<Output<S>>>
-  findOneAndDelete<const F extends ModelFilter<S, F>, const Sort extends ModelSort<S, Sort>>(
-    filter: F,
-    options?: Sorted<FindOneAndDeleteOptions, Sort>
+  findOneAndDelete<const F extends FilterCheck<S, F>, const Sort extends SortCheck<S, Sort>>(
+    filter: F & SuggestedFilter<S>,
+    options?: Sorted<S, FindOneAndDeleteOptions, Sort>
   ): Promise<WithId<Output<S>> | null>
 
   /** Replaces the first document that matches the filter, validated like `replaceOne`. */
-  findOneAndReplace<const F extends ModelFilter<S, F>, const Sort extends ModelSort<S, Sort>>(
-    filter: F,
+  findOneAndReplace<const F extends FilterCheck<S, F>, const Sort extends SortCheck<S, Sort>>(
+    filter: F & SuggestedFilter<S>,
     replacement: Input<S>,
-    options: Sorted<FindOneAndReplaceOptions, Sort> & { includeResultMetadata: true }
+    options: Sorted<S, FindOneAndReplaceOptions, Sort> & { includeResultMetadata: true }
   ): Promise<ModifyResult<Output<S>>>
-  findOneAndReplace<const F extends ModelFilter<S, F>, const Sort extends ModelSort<S, Sort>>(
-    filter: F,
+  findOneAndReplace<const F extends FilterCheck<S, F>, const Sort extends SortCheck<S, Sort>>(
+    filter: F & SuggestedFilter<S>,
     replacement: Input<S>,
-    options?: Sorted<FindOneAndReplaceOptions, Sort>
+    options?: Sorted<S, FindOneAndReplaceOptions, Sort>
   ): Promise<WithId<Output<S>> | null>
 
   /** Updates the first document that matches the filter and returns it. */
-  findOneAndUpdate<const F extends ModelFilter<S, F>, const Sort extends ModelSort<S, Sort>>(
-    filter: F,
-    update: UpdateFilter<Output<S>> | Document[],
-    options: Sorted<FindOneAndUpdateOptions, Sort> & { includeResultMetadata: true }
+  findOneAndUpdate<
+    const F extends FilterCheck<S, F>,
+    const U extends UpdateCheck<S, U, F, O>,
+    const O extends UpdateOptionsBase<FindOneAndUpdateOptions> & UpdateOptionsCheck<S, U, O>
+  >(
+    filter: F & SuggestedFilter<S>,
+    update: U & SuggestedUpdate<S>,
+    options: O & { includeResultMetadata: true }
   ): Promise<ModifyResult<Output<S>>>
-  findOneAndUpdate<const F extends ModelFilter<S, F>, const Sort extends ModelSort<S, Sort>>(
-    filter: F,
-    update: UpdateFilter<Output<S>> | Document[],
-    options?: Sorted<FindOneAndUpdateOptions, Sort>
+  findOneAndUpdate<
+    const F extends FilterCheck<S, F>,
+    const U extends UpdateCheck<S, U, F, O>,
+    const O extends UpdateOptionsBase<FindOneAndUpdateOptions> & UpdateOptionsCheck<S, U, O>
+  >(
+    filter: F & SuggestedFilter<S>,
+    update: U & SuggestedUpdate<S>,
+    options?: O
   ): Promise<WithId<Output<S>> | null>
 
   /**
@@ -232,23 +267,31 @@ export interface Model<S extends ModelSchema> {
    * insert, and its `_id` is written only when given: the one a `.default()` generates is dropped,
    * because the `_id` of a document cannot change.
    */
-  replaceOne<const F extends ModelFilter<S, F>, const Sort extends ModelSort<S, Sort>>(
-    filter: F,
+  replaceOne<const F extends FilterCheck<S, F>, const Sort extends SortCheck<S, Sort>>(
+    filter: F & SuggestedFilter<S>,
     replacement: Input<S>,
-    options?: Sorted<ReplaceOptions, Sort>
+    options?: Sorted<S, ReplaceOptions, Sort>
   ): Promise<UpdateResult<Output<S>>>
 
   /** Updates every document that matches the filter. */
-  updateMany<const F extends ModelFilter<S, F>>(
-    filter: F,
-    update: UpdateFilter<Output<S>> | Document[],
-    options?: UpdateOptions
+  updateMany<
+    const F extends FilterCheck<S, F>,
+    const U extends UpdateCheck<S, U, F, O>,
+    const O extends UpdateOptionsBase<UpdateOptions> & UpdateOptionsCheck<S, U, O>
+  >(
+    filter: F & SuggestedFilter<S>,
+    update: U & SuggestedUpdate<S>,
+    options?: O
   ): Promise<UpdateResult<Output<S>>>
 
   /** Updates the first document that matches the filter. */
-  updateOne<const F extends ModelFilter<S, F>, const Sort extends ModelSort<S, Sort>>(
-    filter: F,
-    update: UpdateFilter<Output<S>> | Document[],
-    options?: UpdateOptions & { sort?: Sort }
+  updateOne<
+    const F extends FilterCheck<S, F>,
+    const U extends UpdateCheck<S, U, F, O>,
+    const O extends UpdateOptionsBase<UpdateOptions> & UpdateOptionsCheck<S, U, O>
+  >(
+    filter: F & SuggestedFilter<S>,
+    update: U & SuggestedUpdate<S>,
+    options?: O
   ): Promise<UpdateResult<Output<S>>>
 }

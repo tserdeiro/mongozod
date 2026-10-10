@@ -37,7 +37,7 @@ type IsOperators<C> = C extends Leaf | ReadonlyArray<unknown>
       : false
 
 /** The schema of the elements of an array. */
-type ElementSchema<T> =
+export type ElementSchema<T> =
   Def<T> extends infer X
     ? X extends { innerType: infer I; type: Wrapper }
       ? ElementSchema<I>
@@ -66,6 +66,17 @@ type Only<Applies, Then, Message extends string> = Applies extends true ? Then :
 
 /** `$elemMatch` takes operators on the element, or a filter on its fields. */
 type ElemMatchCheck<E, C> = IsOperators<C> extends true ? OperatorsCheck<E, C> : FilterCheck<E, C>
+
+/**
+ * A condition on the elements of an array, as `$pull` takes it: operators, a value, or a filter on
+ * the fields of an element that is an object.
+ */
+export type ElementConditionCheck<E, C> =
+  IsOperators<C> extends true
+    ? OperatorsCheck<E, C>
+    : C extends Leaf
+      ? Value<core.output<E>>
+      : FilterCheck<E, C>
 
 /** `$not` takes operators or a regular expression. */
 type NotCheck<T, C> = C extends BSONRegExp | RegExp
@@ -126,13 +137,14 @@ type OperatorCheck<T, Op, C, V = core.output<T>> = Op extends '$eq' | '$ne'
 type OperatorsCheck<T, C> = { [Op in keyof C]: OperatorCheck<T, Op, C[Op]> }
 
 /** A condition on one field: a value, or an object with operators. */
-type ConditionCheck<T, C> = C extends unknown
+export type ConditionCheck<T, C> = C extends unknown
   ? IsOperators<C> extends true
     ? OperatorsCheck<T, C>
     : Value<core.output<T>>
   : never
 
-type KeyCheck<S, K extends string, C> = string extends K
+/** Checks one key of a filter and its condition. */
+export type KeyCheck<S, K extends string, C> = string extends K
   ? 'a filter key must be a literal path'
   : K extends `$${string}`
     ? `"${K}" is not a filter operator`
@@ -180,5 +192,9 @@ export type SuggestedFilter<S> = {
   ]?: unknown
 }
 
-/** A filter on the documents of a schema: what the model's operations take. */
+/**
+ * A filter on the documents of a schema, for a function that takes one and passes it to the model.
+ * The model's operations check `FilterCheck` in the type parameter and take `SuggestedFilter` in
+ * the parameter, which costs less to compile.
+ */
 export type ModelFilter<S, F> = FilterCheck<S, F> & SuggestedFilter<S>

@@ -1,5 +1,5 @@
 import type { ModelSchema } from './model'
-import type { ModelSort } from './sort'
+import type { SortCheck, SuggestedSort } from './sort'
 import type { Document, FindCursor, Sort } from 'mongodb'
 
 import { ModelCursor } from './model-cursor'
@@ -18,7 +18,7 @@ export class ModelFindCursor<T, S extends ModelSchema = ModelSchema> extends Mod
   }
 
   /** Sets the sort order, with the keys checked against the schema. */
-  sort<const SortSpec extends ModelSort<S, SortSpec>>(sort: SortSpec): this
+  sort<const SortSpec extends SortCheck<S, SortSpec>>(sort: SortSpec & SuggestedSort<S>): this
   sort(sort: Sort): this {
     // oxlint-disable-next-line unicorn/no-array-sort -- the driver's cursor method, not `Array#sort`
     this.#cursor.sort(sort)

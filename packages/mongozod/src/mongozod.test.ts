@@ -290,6 +290,82 @@ describe('filters', () => {
   })
 })
 
+describe('updates', () => {
+  test('are checked against the schema and run as the driver runs them', async () => {
+    const { insertedId } = await NotesModel.insertOne({ tags: ['home'], title: 'One' })
+
+    await NotesModel.updateOne(
+      { _id: insertedId },
+      { $push: { tags: 'work' }, $set: { 'author.name': 'Ana' } }
+    )
+
+    expect(await NotesModel.findOne({ _id: insertedId })).toMatchObject({
+      author: { name: 'Ana' },
+      tags: ['home', 'work']
+    })
+
+    // @ts-expect-error a title is required, so it cannot be unset
+    await NotesModel.updateMany({}, { $unset: { title: '' } }).catch(() => undefined)
+    // @ts-expect-error tags is not a number
+    await NotesModel.updateOne({}, { $inc: { tags: 1 } }).catch(() => undefined)
+  })
+
+  test('check arrayFilters against the identifiers of the update', async () => {
+    const ConnectionsModel = mongozod({
+      collection: 'connections',
+      db,
+      schema: z.object({
+        accounts: z.array(z.object({ _id: z.string(), enabled: z.boolean() })),
+        name: z.string()
+      })
+    })
+
+    await ConnectionsModel.insertOne({
+      accounts: [
+        { _id: 'a', enabled: false },
+        { _id: 'b', enabled: false }
+      ],
+      name: 'Ads'
+    })
+    await ConnectionsModel.updateOne(
+      { name: 'Ads' },
+      { $set: { 'accounts.$[account].enabled': true } },
+      { arrayFilters: [{ 'account._id': 'b' }] }
+    )
+
+    expect(await ConnectionsModel.distinct('accounts.enabled', { 'accounts._id': 'b' })).toEqual([
+      false,
+      true
+    ])
+
+    expectTypeOf(() =>
+      // @ts-expect-error $[account] needs arrayFilters
+      ConnectionsModel.updateOne({}, { $set: { 'accounts.$[account].enabled': true } })
+    ).toBeFunction()
+  })
+
+  test('check the updates of bulkWrite and findOneAndUpdate', async () => {
+    const { insertedId } = await NotesModel.insertOne({ title: 'One' })
+    const updated = await NotesModel.findOneAndUpdate(
+      { _id: insertedId },
+      { $set: { title: 'Two' } },
+      { returnDocument: 'after' }
+    )
+
+    expect(updated).toMatchObject({ title: 'Two' })
+    expect(
+      await NotesModel.bulkWrite([
+        { updateOne: { filter: { _id: insertedId }, update: { $addToSet: { tags: 'x' } } } }
+      ])
+    ).toMatchObject({ modifiedCount: 1 })
+
+    expectTypeOf(() =>
+      // @ts-expect-error an element of tags is a string
+      NotesModel.bulkWrite([{ updateMany: { filter: {}, update: { $addToSet: { tags: 1 } } } }])
+    ).toBeFunction()
+  })
+})
+
 describe('db', () => {
   test('resolves a function on the first operation, once', async () => {
     const getDb = vi.fn<() => Db>(() => db)

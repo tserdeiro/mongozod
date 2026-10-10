@@ -1,4 +1,4 @@
-import type { ModelFilter } from './filter'
+import type { FilterCheck } from './filter'
 import type { Document } from 'mongodb'
 
 /** The stages that keep the documents of the collection as they are. */
@@ -11,7 +11,7 @@ type KeepsDocuments = { $limit: unknown } | { $skip: unknown } | { $sort: unknow
  */
 export type PipelineCheck<S, P> = [P] extends [readonly [infer Stage, ...infer Rest]]
   ? Stage extends { $match: infer F }
-    ? readonly [{ $match: ModelFilter<S, F> }, ...PipelineCheck<S, Rest>]
+    ? readonly [{ $match: FilterCheck<S, F> }, ...PipelineCheck<S, Rest>]
     : Stage extends KeepsDocuments
       ? readonly [Stage, ...PipelineCheck<S, Rest>]
       : readonly Document[]

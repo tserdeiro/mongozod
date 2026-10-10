@@ -1,7 +1,8 @@
-export type { ModelFilter } from './filter'
+export type { FilterCheck, ModelFilter, SuggestedFilter } from './filter'
 export type { BulkWriteCheck, Input, Model, ModelSchema, Output } from './model'
 export type { PipelineCheck } from './pipeline'
-export type { ModelSort, SortDirection } from './sort'
+export type { ModelSort, SortCheck, SortDirection, SuggestedSort } from './sort'
+export type { ModelUpdate, SuggestedUpdate, UpdateCheck, UpdateOptionsCheck } from './update'
 export type { MongozodOptions } from './mongozod'
 
 export { ModelCursor } from './model-cursor'

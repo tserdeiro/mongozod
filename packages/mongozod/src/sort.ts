@@ -22,7 +22,8 @@ export type SortCheck<S, Sort> = {
     : never
 }
 
-/** A sort on the documents of a schema, with the keys the editor suggests. */
-export type ModelSort<S, Sort> = SortCheck<S, Sort> & {
-  [K in PathSuggestions<S, 'filter'> | '_id']?: SortDirection
-}
+/** The keys the editor suggests in a sort. The checks come from `SortCheck`. */
+export type SuggestedSort<S> = { [K in PathSuggestions<S, 'filter'> | '_id']?: SortDirection }
+
+/** A sort on the documents of a schema, for a function that takes one and passes it to the model. */
+export type ModelSort<S, Sort> = SortCheck<S, Sort> & SuggestedSort<S>
