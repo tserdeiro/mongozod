@@ -2,8 +2,8 @@
 
 El orden de implementación. Al cerrar una fase, se marca acá en el mismo cambio.
 
-1. **Estructura del proyecto**: las herramientas del repo (paquetes, build, tests, lint y formato),
-   el CI y los releases. Ver [Estructura del repo](./structure.md).
+1. **Estructura del proyecto** (hecho): las herramientas del repo (paquetes, build, tests, lint y
+   formato), el CI y los releases. Ver [Estructura del repo](./structure.md#herramientas).
 2. **Modelo**, en este orden:
    1. Las operaciones y la validación al escribir. Ver [El modelo](./model.md) y
       [Operaciones](./operations.md).

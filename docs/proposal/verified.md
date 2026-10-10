@@ -221,3 +221,13 @@
     omite el campo y un `$set` con `undefined` deja el valor anterior. Zod tiene `.exactOptional()`
     y `.exactPartial()` para rechazar el `undefined` explícito.
   - Mongoose descarta las keys en `undefined` de los updates desde la versión 6.
+
+- **Herramientas del repo** (pnpm 12.11.2, Node 22.23.2, Bun 1.4.3):
+  - Vitest 5, tsdown 0.23 y Changesets 3 piden Node 22.12 o superior, y Node 20 llegó al final de su
+    vida el 2026-04-30. El driver 7 todavía acepta Node 20.19.
+  - Vitest corre con `bun --bun` dentro de Bun (`typeof Bun` es `object`) contra el replica set de
+    mongodb-memory-server con MongoDB 8.2.6, y una transacción con `withTransaction` funciona. Bun
+    1.3.13 fallaba al importar `bson` 7.3 (oven-sh/bun#32501, cerrado); 1.4.3 ya no.
+  - tsdown emite los `.d.ts` con TypeScript 7.0.2 a través de tsgo, y attw y publint no encuentran
+    problemas en el tarball.
+  - El lint con tipos marca una promesa sin `await` (`no-floating-promises`) y un `as`.
