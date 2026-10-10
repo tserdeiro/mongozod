@@ -19,7 +19,16 @@ const noteSchema = z.object({
   views: z.number().int().default(0)
 })
 
-const NotesModel = mongozod({ collection: 'notes', db, schema: noteSchema })
+const NotesModel = mongozod({
+  collection: 'notes',
+  db,
+  indexes: [
+    { key: { 'author.name': 1, 'createdAt': -1 } },
+    { key: { title: 1 }, partialFilterExpression: { views: { $gt: 0 } }, unique: true }
+  ],
+  jsonSchema: { validationLevel: 'moderate' },
+  schema: noteSchema
+})
 
 const EventsModel = mongozod({
   collection: 'events',
@@ -31,7 +40,13 @@ const EventsModel = mongozod({
 })
 
 const timestampSchema = z
-  .union([z.date(), z.iso.datetime().transform((value) => new Date(value))])
+  .union([
+    z.date(),
+    z.codec(z.iso.datetime(), z.date(), {
+      decode: (iso) => new Date(iso),
+      encode: (date) => date.toISOString()
+    })
+  ])
   .default(() => new Date())
 
 const PostsModel = mongozod({
@@ -156,5 +171,23 @@ export async function usage() {
   // @ts-expect-error amount is not a reference
   await TransactionsModel.find({}, { populate: { amount: true } })
 
-  return { approvers, counts, creator, distinctTags, firstName, fullName, tags, titles, total }
+  const { extraIndexes, indexes } = await NotesModel.sync()
+  const legacy: Array<string | undefined> = extraIndexes.map((index) => index.name)
+
+  // @ts-expect-error "titel" is not a path of the document
+  mongozod({ collection: 'notes', db, indexes: [{ key: { titel: 1 } }], schema: noteSchema })
+
+  return {
+    approvers,
+    counts,
+    indexes,
+    legacy,
+    creator,
+    distinctTags,
+    firstName,
+    fullName,
+    tags,
+    titles,
+    total
+  }
 }

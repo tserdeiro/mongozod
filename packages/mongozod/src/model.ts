@@ -42,6 +42,7 @@ import type {
   FindOneOptions,
   FindOptions,
   Flatten,
+  IndexDescriptionInfo,
   InsertManyResult,
   InsertOneOptions,
   InsertOneResult,
@@ -193,6 +194,15 @@ export type BulkWriteCheck<
   BulkOptions = unknown
 > = {
   [I in keyof Operations]: BulkWriteOperationCheck<S, Operations[I], N, BulkOptions>
+}
+
+/** What `sync()` did, and the indexes it left as they are. */
+export interface SyncResult {
+  /** The names of the declared indexes, created now or already there. */
+  indexes: string[]
+
+  /** The indexes of the collection that the model does not declare. `sync()` never drops one. */
+  extraIndexes: IndexDescriptionInfo[]
 }
 
 /**
@@ -402,6 +412,14 @@ export interface Model<
     replacement: Input<S>,
     options?: Sorted<S, ReplaceOptions, Sort> & TimestampsOperationOption<N>
   ): Promise<UpdateResult<Output<S>>>
+
+  /**
+   * Prepares the collection on the server: applies the `$jsonSchema` when the model asks for it,
+   * and creates the declared indexes. It never drops an index: an existing one that differs from
+   * the declared fails with the driver's error, and the undeclared ones are returned in
+   * `extraIndexes`. Call it when deploying, not on each operation.
+   */
+  sync(): Promise<SyncResult>
 
   /** Updates every document that matches the filter. */
   updateMany<

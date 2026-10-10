@@ -20,9 +20,15 @@ beforeAll(() => client.connect())
 afterAll(() => client.close())
 beforeEach(() => db.dropDatabase())
 
-/** The documented form: an ISO date or a Date, transformed into a Date, with a default. */
+/** The documented form: a Date, or an ISO date that a codec decodes into one, with a default. */
 const timestampSchema = z
-  .union([z.date(), z.iso.datetime().transform((value) => new Date(value))])
+  .union([
+    z.date(),
+    z.codec(z.iso.datetime(), z.date(), {
+      decode: (iso) => new Date(iso),
+      encode: (date) => date.toISOString()
+    })
+  ])
   .default(() => new Date())
 
 const noteSchema = z.object({

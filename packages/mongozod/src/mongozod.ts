@@ -1,4 +1,6 @@
-import type { Model, ModelSchema, None } from './model'
+import type { IndexesCheck } from './indexes'
+import type { JsonSchemaOption } from './json-schema'
+import type { Model, ModelSchema, None, SyncResult } from './model'
 import type { ReadContext, ReadPlan } from './read-plan'
 import type { ReferenceTarget, References, UnknownReferences } from './references'
 import type { Timestamps, TimestampNamesOf, TimestampsCheck, TimestampsOption } from './timestamps'
@@ -10,14 +12,17 @@ import type {
   Collection,
   Db,
   Document,
+  IndexDescription,
   ModifyResult,
   WithId
 } from 'mongodb'
 import type * as core from 'zod/v4/core'
 
+import { MongoServerError } from 'mongodb'
 import { z } from 'zod'
 
 import { checkFieldNames } from './check-field-names'
+import { toJsonSchema } from './json-schema'
 import { ModelCursor, processBatches } from './model-cursor'
 import { ModelFindCursor } from './model-find-cursor'
 import { parseDocument } from './parse-document'
@@ -34,7 +39,8 @@ export interface MongozodOptions<
   S extends ModelSchema,
   T extends TimestampsOption = false,
   V = None,
-  R = None
+  R = None,
+  I = readonly []
 > {
   /** The name of the collection. */
   collection: string
@@ -44,6 +50,21 @@ export interface MongozodOptions<
    * operation, so the model can be defined before the connection is ready.
    */
   db: Db | (() => Db)
+
+  /**
+   * The indexes that `sync()` creates, in the driver's form: each key is a path of the document,
+   * and `partialFilterExpression` is checked like a filter.
+   *
+   * @example
+   *   indexes: [{ key: { organization: 1, createdAt: -1 } }, { key: { slug: 1 }, unique: true }]
+   */
+  indexes?: I
+
+  /**
+   * Applies a `$jsonSchema` generated from the schema when `sync()` runs, so that the server also
+   * checks the structure of each document: `true`, or the validation level and action.
+   */
+  jsonSchema?: JsonSchemaOption
 
   /**
    * The fields that store the `_id` of another document, or an array of them, which `populate`
@@ -67,7 +88,11 @@ export interface MongozodOptions<
    * them, taking a `Date` and with a `.default()`. Off by default.
    *
    * @example
-   *   createdAt: z.union([z.date(), z.iso.datetime().transform((value) => new Date(value))]).default(() => new Date())
+   *   const isoToDate = z.codec(z.iso.datetime(), z.date(), {
+   *     decode: (iso) => new Date(iso),
+   *     encode: (date) => date.toISOString()
+   *   })
+   *   const timestampSchema = z.union([z.date(), isoToDate]).default(() => new Date())
    */
   timestamps?: T
 
@@ -82,6 +107,11 @@ export interface MongozodOptions<
    *     .transform((account) => `${account.firstName} ${account.lastName}`)
    */
   virtuals?: V
+}
+
+/** Whether the server answered that the collection does not exist. */
+function isNamespaceNotFound(error: unknown) {
+  return error instanceof MongoServerError && error.code === 26
 }
 
 /**
@@ -119,11 +149,15 @@ export function mongozod<
   // oxlint-disable-next-line typescript/no-generated-empty-object-type -- empty only without virtuals
   const V extends VirtualsCheck<S, V> = None,
   // oxlint-disable-next-line typescript/no-generated-empty-object-type -- keyed by the fields of the schema
-  const R extends References<S> = None
->(options: MongozodOptions<S, T, V, R> & TimestampsCheck<S, T>): Model<S, TimestampNamesOf<T>, V, R>
+  const R extends References<S> = None,
+  const I extends ReadonlyArray<IndexDescription> & IndexesCheck<S, I> = readonly []
+>(
+  options: MongozodOptions<S, T, V, R, I> & TimestampsCheck<S, T>
+): Model<S, TimestampNamesOf<T>, V, R>
 // The implementation works with plain documents: the signature above types them with the schema.
 export function mongozod(
   options: MongozodOptions<ModelSchema, TimestampsOption> & {
+    indexes?: readonly IndexDescription[]
     references?: Record<string, ReferenceTarget>
     virtuals?: Virtuals
   }
@@ -467,6 +501,44 @@ export function mongozod(
       )
 
       return getCollection().replaceOne(filter, document, driverOptions)
+    },
+
+    async sync(): Promise<SyncResult> {
+      if (options.jsonSchema) {
+        const validation: Document =
+          typeof options.jsonSchema === 'object' ? { ...options.jsonSchema } : {}
+
+        validation.validator = { $jsonSchema: toJsonSchema(options.schema) }
+        validation.validationLevel ??= 'strict'
+        validation.validationAction ??= 'error'
+
+        try {
+          await getDb().command({ collMod: options.collection, ...validation })
+        } catch (error) {
+          // `collMod` needs the collection: create it with the validator.
+          if (!isNamespaceNotFound(error)) throw error
+
+          await getDb().createCollection(options.collection, validation)
+        }
+      }
+
+      const declared = options.indexes ?? []
+      const indexes = declared.length > 0 ? await getCollection().createIndexes([...declared]) : []
+      const existing = await getCollection()
+        .indexes()
+        .catch((error: unknown) => {
+          // A collection without indexes or a validator may not exist yet.
+          if (isNamespaceNotFound(error)) return []
+
+          throw error
+        })
+
+      return {
+        extraIndexes: existing.filter(
+          (index) => index.name !== '_id_' && !indexes.includes(index.name ?? '')
+        ),
+        indexes
+      }
     },
 
     async updateMany(filter: Document, update: Document, updateOptions?: Document) {
