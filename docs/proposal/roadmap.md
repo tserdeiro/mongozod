@@ -20,7 +20,8 @@ El orden de implementación. Al cerrar una fase, se marca acá en el mismo cambi
       [Paths con punto](./types.md#paths-con-punto) y la fila «Updates» de las
       [decisiones acordadas](./README.md#decisiones-acordadas).
    4. `timestamps` (hecho). Ver [Timestamps](./model.md#timestamps).
-   5. Las referencias y los virtuals. Ver [El modelo](./model.md).
+   5. Las referencias y los virtuals (hecho). Ver [Referencias](./model.md#referencias) y
+      [Virtuals](./model.md#virtuals).
    6. `sync()`: los índices y el `$jsonSchema`. Ver la fila «Servidor» de las
       [decisiones acordadas](./README.md#decisiones-acordadas).
 3. **Plugins**: `definePlugin` y [`softDelete`](./plugins/soft-delete.md). Ver [Plugins](./plugins/README.md).

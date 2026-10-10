@@ -12,7 +12,7 @@
     `.project()`.
   - Los inputs de `brands` y su router sin fallbacks.
   - `populate` hacia una colección y hacia otro modelo, incluso entre dos modelos que se referencian
-    entre sí.
+    entre sí, con una referencia por modelo. Ver **Referencias y virtuals** más abajo.
 
   Cada uno de estos casos falla por el motivo correcto:
   - `withDeleted` como opción de lectura, ahora que el plugin no agrega opciones.
@@ -379,6 +379,47 @@
     un schema sin el campo, sin default, con otro tipo o sin el campo en un tipo de una unión no
     compila y lanza al definir el modelo.
   - El consumidor de los `.d.ts` publicados compila un modelo con timestamps con TS 5.5 y 7.
+
+- **Referencias y virtuals** (driver 7.7.0, MongoDB 8.2.6, Zod 4.6.5, TypeScript 5.5.4 y 7.0.2, y
+  los tres proyectos):
+  - Hoy, `populate` se usa en 8 llamadas de adsgpt, todas con el `input.populate` de un `find` o un
+    `findOne`; en 39 de wortise-dashboard-monorepo, de las cuales 3 están escritas en el servidor y 6
+    las manda el cliente; y en ninguna de app-maker. Todas las referencias guardan un id, salvo
+    `advertisers` en las cuentas de wortise-dashboard-monorepo, que no se popula. Ninguna usa paths
+    con punto ni otro campo que el `_id`.
+  - `MongoModel` lee la colección referenciada directamente: no aplica el soft delete del destino
+    ni sus virtuals, y un documento que falta deja el id. campaign-reports de
+    wortise-dashboard-monorepo responde NOT_FOUND con `typeof campaign !== 'string'`.
+  - Mongoose deja `null` cuando el documento referenciado no existe, y quita los que faltan de un
+    array.
+  - El driver lee un lote con `hasNext()`, que trae el siguiente cuando no quedan documentos, y
+    `readBufferedDocuments()`. Un `findOneAnd…` sin `includeResultMetadata` devuelve el `value` del
+    `ModifyResult`, o `null`.
+  - Dos modelos que se referencian, uno que se referencia a sí mismo, o uno con dos referencias al
+    mismo modelo dan `TS7022` en TypeScript 7 si `references` restringe el tipo del destino, aunque
+    sea a `() => unknown`. Con el valor sin restringir compilan, en los `.d.ts` publicados también
+    con TS 5.5.
+  - `schema.pick(…).transform(…)` de Zod y `z.pipe(z.pick(…), z.transform(…))` de Zod Mini guardan el
+    objeto que toman en el `in` del pipe.
+  - 14 tests de virtuals: una lectura los agrega, también en `findOne`, en un `findOneAnd…` y en un
+    `for await` por lotes; una proyección que pide uno trae sus campos y devuelve solo lo pedido,
+    con o sin `_id`; una exclusión lo quita si deja afuera un campo que lee, o una parte; pedirlo y
+    cambiar un campo que lee no compila y lanza; un documento inválido lanza un `ZodError`; no está
+    en el `document` de un insert; no se filtra, ordena ni escribe; y un nombre de campo, un campo
+    que falta, otro tipo, un schema que no toma un objeto o un campo que falta en un tipo de una
+    unión no compilan, y los que se pueden ver en runtime lanzan al definir el modelo.
+  - 18 tests de referencias: `populate` a otro modelo aplica sus virtuals, y a una colección con su
+    schema lee esa colección; `true` trae el documento entero; un faltante queda en `null` y un array
+    guarda los encontrados; un `_id: 0` en la proyección del destino funciona; anda en los
+    `findOneAnd…` y entre dos modelos que se referencian; una inclusión trae la referencia y una
+    exclusión que la excluye no compila y lanza; hace una consulta `$in` por lote y cierra el cursor
+    si el loop corta antes; ve las escrituras de la transacción de la lectura; un `populate` de
+    runtime deja la unión con el id; una key que no es referencia lanza un `ZodError`; y una
+    referencia que no es un campo, un destino inválido o un campo con otro tipo que el `_id` del
+    destino no compilan.
+  - Costo de tipos en un consumidor de las declaraciones: el mismo uso de antes pasa de 35,7 mil a
+    36,5 mil instanciaciones, con el mismo tiempo de chequeo. Dos modelos con virtuals y referencias y
+    seis llamadas suman 11 mil más y 5 ms.
 
 - **Herramientas del repo** (pnpm 12.11.2, Node 22.23.2, Bun 1.4.3):
   - Vitest 5, tsdown 0.23 y Changesets 3 piden Node 22.12 o superior, y Node 20 llegó al final de su

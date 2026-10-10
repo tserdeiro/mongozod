@@ -25,13 +25,13 @@ export const NotesModel = mongozod({
   (`db.client`), que hace falta para sesiones y transacciones.
 - **`indexes`**: los índices que crea `sync()`, con las claves tipadas contra el schema.
 - **`plugins`**: los plugins del modelo, en el orden en que se aplican.
-- **`references`**: los campos que guardan el `_id` de otra colección, lo que `populate` puede
-  expandir. Se describen en [Inputs de los endpoints](./inputs.md#decisiones-de-los-inputs).
+- **`references`**: los campos que guardan el `_id` de otro documento, que `populate` reemplaza
+  por el documento. Ver [Referencias](#referencias).
 - **`timestamps`**: completa `createdAt` y `updatedAt`. Ver [Timestamps](#timestamps).
 - **`virtuals`**: campos calculados a partir de otros, que no se guardan. Ver [Virtuals](#virtuals).
 
-El modelo expone `.schema`, `.collection` (el `Collection` tipado del driver), `.db` y `.name`.
-Además tiene las operaciones, `sync()` y los métodos de sus plugins.
+El modelo expone `.schema`, `.collection` (el `Collection` tipado del driver), `.db`, `.name` y
+`.virtuals`. Además tiene las operaciones, `sync()` y los métodos de sus plugins.
 
 ## Timestamps
 
@@ -73,6 +73,64 @@ objeto por campo. Está apagada por defecto.
   modelos con timestamps, y mongozod la quita antes de llamar al driver.
 - **Borrados**: un borrado de `softDelete` es un update, así que también completa `updatedAt`.
 
+## Referencias
+
+`references` declara los campos que guardan el `_id` de otro documento, lo que el manual de MongoDB
+llama references. `populate` los reemplaza por los documentos en `find`, `findOne` y las
+`findOneAnd*`, las operaciones que devuelven documentos. Mongoose también popula en
+`findOneAndUpdate`, y así un update que devuelve el documento no necesita otra consulta:
+
+```ts
+export const TransactionsModel = mongozod({
+  schema: transactionSchema,
+  collection: 'transactions',
+  db,
+  references: {
+    createdBy: () => AccountsModel,
+    organization: { collection: 'organizations', schema: organizationSchema }
+  }
+})
+
+await TransactionsModel.find({}, { populate: { createdBy: { fullName: 1 }, organization: true } })
+```
+
+- **Destinos**: una función que devuelve otro modelo, así se aplican sus plugins y sus virtuals, o
+  una colección con su schema, para las que no tienen modelo, como las de Better Auth. Dos modelos
+  pueden referenciarse entre sí, y un modelo a sí mismo, como el `parent` de las cuentas de
+  wortise-dashboard-monorepo.
+- **Campos**: un campo de primer nivel que guarda un id o un array de ids, en uno o más tipos de
+  documento. Todas las referencias de los tres proyectos guardan un id; el único array es
+  `advertisers`, en las cuentas de wortise-dashboard-monorepo, como lo soporta hoy MongoModel. Ni
+  paths con punto, ni otro campo que el `_id` del destino, ni `populate` dentro de `populate`:
+  nadie los usa, y wortise-dashboard-monorepo resuelve `organization.owner` con una segunda
+  consulta.
+- **Valores**: `true` trae el documento entero, como el `include: { author: true }` de Prisma y el
+  `with` de Drizzle. Una proyección trae esos campos y se chequea como la del modelo referenciado,
+  con sus virtuals.
+- **Faltantes**: un documento que no existe, o que un plugin del destino filtra, queda en `null`,
+  como en Mongoose, y un array guarda los que encuentra. El tipo es `Ref | null`, así que el código
+  lo maneja con `?.` sin chequear `typeof`. MongoModel dejaba el id.
+- **Consultas**: una `$in` por referencia y por lote del servidor, con cada id una vez y la sesión
+  de la lectura, así ve las escrituras de su transacción. Las referencias de un lote se consultan
+  en paralelo.
+- **Con una proyección**: una inclusión trae igual las referencias que se populan, como trae los
+  campos de un virtual. Una exclusión que deja afuera una referencia que se popula no compila y
+  lanza un `ZodError`. Si la proyección del destino deja afuera el `_id`, mongozod lo pide igual
+  para ubicar cada documento y después lo quita.
+- **Chequeos**: no compila un `populate` con una key que no es una referencia, ni el de un campo
+  que guarda otro tipo que el `_id` de su destino, porque el `$in` no encontraría nada. En runtime,
+  una key que no es una referencia lanza un `ZodError`, con el issue en `['populate', key]`. Una
+  referencia que no es un campo del schema no compila y lanza un `Error` al definir el modelo.
+- **Dónde se chequea el destino**: al pedir el `populate`, no al declarar la referencia. Chequearlo
+  al declararla hace circulares los tipos de dos modelos que se referencian, de un modelo que se
+  referencia a sí mismo y de uno con dos referencias al mismo modelo (`TS7022`). Por eso el tipo de
+  un modelo referenciado solo pide su `schema` y sus `virtuals`, y `populate` lee con el `find` que
+  `mongozod()` registra para cada modelo. Un destino que no es una función ni
+  `{ collection, schema }` lanza un `Error` al definir el modelo.
+- **Para clientes**: un `populate` que llega en runtime, como el de `mz.populate`, deja cada
+  referencia como unión con el id, porque puede no haberse pedido. Ver
+  [Inputs de los endpoints](./inputs.md#decisiones-de-los-inputs).
+
 ## Virtuals
 
 El único virtual de los tres proyectos es `fullName`, en las cuentas de wortise-dashboard-monorepo:
@@ -94,14 +152,29 @@ export const AccountsModel = mongozod({
   calcula, así que el `transform` recibe solo esos campos, tipados. Es un objeto literal sin helper,
   porque cada virtual ya trae sus tipos, y se puede definir junto al schema y usar también en el
   cliente. better-auth no tiene un equivalente: ni `additionalFields` ni `customSession` declaran de
-  qué campos depende un valor.
+  qué campos depende un valor. Con Zod Mini es `z.pipe(z.pick(accountSchema, { … }), z.transform(…))`:
+  mongozod lee los campos del objeto al principio de los pipes.
 - **Chequeos**: no compila un virtual que lee un campo que el documento no tiene, ni uno que lo lee
-  con otro tipo. mongozod vuelve a validar los campos del `pick` en cada lectura, así que un campo
-  cuyo transform cambia el tipo no se puede tomar: tampoco compila.
+  con otro tipo, ni uno que se llama como un campo. En runtime, el primero y el último lanzan un
+  `Error` al definir el modelo. mongozod vuelve a validar los campos del `pick` en cada lectura, así
+  que un campo cuyo transform cambia el tipo no se puede tomar: tampoco compila.
+- **Varios tipos**: los campos que lee un virtual tienen que estar en todos los tipos de documento,
+  como los de `timestamps`, así el virtual existe en todos y tiene un solo tipo.
+- **Dónde**: en las mismas lecturas que `populate`: `find`, `findOne` y las `findOneAnd*`. El
+  `document` de `insertOne` sigue siendo exactamente lo que se guardó.
+- **Datos inválidos**: si un documento guardado no pasa el schema de un virtual, como un dato
+  viejo, la lectura lanza el `ZodError`, con el path del campo. Omitir el virtual obligaría a tipar
+  todos como opcionales.
 - **Proyección**: si pide un virtual, mongozod le pide al servidor los campos del `pick`, lo calcula
   y devuelve solo lo pedido: `{ fullName: 1 }` da `{ _id, fullName }`. Una exclusión lo mantiene,
-  salvo que excluya uno de esos campos. Hoy la tabla de billings de wortise-dashboard-monorepo tiene
-  que pedir `firstName` y `lastName` para recibir `fullName`.
+  salvo que excluya uno de esos campos o una parte. Hoy la tabla de billings de
+  wortise-dashboard-monorepo tiene que pedir `firstName` y `lastName` para recibir `fullName`. Un
+  virtual toma 0, 1, `true` o `false`.
+- **Campos cambiados**: el virtual se calcula con los campos tal como están guardados, así que una
+  proyección que lo pide y cambia uno de sus campos, con un subcampo
+  (`{ 'name.first': 1, fullName: 1 }`), `$slice` o `$elemMatch`, no compila y lanza un `ZodError`.
+  Pedir el campo entero chocaría con el subcampo (código 31249), y recortarlo después sería
+  reimplementar la proyección de MongoDB.
 - **`populate`**: pasa por el modelo referenciado, así que aplica sus virtuals:
   `{ createdBy: { fullName: 1 } }` da `createdBy: { _id, fullName }`.
 - **Listas blancas**: los schemas de validación no importan modelos, así que una lista blanca de

@@ -113,7 +113,8 @@ manda `{ createdAt, _id }` del último elemento de la página.
      plugins. O una colección con su schema, para las que no tienen modelo, como `organizations`,
      que maneja Better Auth.
    - **`populate`**: usa la sintaxis de proyección de Mongo por referencia,
-     `{ organization: { name: 1 } }`.
+     `{ organization: { name: 1 } }`, o `true` para el documento entero. Ver
+     [Referencias](./model.md#referencias).
    - **Para clientes**: `mz.populate` recibe la lista blanca como un schema recortado con `pick`,
      como hoy. Solo admite inclusión, y una referencia pedida sin campos recibe toda la lista
      blanca, nunca más.
