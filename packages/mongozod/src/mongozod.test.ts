@@ -548,5 +548,9 @@ describe('schemas', () => {
         schema: z.object({ metadata: z.record(z.string(), z.number()), root: nodeSchema })
       })
     ).not.toThrow()
+    // Each call to the getter of `z.json()` builds a new schema.
+    expect(() =>
+      mongozod({ collection: 'events', db, schema: z.object({ payload: z.json() }) })
+    ).not.toThrow()
   })
 })
