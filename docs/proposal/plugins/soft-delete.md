@@ -38,97 +38,50 @@ opciones ni métodos: todo se expresa con filtros de Mongo.
 
 ## Código
 
+Vive en `packages/mongozod/src/plugins/soft-delete.ts`. La regla y los hooks:
+
 ```ts
-import type { Document } from 'mongodb'
-import type { Filter } from 'mongozod'
-
-import { definePlugin } from 'mongozod'
-import { z } from 'zod'
-
-const LOGICAL_OPERATORS = new Set(['$and', '$nor', '$or'])
-
 /** Without `deletedAt`. Unlike `deletedAt: null`, an upsert does not copy it into the new document. */
 const NOT_DELETED = { deletedAt: { $exists: false } }
 
-/**
- * True when the filter already says something about `deletedAt`, here or inside
- * `$and`/`$or`/`$nor`.
- */
-function mentionsDeletedAt(filter: Filter<Document>): boolean {
-  return Object.entries(filter).some(
-    ([key, value]) =>
-      key === 'deletedAt' ||
-      (LOGICAL_OPERATORS.has(key) && Array.isArray(value) && value.some(mentionsDeletedAt))
-  )
-}
-
 /** Adds the soft delete condition, unless the caller's filter already decides about `deletedAt`. */
-function excludeDeleted(filter: Filter<Document>): Filter<Document> {
+function excludeDeleted(filter: Document = {}): Document {
   if (mentionsDeletedAt(filter)) return filter
 
   return { $and: [filter, NOT_DELETED] }
 }
 
-/**
- * Soft delete. Reads and updates skip documents with `deletedAt`, and deletes stamp it instead of
- * removing the document. A filter that mentions `deletedAt` takes over: the plugin leaves it alone,
- * so `{ deletedAt: { $exists: true } }` reads the trash and a delete with it removes for real.
- */
 export function softDelete() {
   return definePlugin({
-    id: 'softDelete',
-
-    fields: {
-      deletedAt: z.date().optional()
-    },
-
+    fields: { deletedAt: z.date().optional() },
     hooks: {
-      deleteMany: {
-        async before({ args, context, model }) {
-          if (mentionsDeletedAt(args.filter)) return
-
-          const result = await model.updateMany(
-            args.filter,
-            { $set: { deletedAt: new Date() } },
-            { ...args.options, context }
-          )
-
-          return {
-            result: { acknowledged: result.acknowledged, deletedCount: result.modifiedCount }
-          }
-        }
+      bulkWrite: {
+        before: ({ args }) => ({
+          args: { ...args, operations: args.operations.map(bulkOperation) }
+        })
       },
-
       deleteOne: {
-        async before({ args, context, model }) {
-          if (mentionsDeletedAt(args.filter)) return
+        async before({ args, model }) {
+          if (mentionsDeletedAt(args.filter)) return undefined
 
-          const result = await model.updateOne(
-            args.filter,
-            { $set: { deletedAt: new Date() } },
-            { ...args.options, context }
-          )
+          const result = await model.updateOne(args.filter, mark(), args.options)
 
           return {
             result: { acknowledged: result.acknowledged, deletedCount: result.modifiedCount }
           }
         }
       },
-
-      read: {
-        before: ({ args }) => ({ args: { ...args, filter: excludeDeleted(args.filter) } })
-      },
-
-      update: {
-        before: ({ args }) => ({ args: { ...args, filter: excludeDeleted(args.filter) } })
-      }
-    }
+      // deleteMany: the same with updateMany. findOneAndDelete: findOneAndUpdate, returnDocument 'before'.
+      read: { before: ({ args }) => ({ args: { ...args, filter: excludeDeleted(args.filter) } }) },
+      update: { before: ({ args }) => ({ args: { ...args, filter: excludeDeleted(args.filter) } }) }
+    },
+    id: 'softDelete'
   })
 }
 ```
 
-El prototipo cubre `find`, `findOne`, `countDocuments`, `updateOne`, `updateMany`, `deleteOne` y
-`deleteMany`. Las demás operaciones siguen estas mismas reglas.
+El update que marca el borrado recibe las opciones del borrado tal como se escribieron, `context`
+incluido, así los demás plugins lo ven como cualquier update.
 
 ## Decisiones del soft delete
 
@@ -149,4 +102,15 @@ El prototipo cubre `find`, `findOne`, `countDocuments`, `updateOne`, `updateMany
 7. **Papelera**: la cubren los filtros, sin métodos ni opciones extra.
 8. **Índices `unique`**: se documenta `partialFilterExpression: { deletedAt: null }`, y el plugin no
    modifica índices. La unicidad se controla al escribir, así que funciona aunque las consultas
-   filtren con `$exists: false`.
+   filtren con `$exists: false`: un documento borrado libera su clave. app-maker pone `deletedAt` en
+   la clave de cuatro índices únicos porque su comentario dice que un índice parcial no puede
+   expresar «sin `deletedAt`»; `deletedAt: null` sí lo expresa.
+9. **`bulkWrite`, lo que cuenta**: los documentos marcados cuentan en `matchedCount` y
+   `modifiedCount`, como informa el driver, y `deletedCount` cuenta solo los borrados reales. El
+   resultado sigue siendo el `BulkWriteResult` del driver, con sus métodos.
+10. **Contexto**: como un borrado se convierte en un update, un plugin que pide contexto en los
+    updates tiene que pedirlo también en los borrados, como [auditoría](./audit.md) en todas las
+    escrituras. Si no, un borrado compila sin contexto y el update que despacha lanza un `ZodError`.
+11. **`count`**: `countDocuments` y `distinct` también excluyen los borrados. Hoy el `count` de
+    adsgpt y wortise-dashboard-monorepo los cuenta (un test de adsgpt lo fija), así que al migrar un
+    conteo puede bajar.

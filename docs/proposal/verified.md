@@ -496,6 +496,28 @@
     quitada antes del driver; un método tipado por el modelo; y los chequeos de campos, métodos y
     opciones, que no compilan y lanzan.
 
+- **`softDelete`** (MongoDB 8.2.6, TypeScript 5.5.4 y 7.0.2, y los tres proyectos):
+  - En los tres proyectos, un documento vivo no tiene `deletedAt`. adsgpt y
+    wortise-dashboard-monorepo excluyen los borrados solo en `find`, `findOne` y `distinct`, con
+    `filter.deletedAt ??=`, que no ve una condición dentro de `$and`; su `count`, sus updates y su
+    `bulkWrite` incluyen los borrados, y sus services vuelven a agregar el filtro a mano. app-maker
+    lo aplica solo en `find`, con `includeDeleted`, y restaura con `$unset` y un `restoredAt` propio.
+    Los `MongoModel` de adsgpt y wortise no le pasan la sesión al driver en `find`, `findOne` y los
+    borrados: las transacciones de wortise no los incluyen.
+  - adsgpt declara `deletedAt` como la unión de una fecha y un ISO con transform, opcional, y
+    app-maker como `z.coerce.date().optional()`: los dos son compatibles con el
+    `z.date().optional()` que pide el plugin.
+  - 13 tests: lecturas sin los borrados, la papelera y todos con filtros, también dentro de `$and`;
+    `aggregate` y `estimatedDocumentCount` sin tocar; un borrado que marca con un update, que
+    completa `updatedAt` y no marca dos veces; el borrado real y el vaciado de la papelera;
+    `findOneAndDelete` con el documento anterior; updates que no tocan borrados y una restauración;
+    un upsert sobre el `_id` de un borrado que falla por clave duplicada; `bulkWrite` con las mismas
+    reglas; un índice único con `deletedAt: null` que libera la clave; `populate` con `null` para un
+    borrado; el update del borrado con el contexto de la llamada; y un schema sin `deletedAt`, que
+    no compila y lanza.
+  - El subpath `mongozod/plugins/soft-delete` pasa attw y publint, y el consumidor de los `.d.ts`
+    publicados lo importa con TS 5.5 y 7.
+
 - **Herramientas del repo** (pnpm 12.11.2, Node 22.23.2, Bun 1.4.3):
   - Vitest 5, tsdown 0.23 y Changesets 3 piden Node 22.12 o superior, y Node 20 llegó al final de su
     vida el 2026-04-30. El driver 7 todavía acepta Node 20.19.

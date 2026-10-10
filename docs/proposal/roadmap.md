@@ -23,10 +23,10 @@ El orden de implementación. Al cerrar una fase, se marca acá en el mismo cambi
    5. Las referencias y los virtuals (hecho). Ver [Referencias](./model.md#referencias) y
       [Virtuals](./model.md#virtuals).
    6. `sync()`: los índices y el `$jsonSchema` (hecho). Ver [Sincronización](./model.md#sincronización).
-3. **Plugins**, en este orden. Ver [Plugins](./plugins/README.md).
+3. **Plugins** (hecho), en este orden. Ver [Plugins](./plugins/README.md).
    1. El contrato: `definePlugin`, los hooks, el `middleware`, las opciones, el contexto y los
       métodos (hecho).
-   2. [`softDelete`](./plugins/soft-delete.md).
+   2. [`softDelete`](./plugins/soft-delete.md), en `mongozod/plugins/soft-delete` (hecho).
 4. **Inputs**: `mz`. Ver [Inputs de los endpoints](./inputs.md).
 5. **Primera versión**: una 0.x en npm y un primer módulo de adsgpt migrado. Publicarla confirma el
    nombre, y su número no puede repetir ninguno de los que usó el autor anterior (ver
