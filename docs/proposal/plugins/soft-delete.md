@@ -39,19 +39,21 @@ opciones ni métodos: todo se expresa con filtros de Mongo.
 ## Código
 
 ```ts
-import type { Filter } from 'mongozod'
 import type { Document } from 'mongodb'
-
-import { z } from 'zod'
+import type { Filter } from 'mongozod'
 
 import { definePlugin } from 'mongozod'
+import { z } from 'zod'
 
 const LOGICAL_OPERATORS = new Set(['$and', '$nor', '$or'])
 
 /** Without `deletedAt`. Unlike `deletedAt: null`, an upsert does not copy it into the new document. */
 const NOT_DELETED = { deletedAt: { $exists: false } }
 
-/** True when the filter already says something about `deletedAt`, here or inside `$and`/`$or`/`$nor`. */
+/**
+ * True when the filter already says something about `deletedAt`, here or inside
+ * `$and`/`$or`/`$nor`.
+ */
 function mentionsDeletedAt(filter: Filter<Document>): boolean {
   return Object.entries(filter).some(
     ([key, value]) =>

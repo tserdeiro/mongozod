@@ -5,9 +5,16 @@
   "scripts": {
     "build": "turbo run build",
     "check-types": "turbo run check-types",
+    "format": "oxfmt",
+    "format:check": "oxfmt --check",
+    "lint": "oxlint",
+    "lint:fix": "oxlint --fix",
     "test": "turbo run test"
   },
   "devDependencies": {
+    "oxfmt": "0.72.0",
+    "oxlint": "1.87.0",
+    "oxlint-tsgolint": "7.0.2003",
     "turbo": "2.11.7",
     "typescript": "7.0.2"
   },
