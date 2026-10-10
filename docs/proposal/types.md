@@ -50,7 +50,8 @@ tipo del campo y `E` el de sus elementos, si es un array:
   lado, como un `Document[]`, no se chequea.
 - **`sort`**: solo la forma de objeto, `{ path: dirección }`, con `1`, `-1`, `'asc'`, `'desc'`,
   `'ascending'`, `'descending'` o `{ $meta: 'textScore' }`, en las opciones y en el cursor. Las keys
-  se chequean como en los filtros.
+  se chequean como en los filtros, salvo la que ordena por relevancia, que puede tener cualquier
+  nombre, como el campo que agrega la proyección con `$meta`.
 - **`distinct`**: la key es un path, y el resultado tiene el tipo de sus valores, aplanando los
   arrays como el driver.
 - **Services**: un service que reenvía un filtro lo recibe con un genérico, como
@@ -117,7 +118,10 @@ Los tipos siguen la regla de [Tipos](#tipos). Además:
 - **Proyección estricta**: no compila lo que MongoDB acepta pero responde distinto: un índice, un
   path que no existe, `$slice` o `$elemMatch` sobre algo que no es array, un string (MongoDB lo
   devuelve como valor literal) y un `$` que atraviesa dos arrays. Las expresiones de agregación se
-  usan con `aggregate`, salvo `{ $meta: 'textScore' }`, para ordenar por relevancia.
+  usan con `aggregate`, salvo `{ $meta: 'textScore' }`, que agrega la relevancia de una búsqueda de
+  texto como un campo `number`. La proyección va en las opciones de `find`, `findOne` y los
+  `findOneAnd*`, o en `.project()`, que reemplaza a la de `find` como en el driver, y ajusta el tipo
+  de lo que devuelven. Una proyección vacía devuelve el documento entero.
 - **Nombres de campo**: `mongozod()` lanza un `Error` si el schema tiene un campo con `.` o que
   empieza con `$`, porque ningún path llegaría a él. Las keys de los records se validan al escribir.
 - **Inputs**: `mz` acepta paths con punto declarados uno por uno en la lista blanca. Los operadores

@@ -14,7 +14,7 @@ El orden de implementación. Al cerrar una fase, se marca acá en el mismo cambi
       2. Los filtros, con todos los operadores, también en el `$match` de `aggregate` y en `sort`
          (hecho).
       3. Los tipos de los updates: los operadores, las uniones y los `arrayFilters` (hecho).
-      4. Las proyecciones, con el tipo de su resultado.
+      4. Las proyecciones, con el tipo de su resultado (hecho).
       5. El job de CI que compila los `.d.ts` publicados con TS 5.5 y 7.
    3. Los updates en runtime: valores por path, reglas por operador y upserts. Ver
       [Paths con punto](./types.md#paths-con-punto) y la fila «Updates» de las

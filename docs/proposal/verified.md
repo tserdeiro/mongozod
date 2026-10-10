@@ -314,6 +314,24 @@
     `plugins` y los 15 operadores. Las sugerencias se calculan con el parámetro de tipo sin
     inferir, así que tienen que estar en un tipo que no dependa del update.
 
+- **Proyecciones en el paquete** (TypeScript 7.0.2, MongoDB 8.2.6 y 8 schemas de adsgpt):
+  - Los casos del prototipo, portados a un schema como el de `plugins` de adsgpt: en cada uno, lo que
+    responde el servidor es lo esperado y el tipo es idéntico. Inclusión con puntos y anidada, un
+    campo de una opción de una unión, un padre `null`, `_id: 0`, `$`, `$slice`, `$elemMatch`,
+    exclusión (da el schema público sin credenciales), `.project()` en el cursor, `findOneAndDelete`
+    y una proyección que llega en runtime. No compilan las 14 proyecciones inválidas.
+  - Con un índice de texto, `{ score: { $meta: 'textScore' } }` agrega `score: number`, y
+    `sort: { score: { $meta: 'textScore' } }` ordena por relevancia con una key que no es un path.
+  - Sin proyección, TypeScript infiere `{}` para su parámetro de tipo, no `unknown`; por eso una
+    proyección sin keys devuelve el documento entero, como MongoDB.
+  - Con 7 proyecciones sobre los schemas de adsgpt, `blueprints` incluido, suman 73 mil
+    instanciaciones; el chequeo de los 41 llamados de las pruebas queda en 0,086 s. El language
+    server sugiere 120 paths en la proyección de `blueprints`, en las opciones y en `.project()`.
+  - Al comparar dos funciones, TypeScript borra los parámetros de tipo solo si alguna tiene varias
+    firmas. Por eso las operaciones que devuelven documentos proyectados tienen, en la
+    implementación, las dos firmas del driver (sin filtro y con filtro), y se comparan con la
+    interfaz sin casts.
+
 - **Herramientas del repo** (pnpm 12.11.2, Node 22.23.2, Bun 1.4.3):
   - Vitest 5, tsdown 0.23 y Changesets 3 piden Node 22.12 o superior, y Node 20 llegó al final de su
     vida el 2026-04-30. El driver 7 todavía acepta Node 20.19.
