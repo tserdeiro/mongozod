@@ -291,6 +291,29 @@
     circular para TypeScript (`TS2313`). Por eso `distinct` chequea la key en el parámetro
     (`K & DistinctKey<S, K>`), y el pipeline usa un condicional no distributivo.
 
+- **Updates** (TypeScript 7.0.2, driver 7.7.0, MongoDB 8.2.6 y 8 schemas de adsgpt):
+  - Los tipos compilan cada operador en los campos que le corresponden, los paths con `$`, `$[]` y
+    `$[id]`, un elemento entero, los records, un ISO en un campo de fecha con transform y un
+    `undefined`. Fallan con el motivo correcto: un valor de otro tipo, un path que no existe, un
+    path que atraviesa un array sin operador posicional, un `$[id]` sin `arrayFilters`, un
+    identificador con mayúscula, una entrada de `arrayFilters` de un identificador que no está, un
+    `$inc` en un string, un `$unset` de un campo obligatorio o con default, un `$currentDate` en un
+    string, un `$push` en algo que no es array, un elemento de otro tipo, un `$pull` con un campo
+    que el elemento no tiene, un `$rename` de un campo obligatorio, un operador que no existe y un
+    pipeline.
+  - Las reglas de uniones del prototipo se mantienen con todos los operadores: compila con el tipo
+    fijado por igualdad, `$eq`, `$in` o dentro de `$and`, y falla sin fijarlo, con `$ne`, dentro de
+    `$or` y al cambiar el discriminador; un `$setOnInsert` puede fijarlo. En los `arrayFilters` de
+    `plugins`, `loginCustomerId` exige fijar `a.details.plugin`, y un índice no fija nada.
+  - El driver rechaza un update vacío antes de mandarlo (`MongoInvalidArgumentError: Update
+    document requires atomic operators`). Un `$set: {}` lo acepta el servidor.
+  - Con 23 filtros y 11 updates como los reales de `plugins` y `blueprints` (con `$[connection]`,
+    `$[account]` y `$[p]`), suman 118 mil instanciaciones, y el chequeo pasa de 0,047 s a 0,082 s.
+    Con las sugerencias en la restricción, los mismos updates sumaban 495 mil.
+  - El language server de TS 7 sugiere 143 paths en un `$set` de `blueprints`, 38 en un `$inc` de
+    `plugins` y los 15 operadores. Las sugerencias se calculan con el parámetro de tipo sin
+    inferir, así que tienen que estar en un tipo que no dependa del update.
+
 - **Herramientas del repo** (pnpm 12.11.2, Node 22.23.2, Bun 1.4.3):
   - Vitest 5, tsdown 0.23 y Changesets 3 piden Node 22.12 o superior, y Node 20 llegó al final de su
     vida el 2026-04-30. El driver 7 todavía acepta Node 20.19.

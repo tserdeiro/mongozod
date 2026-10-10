@@ -56,6 +56,49 @@ tipo del campo y `E` el de sus elementos, si es un array:
 - **Services**: un service que reenvía un filtro lo recibe con un genérico, como
   `<const F extends ModelFilter<typeof schema, F>>(filter: F)`, en vez del `Filter` del driver.
 
+## Updates
+
+Cada path de un update se busca en el schema como en [Paths con punto](#paths-con-punto), y cada
+valor tiene que servir para su operador y su campo. Se aplica en `updateOne`, `updateMany`,
+`findOneAndUpdate` y los updates de `bulkWrite`. El runtime que valida los valores llega en la fase
+2.3.
+
+| Operadores                             | Regla                                                                                                              |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `$set`, `$setOnInsert`, `$min`, `$max` | El `z.input` del campo: un ISO en un campo que lo transforma en `Date` compila.                                    |
+| `$unset`                               | Solo en campos opcionales. Uno con `.default()` no lo es.                                                          |
+| `$inc`, `$mul`, `$bit`                 | Solo en números.                                                                                                   |
+| `$currentDate`                         | Solo en fechas, con `true` o `{ $type: 'date' }`.                                                                  |
+| `$push`, `$addToSet`                   | Solo en arrays, con el `z.input` del elemento, también en `$each`. `$push` acepta `$position`, `$slice` y `$sort`. |
+| `$pop`, `$pullAll`                     | Solo en arrays.                                                                                                    |
+| `$pull`                                | Solo en arrays, con una condición sobre el elemento, como `$elemMatch`.                                            |
+| `$rename`                              | De un campo opcional a otro del mismo tipo.                                                                        |
+
+- **Uniones**: cada campo que escribe un operador tiene que estar en todos los tipos que permite el
+  filtro o, dentro de un array, la entrada de `arrayFilters` de su `$[id]`, como en
+  [Varios tipos de documento](./model.md#varios-tipos-de-documento). Los errores dicen qué fijar,
+  como `"url" is not in every type allowed: fix "kind" in the filter`.
+- **`arrayFilters`**: son obligatorios cuando el update usa un `$[id]`, y cada entrada tiene que ser
+  de un identificador del update, con sus condiciones chequeadas como un filtro sobre el elemento.
+  Que falte o sobre una entrada lo rechaza el servidor, con los códigos 2 y 9.
+- **`undefined`**: compila. En runtime la key se descarta y el campo conserva su valor, como en
+  Mongoose 6 o superior, así que sirve para updates parciales. A diferencia de un filtro, no cambia
+  qué documentos se tocan.
+- **Lo que queda en el servidor o en el driver**: dos operadores sobre el mismo path, o un objeto y
+  uno de sus campos, los rechaza el servidor con el código 40. Un update vacío lo rechaza el driver
+  antes de mandarlo.
+- **Pipeline**: un update con pipeline de agregación no compila: `an update with a pipeline does not
+  compile: use .collection`.
+
+## Sugerencias del editor
+
+El editor sugiere los paths de filtros, `sort`, `distinct` y updates, y los operadores. Cada
+operación chequea el argumento en su parámetro de tipo y toma las sugerencias en el tipo del
+parámetro, como `filter: F & SuggestedFilter<S>`. Juntarlos en la restricción costaba casi tres
+veces más en los updates, porque se intersectan con los paths sugeridos en cada llamada. Para un
+service que recibe un filtro o un update y lo pasa al modelo, mongozod exporta `ModelFilter`,
+`ModelSort` y `ModelUpdate`, que traen las dos cosas.
+
 ## Paths con punto
 
 Los tipos siguen la regla de [Tipos](#tipos). Además:
