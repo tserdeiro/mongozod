@@ -106,7 +106,24 @@ necesitan contexto: una escritura sin contexto compilaría y fallaría en runtim
 ### `hooks`
 
 Van por operación (`find`, `deleteOne`…) o por grupo (`read`, `insert`, `update`, `delete`,
-`bulk`), como los `databaseHooks.{modelo}.{operación}` de better-auth.
+`bulk`), como los `databaseHooks.{modelo}.{operación}` de better-auth. Cada grupo junta las
+operaciones que tienen filtro:
+
+| Grupo    | Operaciones                                                                      |
+| -------- | -------------------------------------------------------------------------------- |
+| `read`   | `find`, `findOne`, `countDocuments`, `distinct`                                  |
+| `insert` | `insertOne`, `insertMany`                                                        |
+| `update` | `updateOne`, `updateMany`, `replaceOne`, `findOneAndUpdate`, `findOneAndReplace` |
+| `delete` | `deleteOne`, `deleteMany`, `findOneAndDelete`                                    |
+| `bulk`   | `bulkWrite`                                                                      |
+
+`aggregate` y `estimatedDocumentCount` no tienen filtro ni grupo: solo sus hooks propios y el
+`middleware`. Así, [`softDelete`](./soft-delete.md) no los toca, como ya está decidido.
+
+Un `before` ve la llamada como se escribió, antes de que el núcleo valide, complete los
+[timestamps](../model.md#timestamps) o planee los virtuals y `populate`: así un plugin puede
+completar un campo obligatorio, como el `createdBy` de [auditoría](./audit.md). Un `after` ve el
+resultado final, el mismo que recibe quien llamó.
 
 | Hook     | Recibe                                | Puede devolver                                                                                                                         |
 | -------- | ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
@@ -115,7 +132,13 @@ Van por operación (`find`, `deleteOne`…) o por grupo (`read`, `insert`, `upda
 
 `model` sirve para despachar otra operación, que vuelve a pasar por todos los plugins. Así el
 [soft delete](./soft-delete.md) convierte un borrado en un update, y timestamps, auditoría e
-historial ven un update.
+historial ven un update. Es un `AnyModel`: sus operaciones toman y devuelven `Document`, y sus
+resultados admiten un `_id` de cualquier tipo.
+
+Si un `before` devuelve `{ result }`, la operación se resuelve como en capas: no corren los
+`before` de los plugins siguientes ni la operación, y sí corren los `after` del plugin que
+respondió y de los anteriores. Con `[logger, softDelete, audit]`, el `after` de `logger` ve el
+borrado que `softDelete` convirtió en update, y `audit` no ve un borrado que no pasó.
 
 En un hook de grupo, `args` y `result` son la unión de las operaciones del grupo. Un `before` que
 solo cambia el filtro funciona tal cual, porque todas las operaciones del grupo lo tienen. Para
@@ -183,7 +206,11 @@ como genérico:
 ```ts
 methods: {
   /** True when at least one document matches. */
-  async exists<M extends AnyModel>(this: M, filter: FilterOf<M>, ...options: ReadOptionsArg<M>) {
+  async exists<M extends AnyModel, const F extends FilterOf<M, F>>(
+    this: M,
+    filter: F,
+    ...options: ReadOptionsArg<M>
+  ) {
     const count = await this.countDocuments(filter, { ...options[0], limit: 1 })
 
     return count > 0
@@ -192,9 +219,10 @@ methods: {
 ```
 
 Al llamar `NotesModel.exists(…)`, TypeScript infiere `M` desde `NotesModel`, así que el filtro es el
-de `Note` y `exists({ title: 1 })` no compila. `...options` reenvía las opciones de la operación,
-`context` incluido. Si dos plugins definen el mismo método, `mongozod()` tampoco compila:
-`two plugins define "exists"`.
+de `Note` y `exists({ title: 1 })` no compila. El filtro es genérico, como en las operaciones, para
+chequear cada key. `...options` reenvía las opciones de la operación, `context` incluido. Si dos
+plugins definen el mismo método, o uno se llama como un miembro del modelo, como `find`,
+`mongozod()` no compila y lanza un `Error`: `two plugins define "exists"`.
 
 ### Reglas del contrato
 
@@ -204,9 +232,25 @@ de `Note` y `exists({ title: 1 })` no compila. `...options` reenvía las opcione
 - **Hooks de grupo y de operación**: si un plugin define los dos para la misma operación, los
   `before` corren del grupo a la operación, de lo general a lo particular, y los `after`, al revés.
 - **Validación**: el núcleo valida siempre el `context` y las opciones de los plugins con sus
-  schemas compilados. Si no cumplen, lanza un `ZodError`.
-- **Tipos auxiliares**: se exportan `AnyModel`, `DocOf`, `FilterOf`, `ReadOptionsArg` y
-  `UpdateOptionsArg` para quien escribe plugins.
+  schemas. Si no cumplen, lanza un `ZodError`, con los issues del contexto en `['context', …]`.
+- **Contexto**: cada plugin recibe la salida de su propio schema: si `audit` pide `{ actor }` y otro
+  plugin `{ tenant }`, `audit` ve solo `{ actor }`. Quien llama manda un único `context` con todo.
+  El `context` sigue en las opciones tal como se escribió, así un hook que despacha otra operación
+  con `args.options` lo reenvía, y el núcleo lo quita antes de llamar al driver.
+- **Opciones**: los hooks ven las opciones de los plugins ya validadas, con sus defaults y
+  transforms, y el núcleo las quita antes de llamar al driver. Una opción de plugin que se llama
+  como una del driver, de mongozod (`context`, `populate`, `schema`, `timestamps`) o de otro plugin
+  no compila. En runtime, `mongozod()` lanza un `Error` por las de mongozod y de otros plugins: los
+  nombres de las opciones del driver solo existen en sus tipos.
+- **Cursores**: `find` y `aggregate` arrancan en la primera lectura, así sus `before` ven los
+  modificadores del cursor (`sort`, `limit`, `skip`, `project`). Después, un modificador lanza un
+  `Error`, como en el driver. Una proyección o un `populate` inválidos fallan al leer el cursor, no
+  al llamar `find`.
+- **Tipos auxiliares**: se exportan `AnyModel`, `DocOf<M>`, `FilterOf<M, F>`, `SortOf<M, Sort>`,
+  `UpdateOf<M, U, F>`, `ReadOptionsArg<M>` y `UpdateOptionsArg<M>`, para quien escribe plugins y
+  para los services que le pasan un filtro o un update al modelo:
+  `countNotes<const F extends FilterOf<typeof NotesModel, F>>(filter: F)`. Parten del modelo, y
+  reemplazan a `ModelFilter`, `ModelSort` y `ModelUpdate`, que partían del schema.
 - **`watch`**: no pasa por los plugins y se usa con `.collection.watch()`. Los hooks corren en la
   escritura porque un change stream avisa cuando el cambio ya quedó guardado: no puede validar,
   cambiar ni cancelar la escritura, no dice quién la hizo y en un update no trae el filtro ni los
@@ -216,7 +260,8 @@ de `Note` y `exists({ title: 1 })` no compila. `...options` reenvía las opcione
   `methods`. Los grupos son `read`, `insert`, `update`, `delete` y `bulk`.
 - **Límite conocido**: los plugins ven los documentos como `Document`, así que TypeScript no detecta
   un hook que devuelve un resultado con la forma equivocada, como un `DeleteResult` en `findOne`. Lo
-  cubren los tests de cada plugin.
+  cubren los tests de cada plugin. Un hook de grupo puede devolver los argumentos o el resultado de
+  cualquier operación del grupo, así que el núcleo confía en que tienen el tipo de su operación.
 
 ## Plugins oficiales
 

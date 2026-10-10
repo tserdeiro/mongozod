@@ -469,6 +469,33 @@
     paths y operadores del `partialFilterExpression`, en cualquier orden de las opciones, y los
     chequeos siguen andando.
 
+- **Contrato de plugins** (TypeScript 5.5.4 y 7.0.2, MongoDB 8.2.6 y los tres proyectos):
+  - Ninguno de los tres `MongoModel` tiene hooks, plugins, auditoría ni historial: el `before` solo
+    inicializa y el `after` solo hidrata. adsgpt y wortise-dashboard-monorepo arman el actor en un
+    middleware de tRPC (`scope.mutation` con `createdBy` y `updatedBy`), y los routers lo esparcen en
+    cada escritura.
+  - Un `before` de grupo que devuelve `{ args }` con el filtro cambiado no compila si el tipo del
+    retorno se distribuye por operación; sin distribuir, compila para todo el grupo.
+  - Un plugin con contexto no es asignable a `Plugin<…GroupSchemas…>`: TypeScript compara el
+    parámetro del contexto por varianza. Con los hooks y el `middleware` como métodos, y un
+    `AnyPlugin` que no depende de los genéricos, cualquier plugin entra.
+  - Un modelo con `_id` string no es asignable a un modelo con los resultados del driver para
+    `Document`, que tipan `insertedIds` y `upsertedId` como `ObjectId`; `AnyModel` usa resultados con
+    el `_id` como `unknown`.
+  - Un `definePlugin` escrito dentro de `plugins: [...]` infería sus genéricos desde el tipo que
+    espera `mongozod()`; con `NoInfer` en su retorno, los infiere solo de su definición.
+  - Dos modelos con plugins, con contexto en las escrituras y un método genérico por `this`,
+    compilan en los `.d.ts` publicados con TS 5.5 y 7. El mismo uso de antes pasa de 48,5 mil a 50,2
+    mil instanciaciones en un consumidor de las declaraciones, y de 38 a 41 ms.
+  - 14 tests: las capas y el orden de los hooks de grupo y de operación; un `before` que cambia los
+    argumentos y un `after` que cambia el resultado; el atajo de un `before`, con los `after` de las
+    capas que entraron; un hook que despacha otra operación por todos los plugins; `aggregate` y
+    `estimatedDocumentCount` sin grupo; los `before` de un cursor una vez y el `middleware` por
+    lote; los modificadores del cursor que ven los `before`, y que lanzan después de arrancar; el
+    contexto propio de cada plugin, obligatorio y validado; una opción de plugin validada y
+    quitada antes del driver; un método tipado por el modelo; y los chequeos de campos, métodos y
+    opciones, que no compilan y lanzan.
+
 - **Herramientas del repo** (pnpm 12.11.2, Node 22.23.2, Bun 1.4.3):
   - Vitest 5, tsdown 0.23 y Changesets 3 piden Node 22.12 o superior, y Node 20 llegó al final de su
     vida el 2026-04-30. El driver 7 todavía acepta Node 20.19.
