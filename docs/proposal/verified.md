@@ -214,3 +214,10 @@
     `jitless`; un `z.compile` explícito, no.
   - `z.deepPartial` completa los defaults: con `{}` da `{ content: '' }`. También acepta
     `author: {}` y `tags: [{}]`, que un `$set` guardaría reemplazando el objeto o el array entero.
+
+- **`undefined`** (driver 7.6.0, MongoDB 8.2 y documentación de Mongoose):
+  - Con sus opciones por defecto, el driver guarda `undefined` como `null`, en `insertOne` y en
+    `$set`, y el documento ya no cumple un `.optional()`. Con `ignoreUndefined: true`, el insert
+    omite el campo y un `$set` con `undefined` deja el valor anterior. Zod tiene `.exactOptional()`
+    y `.exactPartial()` para rechazar el `undefined` explícito.
+  - Mongoose descarta las keys en `undefined` de los updates desde la versión 6.
