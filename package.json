@@ -1,0 +1,17 @@
+{
+  "name": "mongozod-monorepo",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "turbo run build",
+    "check-types": "turbo run check-types"
+  },
+  "devDependencies": {
+    "turbo": "2.11.7",
+    "typescript": "7.0.2"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "packageManager": "pnpm@12.11.2"
+}
