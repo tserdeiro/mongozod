@@ -40,6 +40,9 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
+          # The changelog needs the commit that added each changeset. In a shallow clone, Changesets
+          # deepens it with `git fetch`, which has no credentials without `persist-credentials`.
+          fetch-depth: 0
           persist-credentials: false
       - uses: pnpm/setup@v3
         with:
