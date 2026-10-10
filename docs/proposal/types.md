@@ -27,6 +27,10 @@ Los tipos siguen la regla de [Tipos](#tipos). Además:
   transforms: un ISO en `'connections.$[c].syncedAt'` llega como `Date`. Un objeto entero, como
   `'connections.$[c]'`, reemplaza el subdocumento completo, así que se valida como un insert. Las
   reglas por operador se aplican por path.
+- **Hasta dónde llegan**: hasta donde acepta el schema, como Zod al validar. Además de los campos
+  declarados, las keys de un record, las keys extra de un objeto con `.catchall()` o de un
+  `looseObject`, tipadas con su catchall, y cualquier cosa debajo de `z.unknown()` o `z.any()`. Se
+  frenan en los transforms y en `z.custom()`, que no tienen un schema para lo que hay adentro.
 - **Por operación**: los filtros atraviesan arrays y aceptan índices. Los updates no los
   atraviesan, porque el servidor responde con el código 28, y usan un índice, `$`, `$[]` o
   `$[id]`. La proyección los atraviesa, pero no toma índices.

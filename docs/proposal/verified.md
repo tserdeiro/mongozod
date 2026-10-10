@@ -253,6 +253,21 @@
     `schema`; el `db` se resuelve una vez, en la primera operación; y el cursor de `find` se espera,
     se recorre con `for await` y encadena `sort`, `skip`, `limit` y `project`.
 
+- **Recorrido de los paths** (Zod 4.6.5 y TypeScript 7.0.2, 10 tests):
+  - `instanceof` con las clases de `zod/v4/core`, como `$ZodObject` o `$ZodOptional`, reconoce
+    tanto schemas de Zod como de Mini, y TypeScript acota el tipo, así que el recorrido en runtime
+    no necesita casts.
+  - Los tipos de un objeto no guardan el schema de su catchall, solo su input y su output en
+    `_zod.config`; por eso una key extra se tipa como `z.unknown()` con esos tipos. `z.object`
+    y `z.strictObject` no tienen catchall en los tipos; `z.looseObject`, uno de `unknown`.
+  - Los tipos y el runtime coinciden en cada caso: campos anidados, arrays por operación, índices,
+    `$`, `$[]` y `$[id]`, records, catchalls, `z.unknown()`, uniones discriminadas, schemas
+    recursivos con getters y los frenos en transforms y `z.custom()`.
+  - En los tres proyectos aparecen records, `z.json()`, `z.unknown()`, `z.any()`, `.catchall()`,
+    `looseObject`, `.loose()`, `z.lazy()` y `z.preprocess()`.
+  - Un campo con `.` o que empieza con `$` lanza un `Error` al definir el modelo, también dentro de
+    arrays y uniones; un schema recursivo no entra en un ciclo.
+
 - **Herramientas del repo** (pnpm 12.11.2, Node 22.23.2, Bun 1.4.3):
   - Vitest 5, tsdown 0.23 y Changesets 3 piden Node 22.12 o superior, y Node 20 llegó al final de su
     vida el 2026-04-30. El driver 7 todavía acepta Node 20.19.
