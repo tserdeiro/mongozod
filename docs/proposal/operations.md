@@ -93,3 +93,7 @@ filtro de rango de la página siguiente. MongoDB lo recomienda: `skip()` se vuel
 que crece el offset, y las consultas por rango usan índices. El orden tiene que terminar en un campo
 único, como `_id`, para desempatar. `skip` y `limit` siguen disponibles para tablas con páginas
 numeradas.
+
+[`mz.cursor`](./inputs.md#decisiones-de-los-inputs) arma ese filtro y exige `_id` al final y campos
+obligatorios: MongoDB ordena un valor que falta o es `null` antes que cualquier otro, y un rango
+sobre la página siguiente no lo alcanza.

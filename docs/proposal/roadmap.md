@@ -27,7 +27,7 @@ El orden de implementación. Al cerrar una fase, se marca acá en el mismo cambi
    1. El contrato: `definePlugin`, los hooks, el `middleware`, las opciones, el contexto y los
       métodos (hecho).
    2. [`softDelete`](./plugins/soft-delete.md), en `mongozod/plugins/soft-delete` (hecho).
-4. **Inputs**: `mz`. Ver [Inputs de los endpoints](./inputs.md).
+4. **Inputs** (hecho): `mz`, en `mongozod/mz`. Ver [Inputs de los endpoints](./inputs.md).
 5. **Primera versión**: una 0.x en npm y un primer módulo de adsgpt migrado. Publicarla confirma el
    nombre, y su número no puede repetir ninguno de los que usó el autor anterior (ver
    [Qué se verificó](./verified.md)). Antes, adsgpt arregla wortise/adsgpt#230 y wortise/adsgpt#231,

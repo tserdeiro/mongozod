@@ -152,7 +152,8 @@ Los tipos siguen la regla de [Tipos](#tipos). Además:
   que se escribe: la de un record, un catchall, un `looseObject`, un `z.unknown()` o un `z.json()`,
   en los inserts, los reemplazos y los valores de los updates.
 - **Inputs**: `mz` acepta paths con punto declarados uno por uno en la lista blanca. Los operadores
-  posicionales y `arrayFilters` no se exponen a clientes en la v1: los arma el router.
+  posicionales y `arrayFilters` no se exponen a clientes en la v1: los arma el router. Por eso
+  `mz.update` y `mz.cursor` solo toman paths fuera de arrays.
 - **Lo que no se puede validar en la app**: un `$set` con punto crea los padres que faltan, y un
   índice fuera del array lo rellena con `null`. Se documenta y lo cubre el [`$jsonSchema`](./model.md#sincronización). Ninguno
   de los tres proyectos escribe con punto en un objeto opcional con otros campos obligatorios.

@@ -29,7 +29,9 @@
   - Del primer prototipo, con el mismo mecanismo: un `deletedAt` de otro tipo, dos plugins con el
     mismo método y una opción de plugin usada en el grupo equivocado.
 
-- **Tests de los constructores de inputs** (16 en total, contra MongoDB 8.2 cuando hace falta):
+- **Tests de los constructores de inputs del prototipo** (16 en total, contra MongoDB 8.2 cuando
+  hace falta). Los reemplaza la implementación de `mz`, más abajo, donde los defaults pasaron al
+  proyecto:
   - El filtro rechaza `$where`, operadores y campos no declarados, y valores inválidos. Convierte una
     fecha ISO en `Date`, y con campos obligatorios no acepta `{}`.
   - El update no completa defaults, valida los refinements y rechaza operadores, campos no
@@ -517,6 +519,51 @@
     no compila y lanza.
   - El subpath `mongozod/plugins/soft-delete` pasa attw y publint, y el consumidor de los `.d.ts`
     publicados lo importa con TS 5.5 y 7.
+
+- **`mz`** (MongoDB 8.2.6, Zod 4.6.5, TypeScript 5.5.4 y 7.0.2, y los tres proyectos):
+  - Hoy los clientes de los tres proyectos filtran con igualdades, arrays que el `parser` convierte
+    en `$in`, `{ exists }` y rangos de fechas con `$gte` y `$lte`, también con paths con punto. Los
+    updates mandan campos enteros, y wortise manda `null` para borrar 8 campos. Las tablas ordenan
+    por una sola columna, las proyecciones solo incluyen, `populate` lo mandan 5 llamadas de
+    wortise, y el scroll infinito manda el número de página. Solo la audiencia de notificaciones de
+    wortise manda `$and` y `$or`, con un `MongoQuerySchema` que acepta cualquier campo. En
+    app-maker, `pick({ _id: true }).required()` convierte un `{}` en un uuid nuevo.
+  - En MongoDB, un orden descendente deja al final los documentos con `null` o sin el campo, y un
+    `$lt` sobre una fecha no los alcanza. Un `$or` con índices en todas sus cláusulas usa un `OR` de
+    `IXSCAN`, y con una cláusula sin índice, un `COLLSCAN`. El driver rechaza un update `{}` con
+    `MongoInvalidArgumentError`, y `{ $set: {} }` coincide con el documento y no lo modifica.
+  - En Zod, un `z.object` devuelve sus keys en el orden del schema: `{ title: 1, createdAt: -1 }`
+    sale como `{ createdAt: -1, title: 1 }`. `z.partialRecord` conserva el orden del input y
+    rechaza las keys no declaradas. Un `ZodDefault` deja opcional su key en `z.input`, y un
+    `ZodType` declarado como retorno no. `.overwrite()` conserva la clase `ZodObject`, y sobre un
+    objeto con checks andan `.required()`, `.refine()`, `.default()` y `.extend()` con keys nuevas,
+    mientras que `.pick()`, `.omit()` y `.partial()` lanzan. Un `.refine()` con `when` no repite el
+    mensaje de otro problema. `.extend()` con getters arma un `$or` recursivo sin anotaciones de
+    tipos, con TypeScript 5.5 y 7.
+  - En tRPC 11.19, el `initialPageParam` de una infinite query es el `initialCursor` o el `cursor`
+    del input, y la key `cursor` solo viaja cuando la página tiene uno: la primera página no lo
+    manda. tRPC también suma `direction` al input.
+  - En TypeScript, un array inferido como genérico no da sugerencias en el editor y un path mal
+    escrito pierde el mensaje (`Type 'string' is not assignable to type 'never'`); una máscara como
+    la de `.pick()` sí los da, comprobado con el language service de TypeScript 5.5. Los tipos no
+    ven el orden de las keys de un objeto. Un `$elemMatch` o un `$not` opcionales, como los de un
+    tipo que llega de un input, no compilaban en los filtros del modelo, porque su condición se
+    distribuía sobre `undefined`; ahora compilan.
+  - 31 tests: los operadores declarados, el parseo de cada valor y lo que se rechaza; las keys en
+    `undefined`; la igualdad, `$all`, `$size` y `$elemMatch` en arrays de objetos y de valores;
+    `.default()`, `.required()`, `.refine()` y `.extend()` con `$or`; Zod Mini y una unión
+    discriminada; un update sin defaults, con las reglas de `$unset` e `$inc`; el orden del sort;
+    una proyección sin mezclar; un cursor que recorre 7 documentos, 4 con la misma fecha, ordenados
+    por fecha, título y `_id`, en páginas de 3, sin repetir ni saltear; `populate` con la lista
+    blanca; y las declaraciones inválidas, que no compilan y lanzan. Cada constructor pasa su
+    resultado al modelo, en MongoDB.
+  - `dist/mz.mjs` solo importa `zod` en runtime; sus declaraciones importan tipos de `mongodb` a
+    través de un chunk compartido con el modelo. El subpath pasa attw y publint, y el consumidor de
+    los `.d.ts` publicados lo usa con TypeScript 5.5 y 7.
+  - Costo: tres schemas de inputs y su router suman 24 mil instanciaciones y 16 ms al consumidor de
+    los `.d.ts`. Con el `blueprints` de adsgpt, cada constructor suma entre 11 y 25 mil, sin
+    `TS2589`, y el chequeo queda entre 0,12 y 0,16 s. Unos 11 mil son el recorrido de los paths
+    para las sugerencias, el mismo que hace el modelo.
 
 - **Herramientas del repo** (pnpm 12.11.2, Node 22.23.2, Bun 1.4.3):
   - Vitest 5, tsdown 0.23 y Changesets 3 piden Node 22.12 o superior, y Node 20 llegó al final de su
