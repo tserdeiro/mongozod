@@ -290,6 +290,103 @@ describe('filters', () => {
   })
 })
 
+describe('runtime validation of updates', () => {
+  test('parses each value with its field and never writes undefined', async () => {
+    const { insertedId } = await NotesModel.insertOne({ summary: 'Milk', title: 'Groceries' })
+
+    await NotesModel.updateOne(
+      { _id: insertedId },
+      { $set: { createdAt: '2026-10-10T12:00:00Z', summary: undefined, title: 'Errands' } }
+    )
+
+    expect(await NotesModel.findOne({ _id: insertedId })).toMatchObject({
+      createdAt: new Date('2026-10-10T12:00:00Z'),
+      summary: 'Milk',
+      title: 'Errands'
+    })
+    await expect(
+      NotesModel.updateOne({ _id: insertedId }, { $set: { title: '' } })
+    ).rejects.toBeInstanceOf(z.ZodError)
+  })
+
+  test('an upsert inserts a valid document, with the defaults its update lacks', async () => {
+    await NotesModel.updateOne(
+      { title: 'Groceries' },
+      { $set: { 'author.name': 'Ana' } },
+      { upsert: true }
+    )
+
+    const inserted = await NotesModel.findOne({ title: 'Groceries' })
+
+    expect(inserted).toEqual({
+      _id: expect.any(String),
+      author: { name: 'Ana' },
+      createdAt: expect.any(Date),
+      tags: [],
+      title: 'Groceries'
+    })
+    expect(noteSchema.parse(inserted)).toEqual(inserted)
+
+    // On an existing document, the defaults go in $setOnInsert and change nothing.
+    await NotesModel.updateOne({ title: 'Groceries' }, { $push: { tags: 'home' } })
+    await NotesModel.updateOne(
+      { title: 'Groceries' },
+      { $set: { summary: 'Milk' } },
+      { upsert: true }
+    )
+
+    expect(await NotesModel.findOne({ title: 'Groceries' })).toMatchObject({
+      summary: 'Milk',
+      tags: ['home']
+    })
+  })
+
+  test('an upsert that would insert an invalid document throws and writes nothing', async () => {
+    await expect(
+      NotesModel.updateOne(
+        { _id: crypto.randomUUID() },
+        { $push: { tags: 'home' } },
+        { upsert: true }
+      )
+    ).rejects.toBeInstanceOf(z.ZodError)
+    await expect(
+      NotesModel.bulkWrite([
+        {
+          updateOne: { filter: { tags: 'x' }, update: { $set: { summary: 'Milk' } }, upsert: true }
+        }
+      ])
+    ).rejects.toBeInstanceOf(z.ZodError)
+    expect(await NotesModel.countDocuments()).toBe(0)
+  })
+
+  test('an upsert of a replacement needs the _id in its filter', async () => {
+    await expect(
+      NotesModel.replaceOne({ title: 'One' }, { title: 'Two' }, { upsert: true })
+    ).rejects.toBeInstanceOf(z.ZodError)
+
+    const _id = crypto.randomUUID()
+
+    await NotesModel.replaceOne({ _id }, { title: 'Two' }, { upsert: true })
+
+    expect(await NotesModel.findOne({ _id })).toMatchObject({ _id, title: 'Two' })
+  })
+
+  test('rejects keys no path can reach, such as those of a record', async () => {
+    const MetricsModel = mongozod({
+      collection: 'metrics',
+      db,
+      schema: z.object({ counters: z.record(z.string(), z.number()) })
+    })
+
+    await expect(MetricsModel.insertOne({ counters: { 'a.b': 1 } })).rejects.toBeInstanceOf(
+      z.ZodError
+    )
+    await expect(
+      MetricsModel.updateMany({}, { $set: { counters: { $gt: 1 } } })
+    ).rejects.toBeInstanceOf(z.ZodError)
+  })
+})
+
 describe('updates', () => {
   test('are checked against the schema and run as the driver runs them', async () => {
     const { insertedId } = await NotesModel.insertOne({ tags: ['home'], title: 'One' })

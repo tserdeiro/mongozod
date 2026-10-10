@@ -18,6 +18,9 @@ import { checkFieldNames } from './check-field-names'
 import { ModelCursor } from './model-cursor'
 import { ModelFindCursor } from './model-find-cursor'
 import { parseDocument } from './parse-document'
+import { parseUpdate } from './parse-update'
+import { schemaAt } from './schema-at'
+import { filterEqualities } from './upsert'
 
 /** The options of `mongozod()`. */
 export interface MongozodOptions<S extends ModelSchema> {
@@ -72,8 +75,28 @@ export function mongozod(options: MongozodOptions<ModelSchema>): Model<ModelSche
     return collection
   }
 
+  const declaresId = schemaAt(options.schema, '_id', 'filter').length > 0
+
   /** Validates a replacement like an insert, keeping the `_id` only when it is given. */
-  function parseReplacement(replacement: Document) {
+  function parseReplacement(filter: Document, replacement: Document, upsert: unknown) {
+    // An upsert inserts the replacement with the `_id` of the filter, or the server's ObjectId.
+    if (
+      upsert &&
+      declaresId &&
+      replacement._id === undefined &&
+      !filterEqualities(filter).has('_id')
+    ) {
+      throw new z.ZodRealError([
+        {
+          code: 'custom',
+          input: filter,
+          message:
+            'an upsert of a replacement needs the _id in its filter: the server would insert an ObjectId',
+          path: ['_id']
+        }
+      ])
+    }
+
     const document = parseDocument(options.schema, replacement)
 
     // The `_id` of a document cannot change, so the one a `.default()` generates is dropped, as
@@ -81,6 +104,14 @@ export function mongozod(options: MongozodOptions<ModelSchema>): Model<ModelSche
     if (replacement._id === undefined) delete document._id
 
     return document
+  }
+
+  /** Validates an update with the schema, given its filter and the options that change it. */
+  function parseModelUpdate(filter: Document, update: unknown, updateOptions: Document = {}) {
+    return parseUpdate(options.schema, filter, update, {
+      arrayFilters: updateOptions.arrayFilters,
+      upsert: updateOptions.upsert
+    })
   }
 
   function aggregate<R extends core.$ZodType>(
@@ -148,7 +179,11 @@ export function mongozod(options: MongozodOptions<ModelSchema>): Model<ModelSche
     replacement: Document,
     replaceOptions: Document = {}
   ): Promise<ModifyResult | WithId<Document> | null> {
-    return getCollection().findOneAndReplace(filter, parseReplacement(replacement), replaceOptions)
+    return getCollection().findOneAndReplace(
+      filter,
+      parseReplacement(filter, replacement, replaceOptions.upsert),
+      replaceOptions
+    )
   }
 
   function findOneAndUpdate(
@@ -161,12 +196,16 @@ export function mongozod(options: MongozodOptions<ModelSchema>): Model<ModelSche
     update: Document,
     updateOptions?: Document
   ): Promise<WithId<Document> | null>
-  function findOneAndUpdate(
+  async function findOneAndUpdate(
     filter: Document,
     update: Document,
     updateOptions: Document = {}
   ): Promise<ModifyResult | WithId<Document> | null> {
-    return getCollection().findOneAndUpdate(filter, update, updateOptions)
+    return getCollection().findOneAndUpdate(
+      filter,
+      parseModelUpdate(filter, update, updateOptions),
+      updateOptions
+    )
   }
 
   return {
@@ -191,16 +230,38 @@ export function mongozod(options: MongozodOptions<ModelSchema>): Model<ModelSche
           }
 
           if ('replaceOne' in operation) {
+            const { filter, replacement, upsert } = operation.replaceOne
+
             return {
               replaceOne: {
                 ...operation.replaceOne,
-                replacement: parseReplacement(operation.replaceOne.replacement)
+                replacement: parseReplacement(filter, replacement, upsert)
               }
             }
           }
 
-          if ('updateOne' in operation) return { updateOne: operation.updateOne }
-          if ('updateMany' in operation) return { updateMany: operation.updateMany }
+          if ('updateOne' in operation) {
+            const { filter, update } = operation.updateOne
+
+            return {
+              updateOne: {
+                ...operation.updateOne,
+                update: parseModelUpdate(filter, update, operation.updateOne)
+              }
+            }
+          }
+
+          if ('updateMany' in operation) {
+            const { filter, update } = operation.updateMany
+
+            return {
+              updateMany: {
+                ...operation.updateMany,
+                update: parseModelUpdate(filter, update, operation.updateMany)
+              }
+            }
+          }
+
           if ('deleteOne' in operation) return { deleteOne: operation.deleteOne }
 
           return { deleteMany: operation.deleteMany }
@@ -256,15 +317,27 @@ export function mongozod(options: MongozodOptions<ModelSchema>): Model<ModelSche
     },
 
     async replaceOne(filter: Document, replacement: Document, replaceOptions?: Document) {
-      return getCollection().replaceOne(filter, parseReplacement(replacement), replaceOptions)
+      return getCollection().replaceOne(
+        filter,
+        parseReplacement(filter, replacement, replaceOptions?.upsert),
+        replaceOptions
+      )
     },
 
-    updateMany(filter: Document, update: Document, updateOptions?: Document) {
-      return getCollection().updateMany(filter, update, updateOptions)
+    async updateMany(filter: Document, update: Document, updateOptions?: Document) {
+      return getCollection().updateMany(
+        filter,
+        parseModelUpdate(filter, update, updateOptions),
+        updateOptions
+      )
     },
 
-    updateOne(filter: Document, update: Document, updateOptions?: Document) {
-      return getCollection().updateOne(filter, update, updateOptions)
+    async updateOne(filter: Document, update: Document, updateOptions?: Document) {
+      return getCollection().updateOne(
+        filter,
+        parseModelUpdate(filter, update, updateOptions),
+        updateOptions
+      )
     }
   }
 }

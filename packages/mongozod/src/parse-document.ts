@@ -3,38 +3,73 @@ import type * as core from 'zod/v4/core'
 
 import { z } from 'zod'
 
+import { isPlainObject } from './is-plain-object'
+
+/** The result of parsing a value to write: the value, or every problem it has. */
+export type WrittenResult =
+  | { data: unknown; success: true }
+  | { issues: core.$ZodIssue[]; success: false }
+
 /**
- * Parses a document to write with its schema and drops the keys left `undefined`, which the driver
- * would store as `null`.
+ * Parses a value to write with its schema. Drops the keys left `undefined`, which the driver would
+ * store as `null`, and rejects the keys with a `.` or starting with `$`, which no path can reach.
+ * The fields of the schema are checked when the model is defined, so these come from records,
+ * catchalls and values such as `z.unknown()`.
  *
- * Parses with Zod Classic's `z.parse`, which also takes Zod Mini schemas, so a failed validation
- * throws a `ZodError`: the `$ZodError` of `zod/v4/core` is not an instance of it.
+ * Parses with Zod Classic's `z.safeParse`, which also takes Zod Mini schemas, so that a failure
+ * becomes a `ZodError`: the `$ZodError` of `zod/v4/core` is not an instance of it.
  */
+export function safeParseWritten(schema: core.$ZodType, input: unknown): WrittenResult {
+  const result = z.safeParse(schema, input)
+
+  if (!result.success) return { issues: result.error.issues, success: false }
+
+  const issues: core.$ZodIssue[] = []
+  const data = written(result.data, [], issues)
+
+  if (issues.length > 0) return { issues, success: false }
+
+  return { data, success: true }
+}
+
+/** Parses a document to write like `safeParseWritten`, and throws a `ZodError` when it fails. */
 export function parseDocument(schema: core.$ZodType<Document>, input: unknown): Document {
-  return withoutUndefined(z.parse(schema, input))
+  const result = safeParseWritten(schema, input)
+
+  if (!result.success) throw new z.ZodRealError(result.issues)
+  if (!isPlainObject(result.data)) {
+    throw new z.ZodRealError([
+      { code: 'custom', input: result.data, message: 'a document is an object', path: [] }
+    ])
+  }
+
+  return result.data
 }
 
-/** Copies a plain object without its `undefined` keys, at every level. */
-function withoutUndefined(document: Document): Document {
-  return Object.fromEntries(
-    Object.entries(document)
-      .filter(([, value]) => value !== undefined)
-      .map(([key, value]) => [key, stripValue(value)])
-  )
-}
+/** Copies a value without its `undefined` keys, at every level, and checks the keys it keeps. */
+function written(value: unknown, path: PropertyKey[], issues: core.$ZodIssue[]): unknown {
+  if (Array.isArray(value)) {
+    return value.map((element, index) => written(element, [...path, index], issues))
+  }
 
-/** Goes into arrays and plain objects, and leaves values such as a `Date` or an `ObjectId` alone. */
-function stripValue(value: unknown): unknown {
-  if (Array.isArray(value)) return value.map(stripValue)
-  if (isPlainObject(value)) return withoutUndefined(value)
+  if (!isPlainObject(value)) return value
 
-  return value
-}
+  const copy: Document = {}
 
-function isPlainObject(value: unknown): value is Document {
-  if (typeof value !== 'object' || value === null) return false
+  for (const [key, field] of Object.entries(value)) {
+    if (field === undefined) continue
 
-  const prototype: unknown = Object.getPrototypeOf(value)
+    if (key.includes('.') || key.startsWith('$')) {
+      issues.push({
+        code: 'custom',
+        input: field,
+        message: `"${key}" cannot be a key: no path reaches a key with a "." or starting with "$"`,
+        path: [...path, key]
+      })
+    }
 
-  return prototype === Object.prototype || prototype === null
+    copy[key] = written(field, [...path, key], issues)
+  }
+
+  return copy
 }
