@@ -19,7 +19,7 @@ El orden de implementación. Al cerrar una fase, se marca acá en el mismo cambi
    3. Los updates en runtime: valores por path, reglas por operador y upserts (hecho). Ver
       [Paths con punto](./types.md#paths-con-punto) y la fila «Updates» de las
       [decisiones acordadas](./README.md#decisiones-acordadas).
-   4. `timestamps`. Ver [Timestamps](./model.md#timestamps).
+   4. `timestamps` (hecho). Ver [Timestamps](./model.md#timestamps).
    5. Las referencias y los virtuals. Ver [El modelo](./model.md).
    6. `sync()`: los índices y el `$jsonSchema`. Ver la fila «Servidor» de las
       [decisiones acordadas](./README.md#decisiones-acordadas).

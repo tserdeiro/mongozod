@@ -45,14 +45,33 @@ objeto por campo. Está apagada por defecto.
 - **Configurables**: cada una se puede renombrar o apagar, como
   `{ createdAt: 'created_at', updatedAt: false }` en una colección cuyos documentos no cambian.
 - **En el schema**: los campos se declaran en el schema, que sigue siendo la única fuente de verdad,
-  y siguen a la opción, renombrados o apagados. Si falta uno, `mongozod()` no compila. Se verificó
-  con un prototipo, en los tipos y en runtime (ver [Qué se verificó](./verified.md)).
-- **Por operación**: una operación puede saltearlos con la opción `timestamps: false`, como en
-  Mongoose.
-- **`createdAt`**: no se cambia con un update.
-- **Borrados**: un borrado de `softDelete` es un update, así que también completa `updatedAt`.
+  y siguen a la opción, renombrados o apagados. Tienen que estar en todos los tipos de documento,
+  tomar y devolver una `Date` y tener un `.default()` o ser opcionales, así los inserts no los
+  piden. Si no, `mongozod()` no compila, y en runtime lanza un `Error`. La forma documentada acepta
+  un ISO o una `Date` y lo transforma en `Date`, para los inputs que llegan en JSON:
 
-Lo demás queda por diseñar.
+  ```ts
+  const timestampSchema = z
+    .union([z.date(), z.iso.datetime().transform((value) => new Date(value))])
+    .default(() => new Date())
+  ```
+
+- **Inserts y reemplazos**: como Mongoose, `createdAt` es el que viene o «ahora»; adsgpt guarda en
+  `brands` la fecha de la fuente. `updatedAt` es el que viene o el valor de `createdAt`, así un
+  documento sin cambios tiene las dos iguales y nada se descarta en silencio. «Ahora» es un
+  `new Date()` por operación: todos los documentos de un `insertMany` tienen la misma fecha.
+- **Updates**: `updatedAt` va en `$set` y, en un upsert, `createdAt` va en `$setOnInsert`, como en
+  Mongoose. En un upsert, `updatedAt` es la fecha de la escritura, porque `$set` y `$setOnInsert` no
+  pueden escribir el mismo campo.
+- **Escribirlos**: un update que escribe `updatedAt`, o `createdAt` fuera de `$setOnInsert`, no
+  compila y lanza un `ZodError`: `"updatedAt" is set by timestamps: pass timestamps: false to write
+  it`. Mongoose los descarta o pisa en silencio. `$setOnInsert` sí puede dar `createdAt`, que es la
+  fecha de creación de un upsert, como en un insert.
+- **Por operación**: una operación puede saltearlos con la opción `timestamps: false`, como en
+  Mongoose; sus campos vuelven a ser campos comunes, que se pueden escribir para corregirlos. En
+  `bulkWrite` va en las opciones de la llamada y vale para todas sus operaciones. Solo existe en los
+  modelos con timestamps, y mongozod la quita antes de llamar al driver.
+- **Borrados**: un borrado de `softDelete` es un update, así que también completa `updatedAt`.
 
 ## Virtuals
 

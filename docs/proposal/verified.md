@@ -363,6 +363,23 @@
     cumple el schema, con su `_id` uuid) y uno sobre un documento existente, que no cambia sus
     campos. Los mensajes coinciden con los de los tipos.
 
+- **`timestamps`** (código de Mongoose, driver 7.7.0, MongoDB 8.2.6 y TypeScript 5.5.4 y 7.0.2):
+  - Mongoose, en `setDocumentTimestamps`, pone `createdAt` solo si el documento nuevo no lo tiene y
+    le da a `updatedAt` ese mismo valor. En `applyTimestampsToUpdate`, pone `updatedAt` en `$set`,
+    pisando el del update, borra cualquier `createdAt` del update y lo escribe en `$setOnInsert` solo
+    en un upsert. En un reemplazo usa las fechas que trae, o «ahora».
+  - Hoy, los `MongoModel` de los tres proyectos ponen `createdAt` en el insert solo si no viene, no
+    ponen `updatedAt` en el insert, y en cada update escriben `$set.updatedAt` y
+    `$setOnInsert.createdAt`.
+  - 12 tests: el insert pone las dos fechas iguales, respeta las que vienen (un ISO de la fuente
+    llega como `Date`) y usa la misma en todo un `insertMany`; `timestamps: false` deja los defaults
+    del schema; un update cambia `updatedAt` y no `createdAt`; un upsert pone `createdAt`, o respeta
+    el de `$setOnInsert`; escribir `updatedAt` o `createdAt` no compila y lanza, salvo con
+    `timestamps: false`; `bulkWrite` estampa inserts y updates; los nombres se cambian o se apagan; y
+    un schema sin el campo, sin default, con otro tipo o sin el campo en un tipo de una unión no
+    compila y lanza al definir el modelo.
+  - El consumidor de los `.d.ts` publicados compila un modelo con timestamps con TS 5.5 y 7.
+
 - **Herramientas del repo** (pnpm 12.11.2, Node 22.23.2, Bun 1.4.3):
   - Vitest 5, tsdown 0.23 y Changesets 3 piden Node 22.12 o superior, y Node 20 llegó al final de su
     vida el 2026-04-30. El driver 7 todavía acepta Node 20.19.
