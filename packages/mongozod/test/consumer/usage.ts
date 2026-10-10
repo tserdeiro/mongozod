@@ -3,6 +3,7 @@ import type { AnyModel, FilterOf, ReadOptionsArg } from 'mongozod'
 
 import { MongoClient } from 'mongodb'
 import { definePlugin, mongozod } from 'mongozod'
+import { mz } from 'mongozod/mz'
 import { softDelete } from 'mongozod/plugins/soft-delete'
 import { z } from 'zod'
 
@@ -139,6 +140,31 @@ mongozod({
   schema: z.object({ title: z.string() })
 })
 
+// A validations file: it keeps its own z and adds mz, which never imports the driver.
+const listNotesSchema = z.object({
+  cursor: mz.cursor(noteSchema, { createdAt: -1, _id: -1 }).default({}),
+  filter: mz
+    .filter(noteSchema, { '_id': ['$eq', '$in'], 'author.name': ['$eq'], 'tags': ['$all', '$eq'] })
+    .default({}),
+  limit: z.number().int().min(1).max(100).default(20),
+  projection: mz.projection(noteSchema, { tags: true, title: true }).optional(),
+  sort: mz.sort(noteSchema, { title: true, views: true }).default({ views: -1 })
+})
+
+const updateNoteSchema = z.object({
+  filter: mz.filter(noteSchema, { _id: ['$eq'] }).required({ _id: true }),
+  update: mz.update(noteSchema, { $inc: ['views'], $set: ['title'], $unset: ['author'] })
+})
+
+const findTransactionSchema = z.object({
+  filter: mz.filter(z.object({ _id: z.string() }), { _id: ['$eq'] }).required({ _id: true }),
+  populate: mz
+    .populate({
+      organization: z.object({ _id: z.string(), name: z.string() }).pick({ name: true })
+    })
+    .optional()
+})
+
 /** A service that forwards a filter to the model keeps its checks. */
 function countNotes<const F extends FilterOf<typeof NotesModel, F>>(filter: F) {
   return NotesModel.countDocuments(filter)
@@ -224,6 +250,25 @@ export async function usage() {
   // @ts-expect-error a title is a string
   await TasksModel.exists({ title: 1 })
 
+  const list = listNotesSchema.parse({ filter: { tags: { $all: ['home'] } } })
+  const page = await NotesModel.find(
+    { $and: [list.filter, list.cursor] },
+    { limit: list.limit, projection: list.projection, sort: list.sort }
+  )
+  const edit = updateNoteSchema.parse({ filter: { _id: id }, update: { $set: { title: 'New' } } })
+  await NotesModel.updateOne(edit.filter, edit.update)
+  const lookup = findTransactionSchema.parse({
+    filter: { _id: 't1' },
+    populate: { organization: true }
+  })
+  const found = await TransactionsModel.findOne(lookup.filter, { populate: lookup.populate })
+  const organization: string | { name?: string } | null | undefined = found?.organization
+
+  // @ts-expect-error "titel" is not a path of the document
+  mz.filter(noteSchema, { titel: ['$eq'] })
+  // @ts-expect-error "title" is required, so it cannot be unset
+  mz.update(noteSchema, { $unset: ['title'] })
+
   const { extraIndexes, indexes } = await NotesModel.sync()
   const legacy: Array<string | undefined> = extraIndexes.map((index) => index.name)
 
@@ -237,6 +282,8 @@ export async function usage() {
 
   return {
     approvers,
+    organization,
+    page,
     taskExists,
     trash,
     counts,

@@ -24,6 +24,7 @@
   "sideEffects": false,
   "exports": {
     ".": "./dist/index.mjs",
+    "./mz": "./dist/mz.mjs",
     "./plugins/soft-delete": "./dist/plugins/soft-delete.mjs",
     "./package.json": "./package.json"
   },

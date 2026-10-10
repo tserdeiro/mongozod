@@ -4,14 +4,16 @@ import type { Def, FieldAt, NotAPath, Wrapper } from './schema-at'
 import type { Binary, BSONRegExp, BSONType, BSONTypeAlias, Document } from 'mongodb'
 import type * as core from 'zod/v4/core'
 
-type Element<V> = V extends ReadonlyArray<infer E> ? E : never
+export type Element<V> = V extends ReadonlyArray<infer E> ? E : never
 
 /** What a condition on a field matches: its value or, in an array, each element. */
 type Matchable<V> = NonNullable<V> | Element<NonNullable<V>>
 
-type Has<V, T> = [Extract<Matchable<V>, T>] extends [never] ? false : true
+export type Has<V, T> = [Extract<Matchable<V>, T>] extends [never] ? false : true
 
-type IsArray<V> = [Extract<NonNullable<V>, ReadonlyArray<unknown>>] extends [never] ? false : true
+export type IsArray<V> = [Extract<NonNullable<V>, ReadonlyArray<unknown>>] extends [never]
+  ? false
+  : true
 
 /**
  * A value to compare a field with: its type or, in an array, an element's. A regular expression
@@ -24,7 +26,7 @@ type Value<V> =
   | (null extends V ? null : undefined extends V ? null : never)
 
 /** What `$gt`, `$gte`, `$lt` and `$lte` compare: anything but booleans and objects. */
-type Comparable<V> =
+export type Comparable<V> =
   Matchable<V> extends infer M ? (M extends boolean ? never : M extends Leaf ? M : never) : never
 
 /** An object with operators, as opposed to a value to compare with. */
