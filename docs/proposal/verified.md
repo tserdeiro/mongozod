@@ -342,6 +342,27 @@
   - TS 7 no trae `tsserver`, así que el alias de TS 5.5 deja el suyo en `node_modules/.bin`. El
     `tsc` sigue siendo el de TS 7.
 
+- **Updates en runtime** (Zod 4.6.5, driver 7.7.0 y MongoDB 8.2.6, 16 tests):
+  - MongoDB acepta `{}` en los 15 operadores, también en un upsert, que inserta el documento.
+  - Un `replaceOne` con `upsert` inserta el reemplazo con el `_id` del filtro, también dentro de
+    `$and`, y no copia ningún otro campo del filtro. Sin `_id` en el filtro, el servidor genera un
+    `ObjectId`.
+  - `_zod.bag` está vacío en los números enteros, y el formato vive en `def.format` o en un check
+    interno. `0.5` da `invalid_type` con `expected: 'int'` en `z.number().int()`, `z.int()`,
+    `z.int32()`, Mini y un entero opcional; un `.min()` sin `.int()` da otro error.
+  - `_zod.optout` es `'optional'` en `.optional()`, y no en `.default()`, `.nullable()` ni un campo
+    obligatorio.
+  - `new z.ZodError(issues)` no es instancia de `Error` ni tiene stack; `new z.ZodRealError(issues)`,
+    que es lo que lanza `z.parse`, es instancia de `Error`, de `ZodError` y de `$ZodError`.
+  - En Zod 4, una key con `z.unknown()` es obligatoria en runtime: sin ella, `expected nonoptional`.
+  - Los tests cubren los valores por path (un ISO llega como `Date`, un elemento entero con sus
+    defaults), las keys en `undefined` (el campo conserva su valor en la base), cada regla por
+    operador, las reglas de las uniones en la raíz y en `arrayFilters`, las keys con `.` o `$` en un
+    record y en un `z.unknown()`, un pipeline, un upsert que insertaría un documento inválido (no
+    escribe nada, tampoco en `bulkWrite`), uno que completa los defaults (el documento guardado
+    cumple el schema, con su `_id` uuid) y uno sobre un documento existente, que no cambia sus
+    campos. Los mensajes coinciden con los de los tipos.
+
 - **Herramientas del repo** (pnpm 12.11.2, Node 22.23.2, Bun 1.4.3):
   - Vitest 5, tsdown 0.23 y Changesets 3 piden Node 22.12 o superior, y Node 20 llegó al final de su
     vida el 2026-04-30. El driver 7 todavía acepta Node 20.19.

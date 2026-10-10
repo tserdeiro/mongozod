@@ -91,6 +91,31 @@ valor tiene que servir para su operador y su campo. Se aplica en `updateOne`, `u
 - **Pipeline**: un update con pipeline de agregación no compila: `an update with a pipeline does not
   compile: use .collection`.
 
+## Updates en runtime
+
+El runtime aplica las mismas reglas que los tipos, para lo que escapa a ellos: un update armado en
+runtime o código sin tipos. Cada problema se junta en un solo `ZodError`, con el path
+`[operador, path]`, como `$set title`.
+
+- **Valores**: cada valor que se escribe se parsea con el schema de su path, con sus refinements,
+  defaults y transforms, y se escribe lo que devuelve Zod: un ISO llega como `Date`. Si el filtro
+  permite varios tipos de documento, el valor tiene que servir para todos. Las keys en `undefined`
+  se descartan, y si un operador queda vacío se manda así: MongoDB acepta `{}` en todos los
+  operadores desde la versión 5.0.
+- **Por operador**: `$unset` y el origen de `$rename` solo en campos opcionales (`.default()` no
+  lo es); `$inc`, `$mul` y `$bit` en números, y un `$inc` o un `$mul` con decimales no va a un campo
+  entero; `$currentDate` en campos que aceptan una `Date`; los operadores de array en arrays, y
+  `$push` y `$addToSet` parsean cada elemento, también en `$each`. Que el destino de `$rename` tenga
+  el mismo tipo solo lo chequean los tipos: en runtime no se conoce el valor sin leer el documento.
+- **Enteros**: Zod no expone si un campo es entero, así que se prueba con `0.5`: un campo entero lo
+  rechaza con `expected: 'int'`, en todas las formas (`.int()`, `z.int()`, `z.int32()` y Mini).
+- **Upserts**: además, se arma el documento que insertaría el servidor, como lo hace MongoDB 8.2, y
+  se valida con el schema; sus errores llevan el path del documento. Los defaults que le faltan se
+  agregan con `$setOnInsert`, en el path más profundo que no choca con lo que deciden el filtro o el
+  update: con `$set: { 'settings.theme': 'dark' }` se agrega `'settings.layout'`. Así el `_id` del
+  `.default()` llega también a los documentos que crea un upsert.
+- **Pipeline**: un update que no es un objeto lanza un `ZodError`.
+
 ## Sugerencias del editor
 
 El editor sugiere los paths de filtros, `sort`, `distinct` y updates, y los operadores. Cada
@@ -123,7 +148,9 @@ Los tipos siguen la regla de [Tipos](#tipos). Además:
   `findOneAnd*`, o en `.project()`, que reemplaza a la de `find` como en el driver, y ajusta el tipo
   de lo que devuelven. Una proyección vacía devuelve el documento entero.
 - **Nombres de campo**: `mongozod()` lanza un `Error` si el schema tiene un campo con `.` o que
-  empieza con `$`, porque ningún path llegaría a él. Las keys de los records se validan al escribir.
+  empieza con `$`, porque ningún path llegaría a él. Al escribir, se rechaza cualquier key así en lo
+  que se escribe: la de un record, un catchall, un `looseObject`, un `z.unknown()` o un `z.json()`,
+  en los inserts, los reemplazos y los valores de los updates.
 - **Inputs**: `mz` acepta paths con punto declarados uno por uno en la lista blanca. Los operadores
   posicionales y `arrayFilters` no se exponen a clientes en la v1: los arma el router.
 - **Lo que no se puede validar en la app**: un `$set` con punto crea los padres que faltan, y un
