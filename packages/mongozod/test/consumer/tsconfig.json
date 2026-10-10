@@ -1,0 +1,16 @@
+{
+  // A consumer of the published package: it resolves "mongozod" to dist/, through the exports.
+  "compilerOptions": {
+    "strict": true,
+    "target": "ES2022",
+    // The driver's declarations use `Symbol.asyncDispose` and Node.js modules.
+    "lib": ["ES2022", "ESNext.Disposable"],
+    "types": ["node"],
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "noEmit": true,
+    // Also checks the declarations: those of mongozod and of its dependencies.
+    "skipLibCheck": false
+  },
+  "files": ["usage.ts"]
+}

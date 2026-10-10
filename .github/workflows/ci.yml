@@ -30,6 +30,8 @@ jobs:
       - run: pnpm format:check
       - run: pnpm check-types
       - run: pnpm build
+      # Compiles a consumer of the published declarations with TypeScript 5.5, the minimum, and 7.
+      - run: pnpm check-dist-types
 
   test-node:
     name: Test on Node.js ${{ matrix.node }}

@@ -3,5 +3,7 @@
   "compilerOptions": {
     "types": ["node"]
   },
-  "include": ["src", "test", "tsdown.config.ts", "vitest.config.ts"]
+  "include": ["src", "test", "tsdown.config.ts", "vitest.config.ts"],
+  // A consumer of dist/, checked by `check-dist-types` after the build.
+  "exclude": ["test/consumer"]
 }

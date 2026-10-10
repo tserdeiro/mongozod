@@ -30,6 +30,8 @@ published as `mongozod`, and the official plugins are subpaths of it, such as
 The [tooling](docs/proposal/structure.md#herramientas) runs from the root with pnpm:
 
 - `pnpm build`, `pnpm check-types` and `pnpm test` run each package's task through Turborepo.
+- `pnpm check-dist-types` builds the package and compiles a consumer of its declarations with
+  TypeScript 5.5, the minimum, and 7.
 - `pnpm lint` and `pnpm format` run oxlint and oxfmt over the whole repo.
 - Tests get a MongoDB 8.2 replica set from `inject('mongoUri')`.
 - A change to the published package adds a changeset with `pnpm changeset`.
