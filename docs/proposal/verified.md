@@ -204,3 +204,13 @@
 - **`timestamps`** (documentación de Mongoose y README de zod-mongo):
   - Mongoose tiene `timestamps` como opción del schema, no como plugin. zod-mongo también la tiene
     como opción, encendida por defecto, y agrega los campos por su cuenta.
+
+- **Zod 4.5** (Zod 4.6.5):
+  - `z.compile` devuelve una copia con el mismo `def` y el mismo `shape`, así que `pick` sigue
+    funcionando, y da el mismo resultado y los mismos errores. Con un documento como los de adsgpt
+    (uuids, URL, enums, fechas, un objeto y arrays de objetos) bajó de 1,1 µs a 0,5 µs por
+    documento. Compila transforms, refinements, `z.custom`, `z.lazy` y uniones discriminadas; con
+    `z.json()` o un schema recursivo devuelve el schema sin compilar. `import 'zod/compile'` respeta
+    `jitless`; un `z.compile` explícito, no.
+  - `z.deepPartial` completa los defaults: con `{}` da `{ content: '' }`. También acepta
+    `author: {}` y `tags: [{}]`, que un `$set` guardaría reemplazando el objeto o el array entero.
