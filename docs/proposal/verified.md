@@ -222,6 +222,37 @@
     y `.exactPartial()` para rechazar el `undefined` explícito.
   - Mongoose descarta las keys en `undefined` de los updates desde la versión 6.
 
+- **Operaciones y validación al escribir** (Zod 4.6.5, driver 7.7.0, MongoDB 8.2.6 y código de
+  Mongoose):
+  - El `parse` de `zod/v4/core` lanza un `$ZodError`, que no es instancia del `ZodError` de Zod
+    clásico, tanto con schemas de Zod como de Mini. El `z.parse` de Zod clásico acepta schemas de
+    Mini y lanza un `ZodError`, que también es instancia de `$ZodError`, con los mismos mensajes y
+    el mismo resultado de `prettifyError`. Los dos son instancia de `Error`. wortise-dashboard-monorepo
+    y app-maker atrapan `instanceof ZodError` de `zod` en sus handlers.
+  - Importar Zod clásico no cambia nada global. Construir su primer schema registra el locale
+    inglés como default si no hay otro configurado, y desde ahí los mensajes de un schema de Mini
+    pasan de «Invalid input» a «Invalid input: expected string, received number». Un
+    `z.config(locale)` explícito gana siempre.
+  - Zod deja las keys en `undefined` en el resultado: `{ a: undefined }` da `{ a: undefined }`, y
+    también dentro de un objeto anidado.
+  - `replaceOne` con el mismo `_id` funciona; con otro, falla con el código 66. Un `replaceOne`
+    con `upsert` y sin `_id` en el filtro ni en el reemplazo inserta un `ObjectId` generado por el
+    servidor, aunque el schema diga otra cosa (queda para los upserts de la fase 2.3).
+  - El `omit` de Zod (core `util.omit`, el de `.omit()` y `z.omit`) lanza un `Error` si el objeto
+    tiene refinements en la raíz.
+  - Mongoose arma el reemplazo de `replaceOne` y `findOneAndReplace` como un documento con
+    `skipId: true`: no genera el `_id`, y respeta el que se pasa.
+  - Si la función de `cursor.map()` lanza un error, el driver cierra el cursor y lo propaga, tanto
+    al iterar como en `toArray()`.
+  - Ningún modelo de los tres proyectos usa `replaceOne` ni `findOneAndReplace`, y ninguno valida
+    con refinements asíncronos.
+  - 20 tests del paquete contra MongoDB 8.2.6: los inserts guardan y devuelven el resultado del
+    schema, sin keys en `undefined` y con el `ObjectId` del driver cuando el schema no declara
+    `_id`; un documento inválido lanza un `ZodError` y no escribe nada, también en `insertMany` y
+    `bulkWrite`; los reemplazos conservan el `_id`; `aggregate` valida cada documento con su
+    `schema`; el `db` se resuelve una vez, en la primera operación; y el cursor de `find` se espera,
+    se recorre con `for await` y encadena `sort`, `skip`, `limit` y `project`.
+
 - **Herramientas del repo** (pnpm 12.11.2, Node 22.23.2, Bun 1.4.3):
   - Vitest 5, tsdown 0.23 y Changesets 3 piden Node 22.12 o superior, y Node 20 llegó al final de su
     vida el 2026-04-30. El driver 7 todavía acepta Node 20.19.

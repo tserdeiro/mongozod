@@ -5,9 +5,11 @@ El orden de implementación. Al cerrar una fase, se marca acá en el mismo cambi
 1. **Estructura del proyecto** (hecho): las herramientas del repo (paquetes, build, tests, lint y
    formato), el CI y los releases. Ver [Estructura del repo](./structure.md#herramientas).
 2. **Modelo**, en este orden:
-   1. Las operaciones y la validación al escribir. Ver [El modelo](./model.md) y
-      [Operaciones](./operations.md).
-   2. Los tipos estrictos y los paths con punto. Ver [Tipos](./types.md).
+   1. Las operaciones y la validación al escribir (hecho). Los updates pasan sin validar hasta la
+      2.3, y los filtros, updates y proyecciones usan los tipos del driver hasta la 2.2. Ver
+      [El modelo](./model.md) y [Operaciones](./operations.md).
+   2. Los tipos estrictos, los paths con punto y la validación opcional al leer, que usa el schema
+      de la proyección. Ver [Tipos](./types.md).
    3. Los updates en runtime: valores por path, reglas por operador y upserts. Ver
       [Paths con punto](./types.md#paths-con-punto) y la fila «Updates» de las
       [decisiones acordadas](./README.md#decisiones-acordadas).

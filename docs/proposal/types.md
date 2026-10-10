@@ -1,7 +1,8 @@
 # Tipos
 
 - **Escrituras**: `insertOne` recibe el `z.input` del schema, así que `insertOne({ organization })`
-  sin `title` no compila.
+  sin `title` no compila. Los reemplazos reciben lo mismo (ver
+  [Reemplazos](./operations.md#reemplazos)).
 - **Lecturas**: devuelven el `z.output` del schema, ajustado por la proyección: con `{ title: 1 }`
   el resultado es `{ _id, title }`. Si la proyección llega en runtime, como la de un cliente, los
   campos que puede dejar afuera quedan opcionales.

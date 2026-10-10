@@ -44,6 +44,11 @@ const projected = await NotesModel.find({ organization: 'o' })
   .project({ title: 1 })
 ```
 
+El cursor de `find` encadena `sort`, `limit`, `skip` y `project`. Los demás modificadores del
+driver, como `hint`, `collation`, `comment`, `batchSize` o `maxTimeMS`, van en las opciones de
+`find`, que ya los aceptan. El de `aggregate` no encadena nada, porque las etapas van en el
+pipeline.
+
 Con `await` o `toArray()`, los plugins ven todo el resultado de una vez. Con `for await`, los
 `before` corren una vez, porque fijan la consulta, y el `middleware` y los `after` corren por cada
 lote que devuelve el servidor: hasta 101 documentos el primero y hasta 16 MiB los siguientes. Así
@@ -56,6 +61,20 @@ Los inserts son la única diferencia, y no rompen el código escrito para el dri
 | ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `insertOne`  | `Promise<InsertOneResult>`, que es `{ acknowledged, insertedId }`. El driver agrega el `_id` al objeto que recibe, modificándolo, y se sigue usando ese objeto. | El mismo `InsertOneResult` más `document`. Lo que se guarda es el resultado del schema, con defaults y codecs, y no coincide con lo que se pasó. La librería ya lo tiene porque lo armó al validar. |
 | `insertMany` | `Promise<InsertManyResult>`, que es `{ acknowledged, insertedCount, insertedIds }`.                                                                             | El mismo `InsertManyResult` más `documents`, por el mismo motivo.                                                                                                                                   |
+
+## Reemplazos
+
+`replaceOne` y `findOneAndReplace` validan el reemplazo como un insert: reciben el `z.input` del
+schema y aplican sus defaults, transforms y refinements, también los de la raíz. El `_id` se escribe
+solo si se pasa. El `_id` de un documento no puede cambiar (el servidor responde con el código 66),
+así que el que genera un `.default()` se descarta, igual que Mongoose, que arma el reemplazo con
+`skipId`. Con un `_id` sin default, como el de las colecciones de Better Auth, se pasa el del
+documento.
+
+El driver tipa el reemplazo sin `_id` (`WithoutId`). Con el `_id` con `.default()` acordado, el
+`_id` es opcional en el `z.input`, así que el código escrito para el driver compila igual.
+Validarlo sin `_id` con el `omit` de Zod no sirve: lanza un error si el schema tiene refinements en
+la raíz.
 
 ## Paginación
 
