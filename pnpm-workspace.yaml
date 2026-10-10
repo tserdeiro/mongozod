@@ -5,3 +5,7 @@ packages:
 # Exact versions only: `pnpm add` writes `1.2.3`, never `^1.2.3`.
 savePrefix: ''
 
+
+allowBuilds:
+  # Downloads the MongoDB binary the tests run against.
+  mongodb-memory-server: true
