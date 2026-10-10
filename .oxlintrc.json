@@ -71,13 +71,6 @@
   "ignorePatterns": ["**/dist/**", "**/node_modules/**", "**/*.d.ts"],
   "overrides": [
     {
-      // The entry point is empty until the model lands (roadmap phase 2): remove this override then.
-      "files": ["packages/mongozod/src/index.ts"],
-      "rules": {
-        "unicorn/no-empty-file": "off"
-      }
-    },
-    {
       // Their tools read the config from the default export.
       "files": ["**/tsdown.config.ts", "**/vitest.config.ts"],
       "rules": {
