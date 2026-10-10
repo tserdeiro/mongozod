@@ -3,6 +3,7 @@ import type { AnyModel, FilterOf, ReadOptionsArg } from 'mongozod'
 
 import { MongoClient } from 'mongodb'
 import { definePlugin, mongozod } from 'mongozod'
+import { softDelete } from 'mongozod/plugins/soft-delete'
 import { z } from 'zod'
 
 const db = new MongoClient('mongodb://localhost').db()
@@ -99,7 +100,7 @@ const actor = z.object({ actor: z.string() })
 
 /** Stamps who writes, and adds a method typed by each model. */
 const audit = definePlugin({
-  context: { insert: actor, update: actor },
+  context: { delete: actor, insert: actor, update: actor },
   hooks: {
     insertOne: {
       before: ({ args, context }) => ({
@@ -122,8 +123,20 @@ const audit = definePlugin({
 const TasksModel = mongozod({
   collection: 'tasks',
   db,
-  plugins: [audit],
-  schema: z.object({ createdBy: z.string().optional(), title: z.string() })
+  plugins: [softDelete(), audit],
+  schema: z.object({
+    createdBy: z.string().optional(),
+    deletedAt: z.date().optional(),
+    title: z.string()
+  })
+})
+
+// @ts-expect-error softDelete needs deletedAt in the schema
+mongozod({
+  collection: 'plain',
+  db,
+  plugins: [softDelete()],
+  schema: z.object({ title: z.string() })
 })
 
 /** A service that forwards a filter to the model keeps its checks. */
@@ -203,6 +216,8 @@ export async function usage() {
   await TransactionsModel.find({}, { populate: { amount: true } })
 
   await TasksModel.insertOne({ title: 'Task' }, { context: { actor: 'ana' } })
+  await TasksModel.deleteOne({ title: 'Task' }, { context: { actor: 'ana' } })
+  const trash = await TasksModel.find({ deletedAt: { $exists: true } })
   // @ts-expect-error the writes of TasksModel need who makes them
   await TasksModel.insertOne({ title: 'Task' })
   const taskExists: boolean = await TasksModel.exists({ title: 'Task' })
@@ -223,6 +238,7 @@ export async function usage() {
   return {
     approvers,
     taskExists,
+    trash,
     counts,
     indexes,
     legacy,

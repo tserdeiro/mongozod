@@ -1,7 +1,7 @@
 import { defineConfig } from 'tsdown'
 
 export default defineConfig({
-  entry: ['src/index.ts'],
+  entry: ['src/index.ts', 'src/plugins/soft-delete.ts'],
   dts: true,
   // Writes the `exports` field of package.json from the entries.
   exports: true,
