@@ -1,7 +1,9 @@
 import type { ElementConditionCheck, ElementSchema } from './filter'
 import type { Leaf } from './loose'
+import type { None } from './model'
 import type { PathSuggestions } from './path-suggestions'
 import type { Def, FieldAt, NotAPath, Wrapper } from './schema-at'
+import type * as core from 'zod/v4/core'
 
 type Simplify<T> = { [K in keyof T]: T[K] }
 
@@ -39,10 +41,11 @@ type CrossesArray<S, P extends string> = P extends `${infer Seg}.${infer Rest}`
     : CrossesArray<ProjectionAt<S, Seg>, Rest>
   : IsArraySchema<S>
 
-type Kind = 'elemMatch' | 'exclude' | 'include' | 'meta' | 'positional' | 'slice'
+/** What a projection does with a path. */
+export type Kind = 'elemMatch' | 'exclude' | 'include' | 'meta' | 'positional' | 'slice'
 
 /** Every [path, kind] of a projection, dotted or nested. */
-type Entries<P, Prefix extends string = ''> = {
+export type Entries<P, Prefix extends string = ''> = {
   [K in keyof P & string]-?: P[K] extends 0 | false
     ? [`${Prefix}${K}`, 'exclude']
     : P[K] extends 1 | true
@@ -62,7 +65,12 @@ type Entries<P, Prefix extends string = ''> = {
 
 type PathOf<E> = E extends [infer Path extends string, Kind] ? Path : never
 
-type KindsBesidesId<E> = E extends [infer Path, infer K] ? (Path extends '_id' ? never : K) : never
+/** The kinds of the entries, but the `_id`'s. */
+export type KindsBesidesId<E> = E extends [infer Path, infer K]
+  ? Path extends '_id'
+    ? never
+    : K
+  : never
 
 type Collides<K extends string, E> = [Extract<PathOf<E>, `${K}.${string}`>] extends [never]
   ? K extends `${PathOf<E>}.${string}`
@@ -127,31 +135,62 @@ type ElemMatchCheck<S, K extends string, C, E> = K extends `${string}.${string}`
         ? { $elemMatch: ElementConditionCheck<ElementSchema<ProjectionAt<S, K>>, C> }
         : Problem<K, 'elemMatch', E>
 
-type Check<S, P, E, Prefix extends string> = {
+/** The fields a virtual reads: the keys of its input. */
+type NeedsOf<X> = keyof core.input<X> & string
+
+/**
+ * The fields a virtual reads that the projection changes: a subfield, `$slice`, `$elemMatch` or
+ * `$`.
+ */
+type Changed<E, N extends string> = E extends [infer Path extends string, infer Own]
+  ? Path extends `${infer First}.${string}`
+    ? First & N
+    : Path extends N
+      ? Own extends 'elemMatch' | 'positional' | 'slice'
+        ? Path
+        : never
+      : never
+  : never
+
+/** A virtual takes 0, 1, `true` or `false`, and computes from the fields as they are stored. */
+type VirtualCheck<K extends string, Value, E, N extends string> = [Value] extends [0 | 1 | boolean]
+  ? Mixes<K, [Value] extends [0 | false] ? 'exclude' : 'include', E> extends true
+    ? `"${K}" mixes inclusion and exclusion`
+    : [Value] extends [0 | false]
+      ? Value
+      : [Changed<E, N>] extends [never]
+        ? Value
+        : `"${K}" reads "${Changed<E, N>}" as stored: the projection cannot change it`
+  : `"${K}" is a virtual: it takes 0, 1, true or false`
+
+type Check<S, P, E, Prefix extends string, V = None> = {
   [K in keyof P]: K extends string
-    ? Exclude<P[K], undefined> extends 0 | 1 | boolean
-      ? ValueCheck<S, `${Prefix}${K}`, Exclude<P[K], undefined>, E>
-      : P[K] extends { $slice: unknown }
-        ? SliceCheck<S, `${Prefix}${K}`, E>
-        : P[K] extends { $elemMatch: infer C }
-          ? ElemMatchCheck<S, `${Prefix}${K}`, C, E>
-          : P[K] extends { $meta: unknown }
-            ? { $meta: 'textScore' }
-            : P[K] extends object
-              ? Check<S, P[K], E, `${Prefix}${K}.`>
-              : `"${Prefix}${K}" takes 0, 1, true, false, $slice, $elemMatch or $meta`
+    ? K extends keyof V
+      ? VirtualCheck<K, Exclude<P[K], undefined>, E, NeedsOf<V[K]>>
+      : Exclude<P[K], undefined> extends 0 | 1 | boolean
+        ? ValueCheck<S, `${Prefix}${K}`, Exclude<P[K], undefined>, E>
+        : P[K] extends { $slice: unknown }
+          ? SliceCheck<S, `${Prefix}${K}`, E>
+          : P[K] extends { $elemMatch: infer C }
+            ? ElemMatchCheck<S, `${Prefix}${K}`, C, E>
+            : P[K] extends { $meta: unknown }
+              ? { $meta: 'textScore' }
+              : P[K] extends object
+                ? Check<S, P[K], E, `${Prefix}${K}.`>
+                : `"${Prefix}${K}" takes 0, 1, true, false, $slice, $elemMatch or $meta`
     : never
 }
 
 /**
  * Checks a projection key by key, dotted or nested, the way MongoDB 8.2 answers it: what the
- * server accepts but answers differently, such as an index or a string, does not compile.
+ * server accepts but answers differently, such as an index or a string, does not compile. `V` are
+ * the virtuals of the model, which a projection asks for or leaves out like a field.
  */
-export type ProjectionCheck<S, P> = Check<S, P, Entries<P>, ''>
+export type ProjectionCheck<S, P, V = None> = Check<S, P, Entries<P>, '', V>
 
 /** The keys the editor suggests in a projection. The checks come from `ProjectionCheck`. */
-export type SuggestedProjection<S> = {
-  [K in PathSuggestions<S, 'projection'> | '_id']?: unknown
+export type SuggestedProjection<S, V = None> = {
+  [K in PathSuggestions<S, 'projection'> | '_id' | (keyof V & string)]?: unknown
 }
 
 // The document a projection returns.
@@ -241,7 +280,8 @@ type ExcludePaths<T, E> =
           }
         >
 
-type Mode<E> = [Extract<KindsBesidesId<E>, 'include' | 'positional'>] extends [never]
+/** Whether a projection includes or excludes, as MongoDB 8.2 reads it. */
+export type Mode<E> = [Extract<KindsBesidesId<E>, 'include' | 'positional'>] extends [never]
   ? 'exclude' extends KindsBesidesId<E>
     ? 'exclusion'
     : 'slice' extends KindsBesidesId<E>
@@ -268,7 +308,7 @@ type IsSingle<V> = [V] extends [0]
         : false
 
 /** Whether the projection is written in the code, with every key and value known. */
-type IsLiteral<P> = {
+export type IsLiteral<P> = {
   [K in keyof P]-?: IsOptional<P, K> extends true
     ? false
     : P[K] extends { $elemMatch: unknown } | { $meta: unknown } | { $slice: unknown }

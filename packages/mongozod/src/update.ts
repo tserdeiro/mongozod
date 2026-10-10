@@ -1,7 +1,9 @@
 import type { ConditionCheck, ElementConditionCheck, ElementSchema, KeyCheck } from './filter'
 import type { Loose } from './loose'
+import type { ModelSchema, None } from './model'
 import type { PathSuggestions } from './path-suggestions'
 import type { ProjectionCheck } from './projection'
+import type { PopulateCheck } from './references'
 import type { Def, ExtraKey, IsIdentifier, NotAPath, SchemaAt, Wrapper } from './schema-at'
 import type { SortCheck } from './sort'
 import type { LockedFields, NoTimestamps, TimestampNames } from './timestamps'
@@ -436,15 +438,17 @@ type ArrayFiltersCheck<X, AF> = { [I in keyof AF]: EntryCheck<X, AF[I]> }
 export type ArrayFiltersEntriesCheck<S, U, AF> = ArrayFiltersCheck<Identifiers<S, U>, AF>
 
 /**
- * Checks the options of an update: its `arrayFilters` and, where it takes them, its `sort` and its
- * `projection`.
+ * Checks the options of an update: its `arrayFilters` and, where it takes them, its `sort`, its
+ * `projection` and its `populate`, given the virtuals `V` and the references `R` of the model.
  */
-export type UpdateOptionsCheck<S, U, O> = {
+export type UpdateOptionsCheck<S extends ModelSchema, U, O, V = None, R = None> = {
   [K in keyof O]: K extends 'arrayFilters'
     ? ArrayFiltersCheck<Identifiers<S, U>, O[K]>
     : K extends 'sort'
       ? SortCheck<S, O[K]>
       : K extends 'projection'
-        ? ProjectionCheck<S, O[K]>
-        : O[K]
+        ? ProjectionCheck<S, O[K], V>
+        : K extends 'populate'
+          ? PopulateCheck<S, R, O[K], O extends { projection: infer P } ? P : None>
+          : O[K]
 }

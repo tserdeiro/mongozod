@@ -1,5 +1,8 @@
-import type { Model, ModelSchema } from './model'
+import type { Model, ModelSchema, None } from './model'
+import type { ReadContext, ReadPlan } from './read-plan'
+import type { ReferenceTarget, References, UnknownReferences } from './references'
 import type { Timestamps, TimestampNamesOf, TimestampsCheck, TimestampsOption } from './timestamps'
+import type { Virtuals, VirtualsCheck } from './virtuals'
 import type {
   Abortable,
   AggregateOptions,
@@ -15,16 +18,24 @@ import type * as core from 'zod/v4/core'
 import { z } from 'zod'
 
 import { checkFieldNames } from './check-field-names'
-import { ModelCursor } from './model-cursor'
+import { ModelCursor, processBatches } from './model-cursor'
 import { ModelFindCursor } from './model-find-cursor'
 import { parseDocument } from './parse-document'
 import { parseUpdate } from './parse-update'
+import { planRead } from './read-plan'
+import { checkReferences, registerFind } from './references'
 import { schemaAt } from './schema-at'
 import { stampDocument, stampUpdate, timestampsOf } from './timestamps'
 import { filterEqualities } from './upsert'
+import { virtualsOf } from './virtuals'
 
 /** The options of `mongozod()`. */
-export interface MongozodOptions<S extends ModelSchema, T extends TimestampsOption = false> {
+export interface MongozodOptions<
+  S extends ModelSchema,
+  T extends TimestampsOption = false,
+  V = None,
+  R = None
+> {
   /** The name of the collection. */
   collection: string
 
@@ -33,6 +44,16 @@ export interface MongozodOptions<S extends ModelSchema, T extends TimestampsOpti
    * operation, so the model can be defined before the connection is ready.
    */
   db: Db | (() => Db)
+
+  /**
+   * The fields that store the `_id` of another document, or an array of them, which `populate`
+   * replaces with the documents. Each one points to a function that returns another model, so that
+   * its plugins and virtuals apply, or to a collection and its schema, for one without a model.
+   *
+   * @example
+   *   references: { brand: () => BrandsModel, organization: { collection: 'organizations', schema } }
+   */
+  references?: R & UnknownReferences<S, R>
 
   /**
    * The schema of each document as stored: a `z.object`, or a `z.discriminatedUnion` of objects.
@@ -49,6 +70,34 @@ export interface MongozodOptions<S extends ModelSchema, T extends TimestampsOpti
    *   createdAt: z.union([z.date(), z.iso.datetime().transform((value) => new Date(value))]).default(() => new Date())
    */
   timestamps?: T
+
+  /**
+   * Fields computed from others, which reads add and the database does not store. Each one is a
+   * schema that picks the fields it reads and transforms them into its value. A projection that
+   * asks for one also asks the server for those fields, and returns only what it asked for.
+   *
+   * @example
+   *   fullName: accountSchema
+   *     .pick({ firstName: true, lastName: true })
+   *     .transform((account) => `${account.firstName} ${account.lastName}`)
+   */
+  virtuals?: V
+}
+
+/**
+ * Runs a `findOneAnd…` with its metadata, processes its document and returns what the options
+ * ask for, like the driver: the `ModifyResult`, or its document.
+ */
+async function findOneAnd(
+  plan: ReadPlan,
+  driverOptions: Document,
+  run: (options: Document & { includeResultMetadata: true }) => Promise<ModifyResult>
+): Promise<ModifyResult | WithId<Document> | null> {
+  const result = await run({ ...driverOptions, includeResultMetadata: true })
+
+  if (result.value && plan.process) await plan.process([result.value])
+
+  return driverOptions.includeResultMetadata ? result : result.value
 }
 
 /**
@@ -64,14 +113,23 @@ export interface MongozodOptions<S extends ModelSchema, T extends TimestampsOpti
  *
  *   const { document } = await NotesModel.insertOne({ organization, title })
  */
-export function mongozod<S extends ModelSchema, const T extends TimestampsOption = false>(
-  options: MongozodOptions<S, T> & TimestampsCheck<S, T>
-): Model<S, TimestampNamesOf<T>>
+export function mongozod<
+  S extends ModelSchema,
+  const T extends TimestampsOption = false,
+  // oxlint-disable-next-line typescript/no-generated-empty-object-type -- empty only without virtuals
+  const V extends VirtualsCheck<S, V> = None,
+  // oxlint-disable-next-line typescript/no-generated-empty-object-type -- keyed by the fields of the schema
+  const R extends References<S> = None
+>(options: MongozodOptions<S, T, V, R> & TimestampsCheck<S, T>): Model<S, TimestampNamesOf<T>, V, R>
 // The implementation works with plain documents: the signature above types them with the schema.
 export function mongozod(
-  options: MongozodOptions<ModelSchema, TimestampsOption>
+  options: MongozodOptions<ModelSchema, TimestampsOption> & {
+    references?: Record<string, ReferenceTarget>
+    virtuals?: Virtuals
+  }
 ): Model<ModelSchema> {
   checkFieldNames(options.schema)
+  checkReferences(options.schema, options.references)
 
   const timestamps = timestampsOf(options.schema, options.timestamps)
 
@@ -91,6 +149,22 @@ export function mongozod(
   }
 
   const declaresId = schemaAt(options.schema, '_id', 'filter').length > 0
+
+  const context: ReadContext = {
+    db: getDb,
+    references: options.references ?? {},
+    virtuals: virtualsOf(options.schema, options.virtuals)
+  }
+
+  /** Plans a read and splits its options: `populate` is mongozod's, the rest go to the driver. */
+  function readOptions(operationOptions: Document = {}) {
+    const { populate, ...driverOptions } = operationOptions
+    const plan = planRead(context, driverOptions.projection, populate, driverOptions.session)
+
+    if (plan.projection) driverOptions.projection = plan.projection
+
+    return { driverOptions, plan, populate }
+  }
 
   /** The options for the driver, without `timestamps`, and the fields the operation stamps. */
   function writeOptions(operationOptions: Document = {}) {
@@ -173,16 +247,29 @@ export function mongozod(
   // The operations that return documents have several signatures, like the driver's. TypeScript
   // then compares them with the interface's erasing its type parameters, which the projected
   // result depends on.
-  function find(): ModelFindCursor<WithId<Document>>
-  function find(filter: Document, findOptions?: Document): ModelFindCursor<WithId<Document>>
+  function find(): ModelFindCursor<Document>
+  function find(filter: Document, findOptions?: Document): ModelFindCursor<Document>
   function find(filter: Document = {}, findOptions?: Document) {
-    return new ModelFindCursor(getCollection().find(filter, findOptions))
+    const { driverOptions, plan, populate } = readOptions(findOptions)
+    const cursor = getCollection().find<Document>(filter, driverOptions)
+    const { process } = plan
+
+    return new ModelFindCursor(
+      cursor,
+      (projection) => planRead(context, projection, populate, driverOptions.session),
+      process && (() => processBatches(cursor, process))
+    )
   }
 
   function findOne(): Promise<WithId<Document> | null>
   function findOne(filter: Document, findOptions?: Document): Promise<WithId<Document> | null>
-  function findOne(filter: Document = {}, findOptions: Document = {}) {
-    return getCollection().findOne(filter, findOptions)
+  async function findOne(filter: Document = {}, findOptions?: Document) {
+    const { driverOptions, plan } = readOptions(findOptions)
+    const document = await getCollection().findOne(filter, driverOptions)
+
+    if (document && plan.process) await plan.process([document])
+
+    return document
   }
 
   function findOneAndDelete(
@@ -195,9 +282,13 @@ export function mongozod(
   ): Promise<WithId<Document> | null>
   function findOneAndDelete(
     filter: Document,
-    deleteOptions: Document = {}
+    deleteOptions?: Document
   ): Promise<ModifyResult | WithId<Document> | null> {
-    return getCollection().findOneAndDelete(filter, deleteOptions)
+    const { driverOptions, plan } = readOptions(deleteOptions)
+
+    return findOneAnd(plan, driverOptions, (metadataOptions) =>
+      getCollection().findOneAndDelete(filter, metadataOptions)
+    )
   }
 
   function findOneAndReplace(
@@ -213,12 +304,15 @@ export function mongozod(
   async function findOneAndReplace(
     filter: Document,
     replacement: Document,
-    replaceOptions: Document = {}
+    replaceOptions?: Document
   ): Promise<ModifyResult | WithId<Document> | null> {
-    const { driverOptions, stamps } = writeOptions(replaceOptions)
+    const { driverOptions: writeDriverOptions, stamps } = writeOptions(replaceOptions)
+    const { driverOptions, plan } = readOptions(writeDriverOptions)
     const document = parseReplacement(filter, replacement, driverOptions.upsert, stamps, new Date())
 
-    return getCollection().findOneAndReplace(filter, document, driverOptions)
+    return findOneAnd(plan, driverOptions, (metadataOptions) =>
+      getCollection().findOneAndReplace(filter, document, metadataOptions)
+    )
   }
 
   function findOneAndUpdate(
@@ -234,15 +328,18 @@ export function mongozod(
   async function findOneAndUpdate(
     filter: Document,
     update: Document,
-    updateOptions: Document = {}
+    updateOptions?: Document
   ): Promise<ModifyResult | WithId<Document> | null> {
-    const { driverOptions, stamps } = writeOptions(updateOptions)
+    const { driverOptions: writeDriverOptions, stamps } = writeOptions(updateOptions)
+    const { driverOptions, plan } = readOptions(writeDriverOptions)
     const parsed = parseModelUpdate(filter, update, driverOptions, stamps, new Date())
 
-    return getCollection().findOneAndUpdate(filter, parsed, driverOptions)
+    return findOneAnd(plan, driverOptions, (metadataOptions) =>
+      getCollection().findOneAndUpdate(filter, parsed, metadataOptions)
+    )
   }
 
-  return {
+  const model = {
     get collection() {
       return getCollection()
     },
@@ -251,6 +348,7 @@ export function mongozod(
     },
     name: options.collection,
     schema: options.schema,
+    virtuals: options.virtuals ?? {},
 
     aggregate,
 
@@ -385,4 +483,8 @@ export function mongozod(
       return getCollection().updateOne(filter, parsed, driverOptions)
     }
   }
+
+  registerFind(model, find)
+
+  return model
 }

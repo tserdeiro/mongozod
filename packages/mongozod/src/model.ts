@@ -3,7 +3,14 @@ import type { ModelCursor } from './model-cursor'
 import type { ModelFindCursor } from './model-find-cursor'
 import type { PathSuggestions } from './path-suggestions'
 import type { PipelineCheck } from './pipeline'
-import type { Projected, ProjectionCheck, SuggestedProjection } from './projection'
+import type { ProjectionCheck, SuggestedProjection } from './projection'
+import type {
+  PopulateCheck,
+  PopulatedProjection,
+  Populated,
+  PopulateOption,
+  SuggestedPopulate
+} from './references'
 import type { FieldAt, NotAPath } from './schema-at'
 import type { SortCheck, SuggestedSort } from './sort'
 import type { NoTimestamps, TimestampNames, TimestampsOperationOption } from './timestamps'
@@ -13,6 +20,7 @@ import type {
   UpdateCheck,
   UpdateOptionsCheck
 } from './update'
+import type { Read } from './virtuals'
 import type {
   Abortable,
   AggregateOptions,
@@ -54,6 +62,10 @@ import type * as core from 'zod/v4/core'
  */
 export type ModelSchema = core.$ZodObject | core.$ZodDiscriminatedUnion<readonly core.$ZodObject[]>
 
+/** The virtuals, references or `populate` of a model or a read that has none. */
+// oxlint-disable-next-line typescript/no-generated-empty-object-type -- an object without keys is the point
+export type None = Record<never, never>
+
 /** A document as stored: the output of the schema. */
 export type Output<S extends ModelSchema> = Extract<core.output<S>, Document>
 
@@ -63,28 +75,56 @@ export type Input<S extends ModelSchema> = core.input<S>
 /** Driver options whose `sort` is checked against the schema, with the keys the editor suggests. */
 type Sorted<S, O, Sort> = Omit<O, 'sort'> & { sort?: Sort & SuggestedSort<S> }
 
-/** Driver options whose `sort` and `projection` are checked against the schema. */
-type ReadOptions<S, O, Sort, P> = Omit<O, 'projection' | 'sort'> & {
-  projection?: P & SuggestedProjection<S>
-  sort?: Sort & SuggestedSort<S>
-}
+/**
+ * Driver options whose `sort` and `projection` are checked against the schema, plus `populate` on
+ * the models that have references.
+ */
+type ReadOptions<S, O, Sort, P, V, R, Pop> = Omit<O, 'projection' | 'sort'> &
+  PopulateOption<R, Pop> & {
+    projection?: P & SuggestedProjection<S, V>
+    sort?: Sort & SuggestedSort<S>
+  }
 
-/** The keys the editor suggests in the `sort` and `projection` of options checked elsewhere. */
-interface ReadSuggestions<S> {
-  projection?: SuggestedProjection<S>
+/**
+ * The keys the editor suggests in the `sort`, `projection` and `populate` of options checked
+ * elsewhere.
+ */
+interface ReadSuggestions<S, V, R> {
+  // oxlint-disable-next-line typescript/no-generated-empty-object-type -- empty only without references
+  populate?: SuggestedPopulate<R>
+  projection?: SuggestedProjection<S, V>
   sort?: SuggestedSort<S>
 }
 
 type ProjectionOf<O> = O extends { projection: infer P } ? P : unknown
 
-/** The driver's `ModifyResult`, with the document as the projection returns it. */
-type ModifyResultOf<S extends ModelSchema, P> = Omit<ModifyResult<Output<S>>, 'value'> & {
-  value: Projected<WithId<Output<S>>, P> | null
+type PopulateOf<O> = O extends { populate: infer Pop } ? Pop : None
+
+/**
+ * The document a read returns: projected, with the virtuals it asks for or keeps and the references
+ * of its `populate` replaced.
+ */
+export type ReadDocument<S extends ModelSchema, V, R, P, Pop> = Populated<
+  Read<WithId<Output<S>>, V, PopulatedProjection<P, Pop>>,
+  R,
+  Pop
+>
+
+/** The driver's `ModifyResult`, with the document as the read returns it. */
+type ModifyResultOf<S extends ModelSchema, V, R, P, Pop> = Omit<
+  ModifyResult<Output<S>>,
+  'value'
+> & {
+  value: ReadDocument<S, V, R, P, Pop> | null
 }
 
-/** Driver options of an update, whose `arrayFilters` and `sort` `UpdateOptionsCheck` checks. */
+/**
+ * Driver options of an update, whose `arrayFilters`, `sort`, `projection` and `populate`
+ * `UpdateOptionsCheck` checks.
+ */
 type UpdateOptionsBase<O> = Omit<O, 'arrayFilters' | 'projection' | 'sort'> & {
   arrayFilters?: ReadonlyArray<Document>
+  populate?: Document
   projection?: Document
   sort?: Document
 }
@@ -158,11 +198,20 @@ export type BulkWriteCheck<
 /**
  * A model: the driver's operations on one collection, with the schema validating what is written
  * and typing what is read. Filters, sorts and the `$match` stages of a pipeline are checked key by
- * key against the schema.
+ * key against the schema. The reads that return documents compute the virtuals `V` and populate the
+ * references `R`.
  */
-export interface Model<S extends ModelSchema, N extends TimestampNames = NoTimestamps> {
+export interface Model<
+  S extends ModelSchema,
+  N extends TimestampNames = NoTimestamps,
+  V = None,
+  R = None
+> {
   /** The schema of each document. */
   readonly schema: S
+
+  /** The virtuals of the model, which reads compute and do not store. */
+  readonly virtuals: V
 
   /** The name of the collection. */
   readonly name: string
@@ -227,65 +276,79 @@ export interface Model<S extends ModelSchema, N extends TimestampNames = NoTimes
 
   /**
    * Finds the documents that match the filter. The cursor can be awaited for the array, iterated
-   * with `for await` and chained like the driver's. A projection adjusts the type of the documents.
+   * with `for await` and chained like the driver's. A projection adjusts the type of the documents,
+   * and asks for virtuals like for fields. `populate` replaces each reference with its document,
+   * with one `$in` query per reference and per batch: `null` when it is missing.
+   *
+   * @example
+   *   await TransactionsModel.find({}, { populate: { createdBy: { fullName: 1 } } })
    */
   find<
     const F extends FilterCheck<S, F>,
     const Sort extends SortCheck<S, Sort>,
-    const P extends ProjectionCheck<S, P>
+    const P extends ProjectionCheck<S, P, V>,
+    const Pop extends PopulateCheck<S, R, Pop, P>
   >(
     filter?: F & SuggestedFilter<S>,
-    options?: ReadOptions<S, FindOptions, Sort, P> & Abortable
-  ): ModelFindCursor<Projected<WithId<Output<S>>, P>, S>
+    options?: ReadOptions<S, FindOptions, Sort, P, V, R, Pop> & Abortable
+  ): ModelFindCursor<ReadDocument<S, V, R, P, Pop>, S, V, R, Pop>
 
   /** Finds the first document that matches the filter. */
   findOne<
     const F extends FilterCheck<S, F>,
     const Sort extends SortCheck<S, Sort>,
-    const P extends ProjectionCheck<S, P>
+    const P extends ProjectionCheck<S, P, V>,
+    const Pop extends PopulateCheck<S, R, Pop, P>
   >(
     filter?: F & SuggestedFilter<S>,
-    options?: ReadOptions<S, Omit<FindOneOptions, 'timeoutMode'>, Sort, P> & Abortable
-  ): Promise<Projected<WithId<Output<S>>, P> | null>
+    options?: ReadOptions<S, Omit<FindOneOptions, 'timeoutMode'>, Sort, P, V, R, Pop> & Abortable
+  ): Promise<ReadDocument<S, V, R, P, Pop> | null>
 
   /** Deletes the first document that matches the filter and returns it. */
   findOneAndDelete<
     const F extends FilterCheck<S, F>,
     const Sort extends SortCheck<S, Sort>,
-    const P extends ProjectionCheck<S, P>
+    const P extends ProjectionCheck<S, P, V>,
+    const Pop extends PopulateCheck<S, R, Pop, P>
   >(
     filter: F & SuggestedFilter<S>,
-    options: ReadOptions<S, FindOneAndDeleteOptions, Sort, P> & { includeResultMetadata: true }
-  ): Promise<ModifyResultOf<S, P>>
+    options: ReadOptions<S, FindOneAndDeleteOptions, Sort, P, V, R, Pop> & {
+      includeResultMetadata: true
+    }
+  ): Promise<ModifyResultOf<S, V, R, P, Pop>>
   findOneAndDelete<
     const F extends FilterCheck<S, F>,
     const Sort extends SortCheck<S, Sort>,
-    const P extends ProjectionCheck<S, P>
+    const P extends ProjectionCheck<S, P, V>,
+    const Pop extends PopulateCheck<S, R, Pop, P>
   >(
     filter: F & SuggestedFilter<S>,
-    options?: ReadOptions<S, FindOneAndDeleteOptions, Sort, P>
-  ): Promise<Projected<WithId<Output<S>>, P> | null>
+    options?: ReadOptions<S, FindOneAndDeleteOptions, Sort, P, V, R, Pop>
+  ): Promise<ReadDocument<S, V, R, P, Pop> | null>
 
   /** Replaces the first document that matches the filter, validated like `replaceOne`. */
   findOneAndReplace<
     const F extends FilterCheck<S, F>,
     const Sort extends SortCheck<S, Sort>,
-    const P extends ProjectionCheck<S, P>
+    const P extends ProjectionCheck<S, P, V>,
+    const Pop extends PopulateCheck<S, R, Pop, P>
   >(
     filter: F & SuggestedFilter<S>,
     replacement: Input<S>,
-    options: ReadOptions<S, FindOneAndReplaceOptions, Sort, P> &
+    options: ReadOptions<S, FindOneAndReplaceOptions, Sort, P, V, R, Pop> &
       TimestampsOperationOption<N> & { includeResultMetadata: true }
-  ): Promise<ModifyResultOf<S, P>>
+  ): Promise<ModifyResultOf<S, V, R, P, Pop>>
   findOneAndReplace<
     const F extends FilterCheck<S, F>,
     const Sort extends SortCheck<S, Sort>,
-    const P extends ProjectionCheck<S, P>
+    const P extends ProjectionCheck<S, P, V>,
+    const Pop extends PopulateCheck<S, R, Pop, P>
   >(
     filter: F & SuggestedFilter<S>,
     replacement: Input<S>,
-    options?: ReadOptions<S, FindOneAndReplaceOptions, Sort, P> & TimestampsOperationOption<N>
-  ): Promise<Projected<WithId<Output<S>>, P> | null>
+    options?: ReadOptions<S, FindOneAndReplaceOptions, Sort, P, V, R, Pop> &
+      TimestampsOperationOption<N>
+  ): Promise<ReadDocument<S, V, R, P, Pop> | null>
 
   /** Updates the first document that matches the filter and returns it. */
   findOneAndUpdate<
@@ -293,23 +356,23 @@ export interface Model<S extends ModelSchema, N extends TimestampNames = NoTimes
     const U extends UpdateCheck<S, U, F, O, N>,
     const O extends UpdateOptionsBase<FindOneAndUpdateOptions> &
       TimestampsOperationOption<N> &
-      UpdateOptionsCheck<S, U, O>
+      UpdateOptionsCheck<S, U, O, V, R>
   >(
     filter: F & SuggestedFilter<S>,
     update: U & SuggestedUpdate<S>,
-    options: O & ReadSuggestions<S> & { includeResultMetadata: true }
-  ): Promise<ModifyResultOf<S, ProjectionOf<O>>>
+    options: O & ReadSuggestions<S, V, R> & { includeResultMetadata: true }
+  ): Promise<ModifyResultOf<S, V, R, ProjectionOf<O>, PopulateOf<O>>>
   findOneAndUpdate<
     const F extends FilterCheck<S, F>,
     const U extends UpdateCheck<S, U, F, O, N>,
     const O extends UpdateOptionsBase<FindOneAndUpdateOptions> &
       TimestampsOperationOption<N> &
-      UpdateOptionsCheck<S, U, O>
+      UpdateOptionsCheck<S, U, O, V, R>
   >(
     filter: F & SuggestedFilter<S>,
     update: U & SuggestedUpdate<S>,
-    options?: O & ReadSuggestions<S>
-  ): Promise<Projected<WithId<Output<S>>, ProjectionOf<O>> | null>
+    options?: O & ReadSuggestions<S, V, R>
+  ): Promise<ReadDocument<S, V, R, ProjectionOf<O>, PopulateOf<O>> | null>
 
   /**
    * Validates the documents with the schema and inserts them. Returns the driver's result plus the

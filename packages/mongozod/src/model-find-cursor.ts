@@ -1,21 +1,46 @@
-import type { ModelSchema, Output } from './model'
-import type { Projected, ProjectionCheck, SuggestedProjection } from './projection'
+import type { ModelSchema, None, ReadDocument } from './model'
+import type { ProjectionCheck, SuggestedProjection } from './projection'
+import type { ReadPlan } from './read-plan'
 import type { SortCheck, SuggestedSort } from './sort'
-import type { Document, FindCursor, Sort, WithId } from 'mongodb'
+import type { Document, FindCursor, Sort } from 'mongodb'
 
-import { ModelCursor } from './model-cursor'
+import { ModelCursor, processBatches } from './model-cursor'
+
+/** A projection that leaves out a reference the read populates does not compile. */
+type KeepsPopulated<P, Pop> = {
+  [K in keyof P & keyof Pop]: [P[K]] extends [0 | false]
+    ? `populate needs "${K & string}": the projection excludes it`
+    : unknown
+}
 
 /**
  * The cursor of `find`: chains `sort`, `limit`, `skip` and `project` like the driver's
  * `FindCursor`, and can be awaited for the array of its documents. The other modifiers go in the
- * options of `find`. `S` is the schema of the model, which checks the keys of `sort`.
+ * options of `find`. `S` is the schema of the model, `V` its virtuals and `R` its references, which
+ * check the keys of `sort` and `project`, and `Pop` the `populate` of the read.
  */
-export class ModelFindCursor<T, S extends ModelSchema = ModelSchema> extends ModelCursor<T> {
+export class ModelFindCursor<
+  T,
+  S extends ModelSchema = ModelSchema,
+  V = None,
+  R = None,
+  Pop = None
+> extends ModelCursor<T> {
   readonly #cursor: FindCursor<T>
+  readonly #plan: (projection: Document) => ReadPlan
 
-  constructor(cursor: FindCursor<T>) {
-    super(cursor)
+  /**
+   * `plan` plans the projection that `project` sets, with the virtuals and the `populate` of the
+   * read. The cursor comes planned: `batches` reads it when it has virtuals or references.
+   */
+  constructor(
+    cursor: FindCursor<T>,
+    plan: (projection: Document) => ReadPlan,
+    batches?: () => AsyncIterable<T[]>
+  ) {
+    super(cursor, batches)
     this.#cursor = cursor
+    this.#plan = plan
   }
 
   /** Sets the sort order, with the keys checked against the schema. */
@@ -45,10 +70,17 @@ export class ModelFindCursor<T, S extends ModelSchema = ModelSchema> extends Mod
    * Sets the projection, checked against the schema, and types the documents it returns. Like the
    * driver's, it replaces the projection of `find`.
    */
-  project<const P extends ProjectionCheck<S, P>>(
-    projection: P & SuggestedProjection<S>
-  ): ModelFindCursor<Projected<WithId<Output<S>>, P>, S>
-  project(projection: Document): ModelFindCursor<Document, S> {
-    return new ModelFindCursor<Document, S>(this.#cursor.project(projection))
+  project<const P extends ProjectionCheck<S, P, V>>(
+    projection: P & SuggestedProjection<S, V> & KeepsPopulated<P, Pop>
+  ): ModelFindCursor<ReadDocument<S, V, R, P, Pop>, S, V, R, Pop>
+  project(projection: Document): ModelFindCursor<Document, S, V, R, Pop> {
+    const { process, projection: planned } = this.#plan(projection)
+    const cursor = this.#cursor.project(planned ?? projection)
+
+    return new ModelFindCursor<Document, S, V, R, Pop>(
+      cursor,
+      this.#plan,
+      process && (() => processBatches(cursor, process))
+    )
   }
 }

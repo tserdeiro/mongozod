@@ -1,11 +1,11 @@
 import type { Document } from 'mongodb'
+import type * as core from 'zod/v4/core'
 
 import { z } from 'zod'
-import * as core from 'zod/v4/core'
 
+import { documentTypes } from './document-types'
 import { isPlainObject } from './is-plain-object'
 import { schemaAt } from './schema-at'
-import { unwrapSchema } from './unwrap-schema'
 
 /**
  * The `timestamps` option of `mongozod()`: `true` for `createdAt` and `updatedAt`, or an object
@@ -124,9 +124,7 @@ export function timestampsOf(
     updatedAt: nameOf(option, 'updatedAt')
   }
 
-  const unwrapped = unwrapSchema(schema)
-  const types =
-    unwrapped instanceof core.$ZodDiscriminatedUnion ? unwrapped._zod.def.options : [schema]
+  const types = documentTypes(schema)
 
   for (const name of [timestamps.createdAt, timestamps.updatedAt]) {
     if (!name) continue

@@ -41,6 +41,45 @@ const PostsModel = mongozod({
   timestamps: true
 })
 
+const accountSchema = z.object({
+  _id: z.string(),
+  firstName: z.string(),
+  lastName: z.string(),
+  parent: z.string().optional()
+})
+
+// Two models that reference each other, and one that references itself.
+const AccountsModel = mongozod({
+  collection: 'accounts',
+  db,
+  references: { parent: () => AccountsModel },
+  schema: accountSchema,
+  virtuals: {
+    fullName: accountSchema
+      .pick({ firstName: true, lastName: true })
+      .transform((account) => `${account.firstName} ${account.lastName}`)
+  }
+})
+
+const TransactionsModel = mongozod({
+  collection: 'transactions',
+  db,
+  references: {
+    approvedBy: () => AccountsModel,
+    createdBy: () => AccountsModel,
+    organization: {
+      collection: 'organizations',
+      schema: z.object({ _id: z.string(), name: z.string() })
+    }
+  },
+  schema: z.object({
+    _id: z.string(),
+    approvedBy: z.array(z.string()),
+    createdBy: z.string(),
+    organization: z.string()
+  })
+})
+
 /** A service that forwards a filter to the model keeps its checks. */
 function countNotes<const F extends ModelFilter<typeof noteSchema, F>>(filter: F) {
   return NotesModel.countDocuments(filter)
@@ -101,5 +140,21 @@ export async function usage() {
   // @ts-expect-error "title" is required
   await NotesModel.insertOne({ createdAt: new Date() })
 
-  return { counts, distinctTags, tags, titles, total }
+  const [transaction] = await TransactionsModel.find(
+    {},
+    { populate: { approvedBy: { fullName: 1 }, createdBy: true, organization: { name: 1 } } }
+  )
+  const approvers: Array<{ _id: string; fullName: string }> | undefined = transaction?.approvedBy
+  const creator: string | null | undefined = transaction?.createdBy?.fullName
+  const names = await AccountsModel.find({}, { projection: { fullName: 1 } })
+  const fullName: string | undefined = names[0]?.fullName
+
+  // @ts-expect-error firstName was not asked for
+  const firstName: string | undefined = names[0]?.firstName
+  // @ts-expect-error a virtual is not stored
+  await AccountsModel.find({ fullName: 'Ana Gómez' })
+  // @ts-expect-error amount is not a reference
+  await TransactionsModel.find({}, { populate: { amount: true } })
+
+  return { approvers, counts, creator, distinctTags, firstName, fullName, tags, titles, total }
 }
