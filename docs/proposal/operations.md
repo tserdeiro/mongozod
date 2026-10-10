@@ -1,0 +1,71 @@
+# Operaciones
+
+Las operaciones se agrupan para que un plugin declare sus opciones, su contexto y sus hooks una
+sola vez por grupo.
+
+| Grupo    | Operaciones                                                                            |
+| -------- | -------------------------------------------------------------------------------------- |
+| `read`   | `find`, `findOne`, `countDocuments`, `estimatedDocumentCount`, `distinct`, `aggregate` |
+| `insert` | `insertOne`, `insertMany`                                                              |
+| `update` | `updateOne`, `updateMany`, `replaceOne`, `findOneAndUpdate`, `findOneAndReplace`       |
+| `delete` | `deleteOne`, `deleteMany`, `findOneAndDelete`                                          |
+| `bulk`   | `bulkWrite`                                                                            |
+
+## Cómo funciona una operación
+
+Cada operación es un wrapper del método del mismo nombre del driver:
+
+1. Corre los `before` y el `middleware` de los plugins.
+2. Valida con Zod lo que se escribe, junto con el contexto y las opciones de los plugins.
+3. Llama al método del driver con las mismas opciones, sin las de los plugins.
+4. Corre los `after`.
+5. Devuelve el resultado del driver.
+
+La consulta la hace el driver: mongozod no reimplementa nada. Lo que no está envuelto, como `watch`
+o la administración de índices, se usa con `.collection`.
+
+## Resultados
+
+Las operaciones conservan la firma y los resultados del driver. Lo que agrega mongozod va como una
+opción más, como `schema` en `aggregate(pipeline, { schema })` o las opciones que declaran los
+plugins.
+
+`find` devuelve un cursor como el `FindCursor` del driver. Se recorre igual, se le encadenan los
+mismos métodos y además se puede esperar con `await` para obtener el array:
+
+```ts
+const all = await NotesModel.find({ organization: 'o' })
+
+for await (const note of NotesModel.find({ organization: 'o' })) titles.push(note.title)
+
+const projected = await NotesModel.find({ organization: 'o' })
+  .sort({ createdAt: -1 })
+  .limit(20)
+  .project({ title: 1 })
+```
+
+Con `await` o `toArray()`, los plugins ven todo el resultado de una vez. Con `for await`, los
+`before` corren una vez, porque fijan la consulta, y el `middleware` y los `after` corren por cada
+lote que devuelve el servidor: hasta 101 documentos el primero y hasta 16 MiB los siguientes. Así
+`populate` hace una consulta `$in` por referencia y por lote. Un cursor fija su sesión al crearse,
+así que para leer dentro de una transacción se pasa `session` en las opciones de `find`.
+
+Los inserts son la única diferencia, y no rompen el código escrito para el driver:
+
+| Operación    | Driver                                                                                                                                                          | mongozod                                                                                                                                                                                            |
+| ------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `insertOne`  | `Promise<InsertOneResult>`, que es `{ acknowledged, insertedId }`. El driver agrega el `_id` al objeto que recibe, modificándolo, y se sigue usando ese objeto. | El mismo `InsertOneResult` más `document`. Lo que se guarda es el resultado del schema, con defaults y codecs, y no coincide con lo que se pasó. La librería ya lo tiene porque lo armó al validar. |
+| `insertMany` | `Promise<InsertManyResult>`, que es `{ acknowledged, insertedCount, insertedIds }`.                                                                             | El mismo `InsertManyResult` más `documents`, por el mismo motivo.                                                                                                                                   |
+
+## Paginación
+
+El cursor del driver no sirve para paginar entre requests. Vive en el servidor de MongoDB, que lo
+cierra cuando la sesión pasa más de 30 minutos inactiva, y con varias instancias del server el
+request siguiente puede llegar a otra.
+
+Para el scroll infinito, la paginación es por clave. El endpoint declara un `cursor` que recibe los
+valores de orden del último elemento de la página, como `{ createdAt, _id }`, y lo convierte en el
+filtro de rango de la página siguiente. MongoDB lo recomienda: `skip()` se vuelve más lento a medida
+que crece el offset, y las consultas por rango usan índices. El orden tiene que terminar en un campo
+único, como `_id`, para desempatar. `skip` y `limit` siguen disponibles para tablas con páginas
+numeradas.
