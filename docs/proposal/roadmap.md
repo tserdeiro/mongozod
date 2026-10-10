@@ -4,7 +4,7 @@ El orden de implementación. Al cerrar una fase, se marca acá en el mismo cambi
 
 1. **Estructura del proyecto** (hecho): las herramientas del repo (paquetes, build, tests, lint y
    formato), el CI y los releases. Ver [Estructura del repo](./structure.md#herramientas).
-2. **Modelo**, en este orden:
+2. **Modelo** (hecho), en este orden:
    1. Las operaciones y la validación al escribir (hecho). Los updates pasan sin validar hasta la
       2.3, y los filtros, updates y proyecciones usan los tipos del driver hasta la 2.2. Ver
       [El modelo](./model.md) y [Operaciones](./operations.md).
@@ -22,8 +22,7 @@ El orden de implementación. Al cerrar una fase, se marca acá en el mismo cambi
    4. `timestamps` (hecho). Ver [Timestamps](./model.md#timestamps).
    5. Las referencias y los virtuals (hecho). Ver [Referencias](./model.md#referencias) y
       [Virtuals](./model.md#virtuals).
-   6. `sync()`: los índices y el `$jsonSchema`. Ver la fila «Servidor» de las
-      [decisiones acordadas](./README.md#decisiones-acordadas).
+   6. `sync()`: los índices y el `$jsonSchema` (hecho). Ver [Sincronización](./model.md#sincronización).
 3. **Plugins**: `definePlugin` y [`softDelete`](./plugins/soft-delete.md). Ver [Plugins](./plugins/README.md).
 4. **Inputs**: `mz`. Ver [Inputs de los endpoints](./inputs.md).
 5. **Primera versión**: una 0.x en npm y un primer módulo de adsgpt migrado. Publicarla confirma el

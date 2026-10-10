@@ -154,5 +154,5 @@ Los tipos siguen la regla de [Tipos](#tipos). Además:
 - **Inputs**: `mz` acepta paths con punto declarados uno por uno en la lista blanca. Los operadores
   posicionales y `arrayFilters` no se exponen a clientes en la v1: los arma el router.
 - **Lo que no se puede validar en la app**: un `$set` con punto crea los padres que faltan, y un
-  índice fuera del array lo rellena con `null`. Se documenta y lo cubre el `$jsonSchema`. Ninguno
+  índice fuera del array lo rellena con `null`. Se documenta y lo cubre el [`$jsonSchema`](./model.md#sincronización). Ninguno
   de los tres proyectos escribe con punto en un objeto opcional con otros campos obligatorios.

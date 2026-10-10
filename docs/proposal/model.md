@@ -23,7 +23,10 @@ export const NotesModel = mongozod({
   operación. Así el modelo se puede definir al importar el módulo aunque la conexión dependa del
   entorno, como en los tests con `mongodb-memory-server`. Desde el `Db` se llega al cliente
   (`db.client`), que hace falta para sesiones y transacciones.
-- **`indexes`**: los índices que crea `sync()`, con las claves tipadas contra el schema.
+- **`indexes`**: los índices que crea `sync()`, con las claves tipadas contra el schema. Ver
+  [Sincronización](#sincronización).
+- **`jsonSchema`**: aplica en `sync()` un `$jsonSchema` generado desde el schema. Ver
+  [Sincronización](#sincronización).
 - **`plugins`**: los plugins del modelo, en el orden en que se aplican.
 - **`references`**: los campos que guardan el `_id` de otro documento, que `populate` reemplaza
   por el documento. Ver [Referencias](#referencias).
@@ -48,13 +51,22 @@ objeto por campo. Está apagada por defecto.
   y siguen a la opción, renombrados o apagados. Tienen que estar en todos los tipos de documento,
   tomar y devolver una `Date` y tener un `.default()` o ser opcionales, así los inserts no los
   piden. Si no, `mongozod()` no compila, y en runtime lanza un `Error`. La forma documentada acepta
-  un ISO o una `Date` y lo transforma en `Date`, para los inputs que llegan en JSON:
+  una `Date` o un ISO, para los inputs que llegan en JSON, y un codec convierte el ISO en `Date`:
 
   ```ts
-  const timestampSchema = z
-    .union([z.date(), z.iso.datetime().transform((value) => new Date(value))])
-    .default(() => new Date())
+  const isoToDate = z.codec(z.iso.datetime(), z.date(), {
+    decode: (iso) => new Date(iso),
+    encode: (date) => date.toISOString()
+  })
+
+  const timestampSchema = z.union([z.date(), isoToDate]).default(() => new Date())
   ```
+
+  Es el ejemplo `isoDatetimeToDate` de la documentación de Zod, que tiene codecs desde la 4.1. Un
+  codec declara su salida, así que el [`$jsonSchema`](#sincronización) sabe que el campo es una
+  fecha; con `.transform()` no lo sabe, porque un transform puede devolver cualquier cosa. Además,
+  `z.encode` la vuelve a ISO, y un transform no se puede encodear. La misma forma sirve para las
+  demás fechas, como `deletedAt` o `scheduledFor`.
 
 - **Inserts y reemplazos**: como Mongoose, `createdAt` es el que viene o «ahora»; adsgpt guarda en
   `brands` la fecha de la fuente. `updatedAt` es el que viene o el valor de `createdAt`, así un
@@ -72,6 +84,58 @@ objeto por campo. Está apagada por defecto.
   `bulkWrite` va en las opciones de la llamada y vale para todas sus operaciones. Solo existe en los
   modelos con timestamps, y mongozod la quita antes de llamar al driver.
 - **Borrados**: un borrado de `softDelete` es un update, así que también completa `updatedAt`.
+
+## Sincronización
+
+`sync()` prepara la colección en el servidor: aplica el `$jsonSchema` si el modelo lo pide y crea
+los índices declarados. Es explícito, para correr al desplegar o desde un script, y no en cada
+operación. Está a prueba: si resulta repetitivo o fácil de olvidar, se cambia.
+
+```ts
+export const PluginsModel = mongozod({
+  schema: pluginSchema,
+  collection: 'plugins',
+  db,
+  indexes: [{ key: { organization: 1, plugin: 1 }, unique: true }],
+  jsonSchema: true
+})
+
+const { extraIndexes } = await PluginsModel.sync()
+```
+
+- **Índices**: con la forma del driver, el `IndexDescription` de `createIndexes`, como app-maker:
+  `{ key, unique, partialFilterExpression, name, expireAfterSeconds, … }`. adsgpt y
+  wortise-dashboard-monorepo los declaran como `{ key, options }`; wortise se los pasa así al
+  driver, que descarta `options`, así que el `unique` de waitlists nunca se creó.
+- **Tipos**: cada clave es un path del documento, con punto y a través de arrays, como en un filtro,
+  o un comodín (`$**`, `path.$**`), con los valores del driver: 1, -1, `'text'`, `'2dsphere'`… El
+  `partialFilterExpression` se chequea como el filtro del modelo; el servidor rechaza los operadores
+  que no acepta un índice parcial, como `$ne` (código 67). El editor no sugiere los paths dentro de
+  `indexes`: el schema y los índices se infieren del mismo objeto.
+- **Nunca borra un índice**, a diferencia del `syncIndexes()` de Mongoose. Uno existente que difiere
+  del declarado falla con el error del servidor, que lo nombra: 85 con la misma clave y otro nombre,
+  86 con el mismo nombre y otras opciones. `createIndexes` es atómico, así que no se crea ninguno.
+  Un índice con otro nombre y otras opciones sí se crea, y el viejo queda entre los que sobran.
+- **Lo que devuelve**: `{ indexes, extraIndexes }`, los nombres de los declarados, creados o ya
+  existentes, y los índices que la colección tiene y el modelo no declara, salvo el del `_id`. El
+  script que lo llama decide si los loguea: la librería no escribe en la consola.
+- **`jsonSchema`**: `true` aplica `validationLevel: 'strict'` y `validationAction: 'error'`, los
+  defaults de MongoDB, y también acepta `{ validationLevel: 'moderate' }`, que no valida los updates
+  de documentos que ya no pasan, para migrar colecciones con datos. Se aplica con `collMod`, o al
+  crear la colección si no existe. Si el modelo no lo pide, `sync()` no toca el validador que tenga
+  la colección.
+- **Qué genera**: la estructura, lo que la app no puede chequear (un `$set` con punto que crea
+  padres, un índice que rellena con `null`) y lo que se escribe por fuera del modelo: el tipo BSON de
+  cada campo, los obligatorios, objetos y arrays anidados, enums y literales, `null` y las uniones
+  con `anyOf`. Sigue la salida del schema, que es lo que se guarda: el final de un pipe o de un
+  codec. Los refinements quedan en la app; los transforms, `z.custom`, `z.unknown` y los schemas
+  recursivos, sin regla, porque MongoDB no tiene `$ref`.
+- **Campos de más**: un `z.object` común descarta las keys que no declara, pero los documentos
+  viejos pueden tenerlas, así que `additionalProperties` queda abierto. Un `z.strictObject` lo
+  cierra, y un catchall usa su schema.
+- **Por qué no `z.toJSONSchema()`**: el `$jsonSchema` de MongoDB es el draft 4 sin `$ref`,
+  `default`, `format`, el tipo `integer` ni keywords desconocidas, y usa `bsonType` para las fechas
+  y los demás tipos de BSON. mongozod recorre el schema y escribe `bsonType` directamente.
 
 ## Referencias
 

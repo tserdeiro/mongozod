@@ -421,6 +421,51 @@
     36,5 mil instanciaciones, con el mismo tiempo de chequeo. Dos modelos con virtuals y referencias y
     seis llamadas suman 11 mil más y 5 ms.
 
+- **`sync()` y `$jsonSchema`** (MongoDB 8.2.6, driver 7.7.0, Zod 4.6.5, TypeScript 5.5.4 y 7.0.2, y
+  los tres proyectos):
+  - Hoy los tres `MongoModel` crean los índices en la primera operación y comparan solo las claves,
+    con `JSON.stringify`: ignoran los que difieren en las opciones y no informan los que sobran.
+    adsgpt y wortise-dashboard-monorepo los declaran como `{ key, options }` y app-maker con la
+    forma del driver. El driver de wortise descarta `options`, así que el `unique` de waitlists
+    nunca se creó, y su bandera estática hace que solo el primer modelo de cada proceso cree los
+    suyos. Las opciones que se usan son `unique` y `expireAfterSeconds`, sobre campos de primer
+    nivel. Ninguno usa `$jsonSchema`.
+  - Crear de nuevo un índice idéntico devuelve su nombre y no hace nada. Con la misma clave y otro
+    nombre falla con el código 85 («Index already exists with a different name: a_1»); con el mismo
+    nombre y otras opciones u otra clave, con el 85 o el 86, con los dos índices en el mensaje. Con
+    otro nombre y otras opciones crea un segundo índice. `createIndexes` es atómico: si uno falla,
+    no crea ninguno.
+  - `listIndexes` y `collMod` sobre una colección que no existe fallan con el código 26. Un índice de
+    texto se lista con la clave `{ _fts: 'text', _ftsx: 1 }`. Un índice parcial acepta una igualdad
+    con `null` y `$in`, y rechaza `$ne` con el código 67.
+  - El `$jsonSchema` es el draft 4 sin `$ref`, `$schema`, `default`, `definitions`, `format`, `id`,
+    el tipo `integer` ni keywords desconocidas, según el manual: `format` y `default` fallan con el
+    código 9. Acepta `anyOf` en la raíz, el alias `number` y `\p{L}` en un `pattern`. Con
+    `additionalProperties: false` y sin `_id` en las propiedades, rechaza todo insert.
+  - Un `.transform()` no dice qué devuelve, así que una fecha con transform queda sin regla: así
+    quedaban todas las fechas de los 18 schemas de adsgpt. Un codec (`z.codec`, desde Zod 4.1) y un
+    `.pipe(z.date())` declaran la salida, y dan `date`. La documentación de Zod tiene el ejemplo
+    `isoDatetimeToDate`, y un transform no se puede encodear.
+  - Cada llamada al getter de `z.json()` crea un schema nuevo, así que un recorrido que lo llama no lo
+    reconoce: `mongozod()` desbordaba la pila con un campo `z.json()`. `innerType`, documentado como
+    la forma cacheada de leerlo, devuelve siempre el mismo.
+  - MongoDB 8.2 acepta los `$jsonSchema` generados para los 18 schemas de adsgpt.
+  - 7 tests del generador (tipos BSON, obligatorios, anidados, uniones, nullables, records, tuplas,
+    pipes y codecs, lo que queda sin regla, objetos estrictos o abiertos, Zod Mini) y 10 de `sync()`:
+    crea los índices y devuelve sus nombres, con un `unique` parcial; devuelve los que sobran sin
+    borrarlos; falla con el 86 cuando uno difiere; anda sin colección; una clave que no es un path y
+    un `partialFilterExpression` con otro tipo no compilan; crea la colección con el validador, que
+    rechaza un `$set` con punto que crea un padre incompleto; reemplaza el validador con el nivel
+    pedido; acepta un documento complejo que escribe la app; valida cada tipo de una unión; y no toca
+    el validador de un modelo que no lo pide.
+  - Tres índices en un modelo cuestan 2 mil instanciaciones y 4 ms en un consumidor de las
+    declaraciones. El consumidor de los `.d.ts` publicados compila `indexes`, `jsonSchema`, `sync()`
+    y el codec de fechas con TS 5.5 y 7.
+  - El editor no sugiere los paths dentro de `indexes` en `mongozod()`: con el language service de
+    TypeScript 5.5, ninguna forma de la firma los sugiere mientras el schema y los índices se
+    infieren del mismo objeto, y una lista sin genérico pierde los paths profundos y el chequeo del
+    filtro parcial.
+
 - **Herramientas del repo** (pnpm 12.11.2, Node 22.23.2, Bun 1.4.3):
   - Vitest 5, tsdown 0.23 y Changesets 3 piden Node 22.12 o superior, y Node 20 llegó al final de su
     vida el 2026-04-30. El driver 7 todavía acepta Node 20.19.
