@@ -41,10 +41,10 @@ describe('indexes', () => {
   const NotesModel = mongozod({
     collection: 'notes',
     db,
-    indexes: [
-      { key: { createdAt: -1, organization: 1 } },
-      { key: { slug: 1 }, partialFilterExpression: { deletedAt: null }, unique: true },
-      { key: { 'author.name': 1, 'tags': 1 } }
+    indexes: (index) => [
+      index({ createdAt: -1, organization: 1 }),
+      index({ slug: 1 }, { partialFilterExpression: { deletedAt: null }, unique: true }),
+      index({ 'author.name': 1, 'tags': 1 })
     ],
     schema: noteSchema
   })
@@ -90,28 +90,38 @@ describe('indexes', () => {
   })
 
   test('takes paths of the document, and checks the partial filter like a filter', () => {
-    expectTypeOf(() => [
+    expect(() =>
       mongozod({
         collection: 'notes',
         db,
         // @ts-expect-error "titel" is not a path of the document
-        indexes: [{ key: { titel: 1 } }],
-        schema: noteSchema
-      }),
-      mongozod({
-        collection: 'notes',
-        db,
-        // @ts-expect-error a slug is a string
-        indexes: [{ key: { slug: 1 }, partialFilterExpression: { slug: 1 } }],
-        schema: noteSchema
-      }),
-      mongozod({
-        collection: 'notes',
-        db,
-        indexes: [{ key: { '$**': 1 } }, { key: { 'author.$**': 1 } }, { key: { slug: 'text' } }],
+        indexes: (index) => [index({ titel: 1 })],
         schema: noteSchema
       })
-    ]).toBeFunction()
+    ).toThrow('index key "titel" is not a path of the document')
+    expectTypeOf(() =>
+      mongozod({
+        collection: 'notes',
+        db,
+        indexes: (index) => [
+          // @ts-expect-error a slug is a string
+          index({ slug: 1 }, { partialFilterExpression: { slug: 1 } })
+        ],
+        schema: noteSchema
+      })
+    ).toBeFunction()
+    expect(() =>
+      mongozod({
+        collection: 'notes',
+        db,
+        indexes: (index) => [
+          index({ '$**': 1 }),
+          index({ 'author.$**': 1 }),
+          index({ slug: 'text' }, { name: 'search' })
+        ],
+        schema: noteSchema
+      })
+    ).not.toThrow()
   })
 })
 

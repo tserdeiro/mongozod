@@ -1,4 +1,4 @@
-import type { IndexesCheck } from './indexes'
+import type { IndexFunction } from './indexes'
 import type { JsonSchemaOption } from './json-schema'
 import type { Model, ModelSchema, None, SyncResult } from './model'
 import type { ReadContext, ReadPlan } from './read-plan'
@@ -22,6 +22,7 @@ import { MongoServerError } from 'mongodb'
 import { z } from 'zod'
 
 import { checkFieldNames } from './check-field-names'
+import { indexesOf } from './indexes'
 import { toJsonSchema } from './json-schema'
 import { ModelCursor, processBatches } from './model-cursor'
 import { ModelFindCursor } from './model-find-cursor'
@@ -39,8 +40,7 @@ export interface MongozodOptions<
   S extends ModelSchema,
   T extends TimestampsOption = false,
   V = None,
-  R = None,
-  I = readonly []
+  R = None
 > {
   /** The name of the collection. */
   collection: string
@@ -52,13 +52,14 @@ export interface MongozodOptions<
   db: Db | (() => Db)
 
   /**
-   * The indexes that `sync()` creates, in the driver's form: each key is a path of the document,
-   * and `partialFilterExpression` is checked like a filter.
+   * The indexes that `sync()` creates, declared with `index(key, options)` like the driver's
+   * `createIndex`: each key is a path of the document, and `partialFilterExpression` is checked
+   * like a filter. A callback, so that the editor suggests the paths.
    *
    * @example
-   *   indexes: [{ key: { organization: 1, createdAt: -1 } }, { key: { slug: 1 }, unique: true }]
+   *   indexes: (index) => [index({ organization: 1, createdAt: -1 }), index({ slug: 1 }, { unique: true })]
    */
-  indexes?: I
+  indexes?: (index: IndexFunction<S>) => readonly IndexDescription[]
 
   /**
    * Applies a `$jsonSchema` generated from the schema when `sync()` runs, so that the server also
@@ -149,21 +150,20 @@ export function mongozod<
   // oxlint-disable-next-line typescript/no-generated-empty-object-type -- empty only without virtuals
   const V extends VirtualsCheck<S, V> = None,
   // oxlint-disable-next-line typescript/no-generated-empty-object-type -- keyed by the fields of the schema
-  const R extends References<S> = None,
-  const I extends ReadonlyArray<IndexDescription> & IndexesCheck<S, I> = readonly []
->(
-  options: MongozodOptions<S, T, V, R, I> & TimestampsCheck<S, T>
-): Model<S, TimestampNamesOf<T>, V, R>
+  const R extends References<S> = None
+>(options: MongozodOptions<S, T, V, R> & TimestampsCheck<S, T>): Model<S, TimestampNamesOf<T>, V, R>
 // The implementation works with plain documents: the signature above types them with the schema.
 export function mongozod(
-  options: MongozodOptions<ModelSchema, TimestampsOption> & {
-    indexes?: readonly IndexDescription[]
+  options: Omit<MongozodOptions<ModelSchema, TimestampsOption>, 'indexes'> & {
+    indexes?: Parameters<typeof indexesOf>[1]
     references?: Record<string, ReferenceTarget>
     virtuals?: Virtuals
   }
 ): Model<ModelSchema> {
   checkFieldNames(options.schema)
   checkReferences(options.schema, options.references)
+
+  const indexes = indexesOf(options.schema, options.indexes)
 
   const timestamps = timestampsOf(options.schema, options.timestamps)
 
@@ -522,8 +522,7 @@ export function mongozod(
         }
       }
 
-      const declared = options.indexes ?? []
-      const indexes = declared.length > 0 ? await getCollection().createIndexes([...declared]) : []
+      const names = indexes.length > 0 ? await getCollection().createIndexes(indexes) : []
       const existing = await getCollection()
         .indexes()
         .catch((error: unknown) => {
@@ -535,9 +534,9 @@ export function mongozod(
 
       return {
         extraIndexes: existing.filter(
-          (index) => index.name !== '_id_' && !indexes.includes(index.name ?? '')
+          (index) => index.name !== '_id_' && !names.includes(index.name ?? '')
         ),
-        indexes
+        indexes: names
       }
     },
 

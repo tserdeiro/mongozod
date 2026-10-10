@@ -22,9 +22,9 @@ const noteSchema = z.object({
 const NotesModel = mongozod({
   collection: 'notes',
   db,
-  indexes: [
-    { key: { 'author.name': 1, 'createdAt': -1 } },
-    { key: { title: 1 }, partialFilterExpression: { views: { $gt: 0 } }, unique: true }
+  indexes: (index) => [
+    index({ 'author.name': 1, 'createdAt': -1 }),
+    index({ title: 1 }, { partialFilterExpression: { views: { $gt: 0 } }, unique: true })
   ],
   jsonSchema: { validationLevel: 'moderate' },
   schema: noteSchema
@@ -174,8 +174,13 @@ export async function usage() {
   const { extraIndexes, indexes } = await NotesModel.sync()
   const legacy: Array<string | undefined> = extraIndexes.map((index) => index.name)
 
-  // @ts-expect-error "titel" is not a path of the document
-  mongozod({ collection: 'notes', db, indexes: [{ key: { titel: 1 } }], schema: noteSchema })
+  mongozod({
+    collection: 'notes',
+    db,
+    // @ts-expect-error "titel" is not a path of the document
+    indexes: (index) => [index({ titel: 1 })],
+    schema: noteSchema
+  })
 
   return {
     approvers,
