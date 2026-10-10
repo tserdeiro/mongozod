@@ -56,11 +56,13 @@ El detalle de cada tema está en su documento:
 - [Inputs de los endpoints](./inputs.md): los constructores de `mz` y lo que reemplazan.
 - [Plugins](./plugins/README.md): el contrato y los plugins oficiales, cada uno con su documento.
 - [Estructura del repo](./structure.md): las carpetas, las convenciones y lo que falta definir.
+- [Roadmap](./roadmap.md): el orden de implementación.
 - [Qué se verificó](./verified.md): los prototipos, los tests y las fuentes de cada decisión.
 
 ## Pendiente
 
-Las decisiones del núcleo están tomadas. Quedan tareas:
+Las decisiones del núcleo están tomadas. El orden en que se implementan está en el
+[Roadmap](./roadmap.md). Quedan tareas:
 
 - **Plugins oficiales**: diseñar [`timestamps`](./plugins/timestamps.md),
   [`audit`](./plugins/audit.md), [`logger`](./plugins/logger.md) y
