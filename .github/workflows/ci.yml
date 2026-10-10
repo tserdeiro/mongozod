@@ -1,0 +1,68 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+permissions:
+  contents: read
+
+# A newer push to the same branch or pull request cancels the run still going.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Lint, format, types and build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      # Installs pnpm from `packageManager`, Node.js from `.node-version`, and the dependencies.
+      - uses: pnpm/setup@v3
+        with:
+          require-lockfile: true
+      - run: pnpm lint
+      - run: pnpm format:check
+      - run: pnpm check-types
+      - run: pnpm build
+
+  test-node:
+    name: Test on Node.js ${{ matrix.node }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # The minimum in `engines`, then each newer major with support.
+        node: ['22.12.0', '24', '26']
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: pnpm/setup@v3
+        with:
+          runtime: node@${{ matrix.node }}
+          require-lockfile: true
+      - run: pnpm test
+
+  test-bun:
+    name: Test on Bun
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      # Node.js still runs the install scripts (lefthook, mongodb-memory-server).
+      - uses: pnpm/setup@v3
+        with:
+          require-lockfile: true
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      # `--bun` runs Vitest and the tests on Bun instead of the `node` in its shebang.
+      - run: bun --bun vitest run
+        working-directory: packages/mongozod
