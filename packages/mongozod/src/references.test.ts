@@ -214,14 +214,14 @@ describe('with a projection', () => {
     } | null>()
   })
 
-  test('an exclusion cannot leave out a reference to populate', () => {
-    expect(() =>
+  test('an exclusion cannot leave out a reference to populate', async () => {
+    await expect(
       TransactionsModel.find(
         {},
         // @ts-expect-error the projection excludes createdBy
         { populate: { createdBy: true }, projection: { createdBy: 0 } }
       )
-    ).toThrow(z.ZodError)
+    ).rejects.toBeInstanceOf(z.ZodError)
     expectTypeOf(() =>
       TransactionsModel.find({}, { populate: { createdBy: true } })
         // @ts-expect-error the projection excludes createdBy

@@ -1,10 +1,31 @@
-export type { FilterCheck, ModelFilter, SuggestedFilter } from './filter'
-export type { BulkWriteCheck, Input, Model, ModelSchema, Output } from './model'
-export type { PipelineCheck } from './pipeline'
-export type { ModelSort, SortCheck, SortDirection, SuggestedSort } from './sort'
-export type { ModelUpdate, SuggestedUpdate, UpdateCheck, UpdateOptionsCheck } from './update'
+export type {
+  DocOf,
+  FilterOf,
+  Input,
+  Model,
+  ModelSchema,
+  Output,
+  ReadOptionsArg,
+  SortOf,
+  SyncResult,
+  UpdateOf,
+  UpdateOptionsArg
+} from './model'
 export type { MongozodOptions } from './mongozod'
+export type {
+  AnyModel,
+  Group,
+  Hooks,
+  MiddlewareInput,
+  NextOptions,
+  Operation,
+  OperationArgs,
+  OperationHooks,
+  OperationResults,
+  Plugin
+} from './plugin'
 
 export { ModelCursor } from './model-cursor'
 export { ModelFindCursor } from './model-find-cursor'
 export { mongozod } from './mongozod'
+export { definePlugin } from './plugin'

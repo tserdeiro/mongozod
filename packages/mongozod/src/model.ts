@@ -1,8 +1,9 @@
-import type { FilterCheck, SuggestedFilter } from './filter'
+import type { FilterCheck, ModelFilter, SuggestedFilter } from './filter'
 import type { ModelCursor } from './model-cursor'
 import type { ModelFindCursor } from './model-find-cursor'
 import type { PathSuggestions } from './path-suggestions'
 import type { PipelineCheck } from './pipeline'
+import type { AnyPlugin, OptionsArg } from './plugin'
 import type { ProjectionCheck, SuggestedProjection } from './projection'
 import type {
   PopulateCheck,
@@ -16,6 +17,7 @@ import type { SortCheck, SuggestedSort } from './sort'
 import type { NoTimestamps, TimestampNames, TimestampsOperationOption } from './timestamps'
 import type {
   ArrayFiltersEntriesCheck,
+  ModelUpdate,
   SuggestedUpdate,
   UpdateCheck,
   UpdateOptionsCheck
@@ -196,6 +198,48 @@ export type BulkWriteCheck<
   [I in keyof Operations]: BulkWriteOperationCheck<S, Operations[I], N, BulkOptions>
 }
 
+type SchemaOf<M> = M extends { readonly schema: infer S extends ModelSchema } ? S : never
+
+/** The timestamps of a model, which an update cannot write. */
+type TimestampsOf<M> = M extends Model<ModelSchema, infer N> ? N : NoTimestamps
+
+/** The documents of a model, as stored. */
+export type DocOf<M> = WithId<Output<SchemaOf<M>>>
+
+/**
+ * A filter on the documents of a model, for a function that takes one and passes it to the model,
+ * such as a plugin's method or a service. Each key is checked like the model's.
+ *
+ * @example
+ *   function countNotes<const F extends FilterOf<typeof NotesModel, F>>(filter: F) {
+ *     return NotesModel.countDocuments(filter)
+ *   }
+ */
+export type FilterOf<M, F> = ModelFilter<SchemaOf<M>, F>
+
+/** A sort on the documents of a model, for a function that takes one and passes it to the model. */
+export type SortOf<M, Sort> = SortCheck<SchemaOf<M>, Sort> & SuggestedSort<SchemaOf<M>>
+
+/**
+ * An update of the documents of a model, given its filter and its options, for a function that
+ * takes one and passes it to the model.
+ */
+export type UpdateOf<M, U, F, O = unknown> = ModelUpdate<SchemaOf<M>, U, F, O, TimestampsOf<M>>
+
+/** The options argument of the model's reads, with the context its plugins ask for. */
+export type ReadOptionsArg<M> = M extends {
+  countDocuments(filter?: never, ...options: infer A): unknown
+}
+  ? A
+  : never
+
+/** The options argument of the model's updates, with the context its plugins ask for. */
+export type UpdateOptionsArg<M> = M extends {
+  updateMany(filter: never, update: never, ...options: infer A): unknown
+}
+  ? A
+  : never
+
 /** What `sync()` did, and the indexes it left as they are. */
 export interface SyncResult {
   /** The names of the declared indexes, created now or already there. */
@@ -215,7 +259,8 @@ export interface Model<
   S extends ModelSchema,
   N extends TimestampNames = NoTimestamps,
   V = None,
-  R = None
+  R = None,
+  PL extends readonly AnyPlugin[] = []
 > {
   /** The schema of each document. */
   readonly schema: S
@@ -253,32 +298,32 @@ export interface Model<
     const BulkOptions extends BulkWriteOptions & TimestampsOperationOption<N> = BulkWriteOptions
   >(
     operations: Operations,
-    options?: BulkOptions
+    ...options: OptionsArg<PL, 'bulk', BulkOptions>
   ): Promise<BulkWriteResult>
 
   /** Counts the documents that match the filter. */
   countDocuments<const F extends FilterCheck<S, F>>(
     filter?: F & SuggestedFilter<S>,
-    options?: CountDocumentsOptions & Abortable
+    ...options: OptionsArg<PL, 'read', CountDocumentsOptions & Abortable>
   ): Promise<number>
 
   /** Deletes every document that matches the filter. */
   deleteMany<const F extends FilterCheck<S, F>>(
     filter?: F & SuggestedFilter<S>,
-    options?: DeleteOptions
+    ...options: OptionsArg<PL, 'delete', DeleteOptions>
   ): Promise<DeleteResult>
 
   /** Deletes the first document that matches the filter. */
   deleteOne<const F extends FilterCheck<S, F>>(
     filter?: F & SuggestedFilter<S>,
-    options?: DeleteOptions
+    ...options: OptionsArg<PL, 'delete', DeleteOptions>
   ): Promise<DeleteResult>
 
   /** The distinct values of a path among the documents that match the filter. */
   distinct<const K extends string, const F extends FilterCheck<S, F>>(
     key: K & DistinctKey<S, K>,
     filter?: F & SuggestedFilter<S>,
-    options?: DistinctOptions
+    ...options: OptionsArg<PL, 'read', DistinctOptions>
   ): Promise<Array<Exclude<Flatten<core.output<FieldAt<S, K, 'filter'>>>, undefined>>>
 
   /** Estimates the number of documents from the collection's metadata. */
@@ -300,7 +345,7 @@ export interface Model<
     const Pop extends PopulateCheck<S, R, Pop, P>
   >(
     filter?: F & SuggestedFilter<S>,
-    options?: ReadOptions<S, FindOptions, Sort, P, V, R, Pop> & Abortable
+    ...options: OptionsArg<PL, 'read', ReadOptions<S, FindOptions, Sort, P, V, R, Pop> & Abortable>
   ): ModelFindCursor<ReadDocument<S, V, R, P, Pop>, S, V, R, Pop>
 
   /** Finds the first document that matches the filter. */
@@ -311,7 +356,11 @@ export interface Model<
     const Pop extends PopulateCheck<S, R, Pop, P>
   >(
     filter?: F & SuggestedFilter<S>,
-    options?: ReadOptions<S, Omit<FindOneOptions, 'timeoutMode'>, Sort, P, V, R, Pop> & Abortable
+    ...options: OptionsArg<
+      PL,
+      'read',
+      ReadOptions<S, Omit<FindOneOptions, 'timeoutMode'>, Sort, P, V, R, Pop> & Abortable
+    >
   ): Promise<ReadDocument<S, V, R, P, Pop> | null>
 
   /** Deletes the first document that matches the filter and returns it. */
@@ -322,9 +371,12 @@ export interface Model<
     const Pop extends PopulateCheck<S, R, Pop, P>
   >(
     filter: F & SuggestedFilter<S>,
-    options: ReadOptions<S, FindOneAndDeleteOptions, Sort, P, V, R, Pop> & {
-      includeResultMetadata: true
-    }
+    ...options: OptionsArg<
+      PL,
+      'delete',
+      ReadOptions<S, FindOneAndDeleteOptions, Sort, P, V, R, Pop> & { includeResultMetadata: true },
+      true
+    >
   ): Promise<ModifyResultOf<S, V, R, P, Pop>>
   findOneAndDelete<
     const F extends FilterCheck<S, F>,
@@ -333,7 +385,11 @@ export interface Model<
     const Pop extends PopulateCheck<S, R, Pop, P>
   >(
     filter: F & SuggestedFilter<S>,
-    options?: ReadOptions<S, FindOneAndDeleteOptions, Sort, P, V, R, Pop>
+    ...options: OptionsArg<
+      PL,
+      'delete',
+      ReadOptions<S, FindOneAndDeleteOptions, Sort, P, V, R, Pop>
+    >
   ): Promise<ReadDocument<S, V, R, P, Pop> | null>
 
   /** Replaces the first document that matches the filter, validated like `replaceOne`. */
@@ -345,8 +401,13 @@ export interface Model<
   >(
     filter: F & SuggestedFilter<S>,
     replacement: Input<S>,
-    options: ReadOptions<S, FindOneAndReplaceOptions, Sort, P, V, R, Pop> &
-      TimestampsOperationOption<N> & { includeResultMetadata: true }
+    ...options: OptionsArg<
+      PL,
+      'update',
+      ReadOptions<S, FindOneAndReplaceOptions, Sort, P, V, R, Pop> &
+        TimestampsOperationOption<N> & { includeResultMetadata: true },
+      true
+    >
   ): Promise<ModifyResultOf<S, V, R, P, Pop>>
   findOneAndReplace<
     const F extends FilterCheck<S, F>,
@@ -356,8 +417,11 @@ export interface Model<
   >(
     filter: F & SuggestedFilter<S>,
     replacement: Input<S>,
-    options?: ReadOptions<S, FindOneAndReplaceOptions, Sort, P, V, R, Pop> &
-      TimestampsOperationOption<N>
+    ...options: OptionsArg<
+      PL,
+      'update',
+      ReadOptions<S, FindOneAndReplaceOptions, Sort, P, V, R, Pop> & TimestampsOperationOption<N>
+    >
   ): Promise<ReadDocument<S, V, R, P, Pop> | null>
 
   /** Updates the first document that matches the filter and returns it. */
@@ -370,7 +434,12 @@ export interface Model<
   >(
     filter: F & SuggestedFilter<S>,
     update: U & SuggestedUpdate<S>,
-    options: O & ReadSuggestions<S, V, R> & { includeResultMetadata: true }
+    ...options: OptionsArg<
+      PL,
+      'update',
+      O & ReadSuggestions<S, V, R> & { includeResultMetadata: true },
+      true
+    >
   ): Promise<ModifyResultOf<S, V, R, ProjectionOf<O>, PopulateOf<O>>>
   findOneAndUpdate<
     const F extends FilterCheck<S, F>,
@@ -381,7 +450,7 @@ export interface Model<
   >(
     filter: F & SuggestedFilter<S>,
     update: U & SuggestedUpdate<S>,
-    options?: O & ReadSuggestions<S, V, R>
+    ...options: OptionsArg<PL, 'update', O & ReadSuggestions<S, V, R>>
   ): Promise<ReadDocument<S, V, R, ProjectionOf<O>, PopulateOf<O>> | null>
 
   /**
@@ -390,7 +459,7 @@ export interface Model<
    */
   insertMany(
     documents: ReadonlyArray<Input<S>>,
-    options?: BulkWriteOptions & TimestampsOperationOption<N>
+    ...options: OptionsArg<PL, 'insert', BulkWriteOptions & TimestampsOperationOption<N>>
   ): Promise<InsertManyResult<Output<S>> & { documents: Array<WithId<Output<S>>> }>
 
   /**
@@ -399,7 +468,7 @@ export interface Model<
    */
   insertOne(
     document: Input<S>,
-    options?: InsertOneOptions & TimestampsOperationOption<N>
+    ...options: OptionsArg<PL, 'insert', InsertOneOptions & TimestampsOperationOption<N>>
   ): Promise<InsertOneResult<Output<S>> & { document: WithId<Output<S>> }>
 
   /**
@@ -410,7 +479,11 @@ export interface Model<
   replaceOne<const F extends FilterCheck<S, F>, const Sort extends SortCheck<S, Sort>>(
     filter: F & SuggestedFilter<S>,
     replacement: Input<S>,
-    options?: Sorted<S, ReplaceOptions, Sort> & TimestampsOperationOption<N>
+    ...options: OptionsArg<
+      PL,
+      'update',
+      Sorted<S, ReplaceOptions, Sort> & TimestampsOperationOption<N>
+    >
   ): Promise<UpdateResult<Output<S>>>
 
   /**
@@ -431,7 +504,7 @@ export interface Model<
   >(
     filter: F & SuggestedFilter<S>,
     update: U & SuggestedUpdate<S>,
-    options?: O
+    ...options: OptionsArg<PL, 'update', O>
   ): Promise<UpdateResult<Output<S>>>
 
   /** Updates the first document that matches the filter. */
@@ -444,6 +517,6 @@ export interface Model<
   >(
     filter: F & SuggestedFilter<S>,
     update: U & SuggestedUpdate<S>,
-    options?: O
+    ...options: OptionsArg<PL, 'update', O>
   ): Promise<UpdateResult<Output<S>>>
 }

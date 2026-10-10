@@ -1,10 +1,9 @@
 import type { ModelSchema, None, ReadDocument } from './model'
 import type { ProjectionCheck, SuggestedProjection } from './projection'
-import type { ReadPlan } from './read-plan'
 import type { SortCheck, SuggestedSort } from './sort'
-import type { Document, FindCursor, Sort } from 'mongodb'
+import type { Document, Sort } from 'mongodb'
 
-import { ModelCursor, processBatches } from './model-cursor'
+import { ModelCursor } from './model-cursor'
 
 /** A projection that leaves out a reference the read populates does not compile. */
 type KeepsPopulated<P, Pop> = {
@@ -13,11 +12,23 @@ type KeepsPopulated<P, Pop> = {
     : unknown
 }
 
+/** The arguments of a `find`, which the modifiers of its cursor change before it starts. */
+export interface FindArgs {
+  filter: Document
+  options: Document
+}
+
+/** Starts a `find` with its arguments, and gives the batches of documents as their type. */
+export type FindOpener = <T>(args: FindArgs) => AsyncGenerator<T[], void, void>
+
 /**
  * The cursor of `find`: chains `sort`, `limit`, `skip` and `project` like the driver's
  * `FindCursor`, and can be awaited for the array of its documents. The other modifiers go in the
  * options of `find`. `S` is the schema of the model, `V` its virtuals and `R` its references, which
  * check the keys of `sort` and `project`, and `Pop` the `populate` of the read.
+ *
+ * The modifiers set the options of `find`, which the plugins see when the cursor starts: after it
+ * starts, they throw an `Error`, like the driver's.
  */
 export class ModelFindCursor<
   T,
@@ -26,44 +37,37 @@ export class ModelFindCursor<
   R = None,
   Pop = None
 > extends ModelCursor<T> {
-  readonly #cursor: FindCursor<T>
-  readonly #plan: (projection: Document) => ReadPlan
+  readonly #args: FindArgs
+  readonly #open: FindOpener
 
-  /**
-   * `plan` plans the projection that `project` sets, with the virtuals and the `populate` of the
-   * read. The cursor comes planned: `batches` reads it when it has virtuals or references.
-   */
-  constructor(
-    cursor: FindCursor<T>,
-    plan: (projection: Document) => ReadPlan,
-    batches?: () => AsyncIterable<T[]>
-  ) {
-    super(cursor, batches)
-    this.#cursor = cursor
-    this.#plan = plan
+  constructor(args: FindArgs, open: FindOpener) {
+    super(() => open<T>(args))
+    this.#args = args
+    this.#open = open
+  }
+
+  #set(option: string, value: unknown): this {
+    if (this.started) throw new Error(`the cursor already started: set ${option} before reading it`)
+
+    this.#args.options[option] = value
+
+    return this
   }
 
   /** Sets the sort order, with the keys checked against the schema. */
   sort<const SortSpec extends SortCheck<S, SortSpec>>(sort: SortSpec & SuggestedSort<S>): this
   sort(sort: Sort): this {
-    // oxlint-disable-next-line unicorn/no-array-sort -- the driver's cursor method, not `Array#sort`
-    this.#cursor.sort(sort)
-
-    return this
+    return this.#set('sort', sort)
   }
 
   /** Sets the maximum number of documents to return. */
   limit(value: number): this {
-    this.#cursor.limit(value)
-
-    return this
+    return this.#set('limit', value)
   }
 
   /** Sets the number of documents to skip. */
   skip(value: number): this {
-    this.#cursor.skip(value)
-
-    return this
+    return this.#set('skip', value)
   }
 
   /**
@@ -74,13 +78,10 @@ export class ModelFindCursor<
     projection: P & SuggestedProjection<S, V> & KeepsPopulated<P, Pop>
   ): ModelFindCursor<ReadDocument<S, V, R, P, Pop>, S, V, R, Pop>
   project(projection: Document): ModelFindCursor<Document, S, V, R, Pop> {
-    const { process, projection: planned } = this.#plan(projection)
-    const cursor = this.#cursor.project(planned ?? projection)
+    if (this.started) throw new Error('the cursor already started: set project before reading it')
 
-    return new ModelFindCursor<Document, S, V, R, Pop>(
-      cursor,
-      this.#plan,
-      process && (() => processBatches(cursor, process))
-    )
+    const options = { ...this.#args.options, projection }
+
+    return new ModelFindCursor<Document, S, V, R, Pop>({ ...this.#args, options }, this.#open)
   }
 }

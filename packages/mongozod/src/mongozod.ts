@@ -1,6 +1,10 @@
 import type { IndexFunction } from './indexes'
 import type { JsonSchemaOption } from './json-schema'
 import type { Model, ModelSchema, None, SyncResult } from './model'
+import type { FindArgs } from './model-find-cursor'
+import type { AnyPlugin, Operation, PluginMethods } from './plugin'
+import type { BatchSource, RuntimePlugin } from './plugin-pipeline'
+import type { PluginsCheck } from './plugins-check'
 import type { ReadContext, ReadPlan } from './read-plan'
 import type { ReferenceTarget, References, UnknownReferences } from './references'
 import type { Timestamps, TimestampNamesOf, TimestampsCheck, TimestampsOption } from './timestamps'
@@ -24,10 +28,11 @@ import { z } from 'zod'
 import { checkFieldNames } from './check-field-names'
 import { indexesOf } from './indexes'
 import { toJsonSchema } from './json-schema'
-import { ModelCursor, processBatches } from './model-cursor'
+import { batchSource, ModelCursor } from './model-cursor'
 import { ModelFindCursor } from './model-find-cursor'
 import { parseDocument } from './parse-document'
 import { parseUpdate } from './parse-update'
+import { checkPlugins, runCursor, runOperation } from './plugin-pipeline'
 import { planRead } from './read-plan'
 import { checkReferences, registerFind } from './references'
 import { schemaAt } from './schema-at'
@@ -40,7 +45,8 @@ export interface MongozodOptions<
   S extends ModelSchema,
   T extends TimestampsOption = false,
   V = None,
-  R = None
+  R = None,
+  PL extends readonly AnyPlugin[] = []
 > {
   /** The name of the collection. */
   collection: string
@@ -66,6 +72,15 @@ export interface MongozodOptions<
    * checks the structure of each document: `true`, or the validation level and action.
    */
   jsonSchema?: JsonSchemaOption
+
+  /**
+   * The plugins of the model, in layers: the first wraps the rest, so its `before` hooks run first
+   * and its `after` hooks last.
+   *
+   * @example
+   *   plugins: [softDelete()]
+   */
+  plugins?: PL
 
   /**
    * The fields that store the `_id` of another document, or an array of them, which `populate`
@@ -150,18 +165,26 @@ export function mongozod<
   // oxlint-disable-next-line typescript/no-generated-empty-object-type -- empty only without virtuals
   const V extends VirtualsCheck<S, V> = None,
   // oxlint-disable-next-line typescript/no-generated-empty-object-type -- keyed by the fields of the schema
-  const R extends References<S> = None
->(options: MongozodOptions<S, T, V, R> & TimestampsCheck<S, T>): Model<S, TimestampNamesOf<T>, V, R>
+  const R extends References<S> = None,
+  const PL extends readonly AnyPlugin[] = []
+>(
+  options: MongozodOptions<S, T, V, R, PL> & TimestampsCheck<S, T> & PluginsCheck<S, PL>
+): Model<S, TimestampNamesOf<T>, V, R, PL> & PluginMethods<PL>
 // The implementation works with plain documents: the signature above types them with the schema.
 export function mongozod(
-  options: Omit<MongozodOptions<ModelSchema, TimestampsOption>, 'indexes'> & {
+  options: Omit<MongozodOptions<ModelSchema, TimestampsOption>, 'indexes' | 'plugins'> & {
     indexes?: Parameters<typeof indexesOf>[1]
+    plugins?: readonly RuntimePlugin[]
     references?: Record<string, ReferenceTarget>
     virtuals?: Virtuals
   }
 ): Model<ModelSchema> {
   checkFieldNames(options.schema)
   checkReferences(options.schema, options.references)
+
+  const plugins = options.plugins ?? []
+
+  checkPlugins(options.schema, plugins)
 
   const indexes = indexesOf(options.schema, options.indexes)
 
@@ -258,24 +281,43 @@ export function mongozod(
     })
   }
 
+  /** Runs an operation through the plugins of the model. */
+  function operate<R>(
+    operation: Operation,
+    args: Document,
+    run: (args: Document) => Promise<R>
+  ): Promise<R> {
+    return runOperation({ model, plugins }, operation, args, run)
+  }
+
+  function openAggregate(args: Document): BatchSource<unknown> {
+    const { schema, ...driverOptions } = args.options
+    const cursor = getCollection().aggregate([...args.pipeline], driverOptions)
+
+    if (!schema) return batchSource(cursor, (batch) => batch)
+
+    return batchSource(cursor, (batch) => batch.map((document) => z.parse(schema, document)))
+  }
+
+  function openFind(args: Document): BatchSource<Document> {
+    const { driverOptions, plan } = readOptions(args.options)
+    const cursor = getCollection().find<Document>(args.filter, driverOptions)
+
+    return batchSource(cursor, plan.process ?? ((batch) => batch))
+  }
+
   function aggregate<R extends core.$ZodType>(
-    pipeline: readonly Document[],
+    stages: readonly Document[],
     aggregateOptions: AggregateOptions & Abortable & { schema: R }
   ): ModelCursor<core.output<R>>
   function aggregate(
-    pipeline?: readonly Document[],
+    stages?: readonly Document[],
     aggregateOptions?: AggregateOptions & Abortable
   ): ModelCursor<Document>
-  function aggregate(
-    pipeline: readonly Document[] = [],
-    aggregateOptions?: AggregateOptions & Abortable & { schema?: core.$ZodType }
-  ): ModelCursor<unknown> {
-    const { schema, ...driverOptions } = aggregateOptions ?? {}
-    const cursor = getCollection().aggregate([...pipeline], driverOptions)
+  function aggregate(stages: readonly Document[] = [], aggregateOptions: Document = {}) {
+    const args = { options: { ...aggregateOptions }, pipeline: [...stages] }
 
-    if (!schema) return new ModelCursor(cursor)
-
-    return new ModelCursor(cursor.map((document) => z.parse(schema, document)))
+    return new ModelCursor(() => runCursor({ model, plugins }, 'aggregate', args, openAggregate))
   }
 
   // The operations that return documents have several signatures, like the driver's. TypeScript
@@ -283,27 +325,23 @@ export function mongozod(
   // result depends on.
   function find(): ModelFindCursor<Document>
   function find(filter: Document, findOptions?: Document): ModelFindCursor<Document>
-  function find(filter: Document = {}, findOptions?: Document) {
-    const { driverOptions, plan, populate } = readOptions(findOptions)
-    const cursor = getCollection().find<Document>(filter, driverOptions)
-    const { process } = plan
-
-    return new ModelFindCursor(
-      cursor,
-      (projection) => planRead(context, projection, populate, driverOptions.session),
-      process && (() => processBatches(cursor, process))
+  function find(filter: Document = {}, findOptions: Document = {}) {
+    return new ModelFindCursor({ filter, options: { ...findOptions } }, <T>(args: FindArgs) =>
+      runCursor<T>({ model, plugins }, 'find', { ...args }, openFind)
     )
   }
 
   function findOne(): Promise<WithId<Document> | null>
   function findOne(filter: Document, findOptions?: Document): Promise<WithId<Document> | null>
-  async function findOne(filter: Document = {}, findOptions?: Document) {
-    const { driverOptions, plan } = readOptions(findOptions)
-    const document = await getCollection().findOne(filter, driverOptions)
+  function findOne(filter: Document = {}, findOptions: Document = {}) {
+    return operate('findOne', { filter, options: findOptions }, async (args) => {
+      const { driverOptions, plan } = readOptions(args.options)
+      const document = await getCollection().findOne(args.filter, driverOptions)
 
-    if (document && plan.process) await plan.process([document])
+      if (document && plan.process) await plan.process([document])
 
-    return document
+      return document
+    })
   }
 
   function findOneAndDelete(
@@ -316,13 +354,15 @@ export function mongozod(
   ): Promise<WithId<Document> | null>
   function findOneAndDelete(
     filter: Document,
-    deleteOptions?: Document
+    deleteOptions: Document = {}
   ): Promise<ModifyResult | WithId<Document> | null> {
-    const { driverOptions, plan } = readOptions(deleteOptions)
+    return operate('findOneAndDelete', { filter, options: deleteOptions }, (args) => {
+      const { driverOptions, plan } = readOptions(args.options)
 
-    return findOneAnd(plan, driverOptions, (metadataOptions) =>
-      getCollection().findOneAndDelete(filter, metadataOptions)
-    )
+      return findOneAnd(plan, driverOptions, (metadataOptions) =>
+        getCollection().findOneAndDelete(args.filter, metadataOptions)
+      )
+    })
   }
 
   function findOneAndReplace(
@@ -335,18 +375,28 @@ export function mongozod(
     replacement: Document,
     replaceOptions?: Document
   ): Promise<WithId<Document> | null>
-  async function findOneAndReplace(
+  function findOneAndReplace(
     filter: Document,
     replacement: Document,
-    replaceOptions?: Document
+    replaceOptions: Document = {}
   ): Promise<ModifyResult | WithId<Document> | null> {
-    const { driverOptions: writeDriverOptions, stamps } = writeOptions(replaceOptions)
-    const { driverOptions, plan } = readOptions(writeDriverOptions)
-    const document = parseReplacement(filter, replacement, driverOptions.upsert, stamps, new Date())
+    const operationArgs = { filter, options: replaceOptions, replacement }
 
-    return findOneAnd(plan, driverOptions, (metadataOptions) =>
-      getCollection().findOneAndReplace(filter, document, metadataOptions)
-    )
+    return operate('findOneAndReplace', operationArgs, (args) => {
+      const { driverOptions: writeDriverOptions, stamps } = writeOptions(args.options)
+      const { driverOptions, plan } = readOptions(writeDriverOptions)
+      const document = parseReplacement(
+        args.filter,
+        args.replacement,
+        driverOptions.upsert,
+        stamps,
+        new Date()
+      )
+
+      return findOneAnd(plan, driverOptions, (metadataOptions) =>
+        getCollection().findOneAndReplace(args.filter, document, metadataOptions)
+      )
+    })
   }
 
   function findOneAndUpdate(
@@ -359,18 +409,68 @@ export function mongozod(
     update: Document,
     updateOptions?: Document
   ): Promise<WithId<Document> | null>
-  async function findOneAndUpdate(
+  function findOneAndUpdate(
     filter: Document,
     update: Document,
-    updateOptions?: Document
+    updateOptions: Document = {}
   ): Promise<ModifyResult | WithId<Document> | null> {
-    const { driverOptions: writeDriverOptions, stamps } = writeOptions(updateOptions)
-    const { driverOptions, plan } = readOptions(writeDriverOptions)
-    const parsed = parseModelUpdate(filter, update, driverOptions, stamps, new Date())
+    return operate('findOneAndUpdate', { filter, options: updateOptions, update }, (args) => {
+      const { driverOptions: writeDriverOptions, stamps } = writeOptions(args.options)
+      const { driverOptions, plan } = readOptions(writeDriverOptions)
+      const parsed = parseModelUpdate(args.filter, args.update, driverOptions, stamps, new Date())
 
-    return findOneAnd(plan, driverOptions, (metadataOptions) =>
-      getCollection().findOneAndUpdate(filter, parsed, metadataOptions)
-    )
+      return findOneAnd(plan, driverOptions, (metadataOptions) =>
+        getCollection().findOneAndUpdate(args.filter, parsed, metadataOptions)
+      )
+    })
+  }
+
+  /** Validates the operations of a `bulkWrite` like the operations of the same name. */
+  function parseBulkWrite(operations: readonly Document[], stamps: Timestamps, now: Date) {
+    return operations.map((operation): AnyBulkWriteOperation => {
+      if ('insertOne' in operation) {
+        const document = stampDocument(operation.insertOne.document, stamps, now)
+
+        return { insertOne: { document: parseDocument(options.schema, document) } }
+      }
+
+      if ('replaceOne' in operation) {
+        const { filter, replacement, upsert } = operation.replaceOne
+
+        return {
+          replaceOne: {
+            ...operation.replaceOne,
+            replacement: parseReplacement(filter, replacement, upsert, stamps, now)
+          }
+        }
+      }
+
+      if ('updateOne' in operation) {
+        const { filter, update } = operation.updateOne
+
+        return {
+          updateOne: {
+            ...operation.updateOne,
+            update: parseModelUpdate(filter, update, operation.updateOne, stamps, now)
+          }
+        }
+      }
+
+      if ('updateMany' in operation) {
+        const { filter, update } = operation.updateMany
+
+        return {
+          updateMany: {
+            ...operation.updateMany,
+            update: parseModelUpdate(filter, update, operation.updateMany, stamps, now)
+          }
+        }
+      }
+
+      if ('deleteOne' in operation) return { deleteOne: operation.deleteOne }
+
+      return { deleteMany: operation.deleteMany }
+    })
   }
 
   const model = {
@@ -386,77 +486,45 @@ export function mongozod(
 
     aggregate,
 
-    async bulkWrite(operations: ReadonlyArray<Document>, bulkOptions?: Document) {
-      const { driverOptions, stamps } = writeOptions(bulkOptions)
-      const now = new Date()
+    bulkWrite(operations: readonly Document[], bulkOptions: Document = {}) {
+      return operate('bulkWrite', { operations: [...operations], options: bulkOptions }, (args) => {
+        const { driverOptions, stamps } = writeOptions(args.options)
 
-      return getCollection().bulkWrite(
-        operations.map((operation): AnyBulkWriteOperation => {
-          if ('insertOne' in operation) {
-            const document = stampDocument(operation.insertOne.document, stamps, now)
+        return getCollection().bulkWrite(
+          parseBulkWrite(args.operations, stamps, new Date()),
+          driverOptions
+        )
+      })
+    },
 
-            return { insertOne: { document: parseDocument(options.schema, document) } }
-          }
-
-          if ('replaceOne' in operation) {
-            const { filter, replacement, upsert } = operation.replaceOne
-
-            return {
-              replaceOne: {
-                ...operation.replaceOne,
-                replacement: parseReplacement(filter, replacement, upsert, stamps, now)
-              }
-            }
-          }
-
-          if ('updateOne' in operation) {
-            const { filter, update } = operation.updateOne
-
-            return {
-              updateOne: {
-                ...operation.updateOne,
-                update: parseModelUpdate(filter, update, operation.updateOne, stamps, now)
-              }
-            }
-          }
-
-          if ('updateMany' in operation) {
-            const { filter, update } = operation.updateMany
-
-            return {
-              updateMany: {
-                ...operation.updateMany,
-                update: parseModelUpdate(filter, update, operation.updateMany, stamps, now)
-              }
-            }
-          }
-
-          if ('deleteOne' in operation) return { deleteOne: operation.deleteOne }
-
-          return { deleteMany: operation.deleteMany }
-        }),
-        driverOptions
+    countDocuments(filter: Document = {}, countOptions: Document = {}) {
+      return operate('countDocuments', { filter, options: countOptions }, (args) =>
+        getCollection().countDocuments(args.filter, args.options)
       )
     },
 
-    countDocuments(filter?: Document, countOptions?: Document) {
-      return getCollection().countDocuments(filter, countOptions)
+    deleteMany(filter: Document = {}, deleteOptions: Document = {}) {
+      return operate('deleteMany', { filter, options: deleteOptions }, (args) =>
+        getCollection().deleteMany(args.filter, args.options)
+      )
     },
 
-    deleteMany(filter?: Document, deleteOptions?: Document) {
-      return getCollection().deleteMany(filter, deleteOptions)
-    },
-
-    deleteOne(filter?: Document, deleteOptions?: Document) {
-      return getCollection().deleteOne(filter, deleteOptions)
+    deleteOne(filter: Document = {}, deleteOptions: Document = {}) {
+      return operate('deleteOne', { filter, options: deleteOptions }, (args) =>
+        getCollection().deleteOne(args.filter, args.options)
+      )
     },
 
     distinct(key: string, filter: Document = {}, distinctOptions: Document = {}) {
-      return getCollection().distinct(key, filter, distinctOptions)
+      return operate('distinct', { filter, key, options: distinctOptions }, (args) =>
+        getCollection().distinct(args.key, args.filter, args.options)
+      )
     },
 
-    estimatedDocumentCount(countOptions?: Document) {
-      return getCollection().estimatedDocumentCount(countOptions)
+    estimatedDocumentCount(countOptions: Document = {}) {
+      return operate('estimatedDocumentCount', { options: countOptions }, (args) =>
+        getCollection().estimatedDocumentCount(args.options)
+      )
     },
 
     find,
@@ -465,42 +533,57 @@ export function mongozod(
     findOneAndReplace,
     findOneAndUpdate,
 
-    async insertMany(inputs: readonly Document[], insertOptions?: Document) {
-      const { driverOptions, stamps } = writeOptions(insertOptions)
-      const now = new Date()
-      const documents = inputs.map((input) =>
-        parseDocument(options.schema, stampDocument(input, stamps, now))
-      )
-      const result = await getCollection().insertMany(documents, driverOptions)
+    insertMany(inputs: readonly Document[], insertOptions: Document = {}) {
+      return operate(
+        'insertMany',
+        { documents: [...inputs], options: insertOptions },
+        async (args) => {
+          const { driverOptions, stamps } = writeOptions(args.options)
+          const now = new Date()
+          const documents: Document[] = args.documents.map((input: Document) =>
+            parseDocument(options.schema, stampDocument(input, stamps, now))
+          )
+          const result = await getCollection().insertMany(documents, driverOptions)
 
-      return {
-        ...result,
-        // `insertedIds` maps the index of each document to its `_id`, generated or not.
-        documents: Object.values(result.insertedIds).map((_id, index) =>
-          Object.assign({ _id }, documents[index])
+          return {
+            ...result,
+            // `insertedIds` maps the index of each document to its `_id`, generated or not.
+            documents: Object.values(result.insertedIds).map((_id, index) =>
+              Object.assign({ _id }, documents[index])
+            )
+          }
+        }
+      )
+    },
+
+    insertOne(input: Document, insertOptions: Document = {}) {
+      return operate('insertOne', { document: input, options: insertOptions }, async (args) => {
+        const { driverOptions, stamps } = writeOptions(args.options)
+        const document = parseDocument(
+          options.schema,
+          stampDocument(args.document, stamps, new Date())
         )
-      }
+        const result = await getCollection().insertOne(document, driverOptions)
+
+        return { ...result, document: { _id: result.insertedId, ...document } }
+      })
     },
 
-    async insertOne(input: Document, insertOptions?: Document) {
-      const { driverOptions, stamps } = writeOptions(insertOptions)
-      const document = parseDocument(options.schema, stampDocument(input, stamps, new Date()))
-      const result = await getCollection().insertOne(document, driverOptions)
+    replaceOne(filter: Document, replacement: Document, replaceOptions: Document = {}) {
+      const operationArgs = { filter, options: replaceOptions, replacement }
 
-      return { ...result, document: { _id: result.insertedId, ...document } }
-    },
+      return operate('replaceOne', operationArgs, (args) => {
+        const { driverOptions, stamps } = writeOptions(args.options)
+        const document = parseReplacement(
+          args.filter,
+          args.replacement,
+          driverOptions.upsert,
+          stamps,
+          new Date()
+        )
 
-    async replaceOne(filter: Document, replacement: Document, replaceOptions?: Document) {
-      const { driverOptions, stamps } = writeOptions(replaceOptions)
-      const document = parseReplacement(
-        filter,
-        replacement,
-        driverOptions.upsert,
-        stamps,
-        new Date()
-      )
-
-      return getCollection().replaceOne(filter, document, driverOptions)
+        return getCollection().replaceOne(args.filter, document, driverOptions)
+      })
     },
 
     async sync(): Promise<SyncResult> {
@@ -540,18 +623,32 @@ export function mongozod(
       }
     },
 
-    async updateMany(filter: Document, update: Document, updateOptions?: Document) {
-      const { driverOptions, stamps } = writeOptions(updateOptions)
-      const parsed = parseModelUpdate(filter, update, driverOptions, stamps, new Date())
+    updateMany(filter: Document, update: Document, updateOptions: Document = {}) {
+      return operate('updateMany', { filter, options: updateOptions, update }, (args) => {
+        const { driverOptions, stamps } = writeOptions(args.options)
+        const parsed = parseModelUpdate(args.filter, args.update, driverOptions, stamps, new Date())
 
-      return getCollection().updateMany(filter, parsed, driverOptions)
+        return getCollection().updateMany(args.filter, parsed, driverOptions)
+      })
     },
 
-    async updateOne(filter: Document, update: Document, updateOptions?: Document) {
-      const { driverOptions, stamps } = writeOptions(updateOptions)
-      const parsed = parseModelUpdate(filter, update, driverOptions, stamps, new Date())
+    updateOne(filter: Document, update: Document, updateOptions: Document = {}) {
+      return operate('updateOne', { filter, options: updateOptions, update }, (args) => {
+        const { driverOptions, stamps } = writeOptions(args.options)
+        const parsed = parseModelUpdate(args.filter, args.update, driverOptions, stamps, new Date())
 
-      return getCollection().updateOne(filter, parsed, driverOptions)
+        return getCollection().updateOne(args.filter, parsed, driverOptions)
+      })
+    }
+  }
+
+  // The methods of the plugins use `this`, which is the model when they are called on it.
+  for (const plugin of plugins) {
+    for (const [name, method] of Object.entries(plugin.methods ?? {})) {
+      if (Object.hasOwn(model, name))
+        throw new Error(`${plugin.id}: "${name}" is a member of the model`)
+
+      Object.assign(model, { [name]: method })
     }
   }
 

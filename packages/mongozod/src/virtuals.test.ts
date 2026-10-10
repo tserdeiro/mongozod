@@ -144,18 +144,18 @@ describe('projections', () => {
     expectTypeOf<NonNullable<typeof withoutCity>>().not.toHaveProperty('fullName')
   })
 
-  test('cannot ask for one and change a field it reads', () => {
-    expect(() =>
+  test('cannot ask for one and change a field it reads', async () => {
+    await expect(
       AccountsModel.find(
         { _id: 'a1' },
         // @ts-expect-error city reads the whole address
         { projection: { 'address.street': 1, 'city': 1 } }
       )
-    ).toThrow(z.ZodError)
-    expect(() =>
+    ).rejects.toBeInstanceOf(z.ZodError)
+    await expect(
       // @ts-expect-error a virtual takes 0 or 1
       AccountsModel.find({}, { projection: { fullName: { $slice: 1 } } })
-    ).toThrow('is a virtual: it takes 0, 1, true or false')
+    ).rejects.toThrow('is a virtual: it takes 0, 1, true or false')
   })
 
   test('cannot mix a virtual with an exclusion', () => {

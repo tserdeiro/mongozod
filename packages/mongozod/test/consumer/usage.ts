@@ -1,8 +1,8 @@
 // Compiles against the published declarations, as a project that installs mongozod would.
-import type { ModelFilter } from 'mongozod'
+import type { AnyModel, FilterOf, ReadOptionsArg } from 'mongozod'
 
 import { MongoClient } from 'mongodb'
-import { mongozod } from 'mongozod'
+import { definePlugin, mongozod } from 'mongozod'
 import { z } from 'zod'
 
 const db = new MongoClient('mongodb://localhost').db()
@@ -95,8 +95,39 @@ const TransactionsModel = mongozod({
   })
 })
 
+const actor = z.object({ actor: z.string() })
+
+/** Stamps who writes, and adds a method typed by each model. */
+const audit = definePlugin({
+  context: { insert: actor, update: actor },
+  hooks: {
+    insertOne: {
+      before: ({ args, context }) => ({
+        args: { ...args, document: { ...args.document, createdBy: context.actor } }
+      })
+    }
+  },
+  id: 'audit',
+  methods: {
+    async exists<M extends AnyModel, const F extends FilterOf<M, F>>(
+      this: M,
+      filter: F,
+      ...options: ReadOptionsArg<M>
+    ) {
+      return (await this.countDocuments(filter, { ...options[0], limit: 1 })) > 0
+    }
+  }
+})
+
+const TasksModel = mongozod({
+  collection: 'tasks',
+  db,
+  plugins: [audit],
+  schema: z.object({ createdBy: z.string().optional(), title: z.string() })
+})
+
 /** A service that forwards a filter to the model keeps its checks. */
-function countNotes<const F extends ModelFilter<typeof noteSchema, F>>(filter: F) {
+function countNotes<const F extends FilterOf<typeof NotesModel, F>>(filter: F) {
   return NotesModel.countDocuments(filter)
 }
 
@@ -171,6 +202,13 @@ export async function usage() {
   // @ts-expect-error amount is not a reference
   await TransactionsModel.find({}, { populate: { amount: true } })
 
+  await TasksModel.insertOne({ title: 'Task' }, { context: { actor: 'ana' } })
+  // @ts-expect-error the writes of TasksModel need who makes them
+  await TasksModel.insertOne({ title: 'Task' })
+  const taskExists: boolean = await TasksModel.exists({ title: 'Task' })
+  // @ts-expect-error a title is a string
+  await TasksModel.exists({ title: 1 })
+
   const { extraIndexes, indexes } = await NotesModel.sync()
   const legacy: Array<string | undefined> = extraIndexes.map((index) => index.name)
 
@@ -184,6 +222,7 @@ export async function usage() {
 
   return {
     approvers,
+    taskExists,
     counts,
     indexes,
     legacy,
