@@ -9,7 +9,7 @@ operación entera, tiene un `middleware` aparte. Un plugin es una función que d
 better-auth.
 
 ```ts
-import { definePlugin } from '@tserdeiro/mongozod'
+import { definePlugin } from 'mongozod'
 import { z } from 'zod'
 
 export function example() {

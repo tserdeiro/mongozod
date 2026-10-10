@@ -1,8 +1,8 @@
 # El modelo
 
 ```ts
-import { mongozod } from '@tserdeiro/mongozod'
-import { softDelete } from '@tserdeiro/mongozod/plugins/soft-delete'
+import { mongozod } from 'mongozod'
+import { softDelete } from 'mongozod/plugins/soft-delete'
 
 export const NotesModel = mongozod({
   schema: noteSchema,

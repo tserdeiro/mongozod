@@ -185,3 +185,13 @@
     los `_id` desde el cliente.
   - Better Auth genera los ids con `advanced.database.generateId`, y define las tablas que
     necesita.
+
+- **Nombre, subpaths y repo** (registro y documentación de npm, y repos de referencia):
+  - `mongozod` lo publicó otro autor en 2023 y lo despublicó entero en 2025. Sus versiones, de la
+    0.0.1 a la 0.1.1 y de la 1.0.0 a la 1.0.3, no se pueden volver a usar. La política de npm no
+    dice si otra cuenta puede tomar un nombre despublicado, así que se confirma al publicar.
+  - Un paquete sin scope siempre es público. `mongo-zod` y `mongodb-zod` no existen; `zod-mongo` y
+    `mongoose-zod`, sí.
+  - better-auth publica la mayoría de sus plugins como subpaths de `better-auth`, como
+    `better-auth/plugins/organization`, y algunos como paquetes aparte, como `@better-auth/passkey`,
+    `@better-auth/sso` y `@better-auth/stripe`. Varios de estos traen dependencias propias.

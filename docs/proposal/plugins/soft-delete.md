@@ -1,6 +1,6 @@
 # `softDelete`
 
-Borrado lógico. Se importa de `@tserdeiro/mongozod/plugins/soft-delete` y se suma al modelo con
+Borrado lógico. Se importa de `mongozod/plugins/soft-delete` y se suma al modelo con
 `plugins: [softDelete()]`, como en [El modelo](../model.md).
 
 ## Regla
@@ -39,12 +39,12 @@ opciones ni métodos: todo se expresa con filtros de Mongo.
 ## Código
 
 ```ts
-import type { Filter } from '@tserdeiro/mongozod'
+import type { Filter } from 'mongozod'
 import type { Document } from 'mongodb'
 
 import { z } from 'zod'
 
-import { definePlugin } from '@tserdeiro/mongozod'
+import { definePlugin } from 'mongozod'
 
 const LOGICAL_OPERATORS = new Set(['$and', '$nor', '$or'])
 

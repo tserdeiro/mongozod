@@ -40,7 +40,7 @@ export const BrandsModel = mongozod({
 ```ts
 // schemas/validations.ts: client-safe, no model imported.
 
-import { mz } from '@tserdeiro/mongozod/zod'
+import { mz } from 'mongozod/zod'
 import { z } from 'zod'
 
 /** The project's own search, here MongoDB's text index. */
@@ -89,7 +89,7 @@ manda `{ createdAt, _id }` del último elemento de la página.
 
 ## Decisiones de los inputs
 
-1. **`mz`.** `@tserdeiro/mongozod/zod` exporta `mz`, con los constructores: `mz.filter`,
+1. **`mz`.** `mongozod/zod` exporta `mz`, con los constructores: `mz.filter`,
    `mz.update`, `mz.sort`, `mz.projection`, `mz.cursor` y `mz.populate`.
    - **Junto a `z`**: no reexporta Zod, así que cada archivo conserva su `z` y suma un import, sin
      chocar. Cada constructor devuelve un schema de Zod que se anida en `z.object` como cualquier
