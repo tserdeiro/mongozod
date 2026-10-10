@@ -27,7 +27,8 @@
 - **Turborepo** corre `build`, `check-types` y `test` en cada paquete. `check-types` y `test`
   dependen de un nodo `transit`, como recomienda su guía, para correr en paralelo sin perder los
   cambios de las dependencias.
-- **TypeScript 7** con la base de `packages/config/`.
+- **TypeScript 7** con la base de `packages/config/`. TypeScript 5.5.4, el mínimo, se instala con el
+  alias `typescript-5.5` para compilar el consumidor de los `.d.ts`.
 - **tsdown** compila el paquete a ESM con sus `.d.ts`, escribe el `exports` del `package.json` y
   corre [publint](https://publint.dev) (estricto) y
   [arethetypeswrong](https://arethetypeswrong.github.io) (perfil `esm-only`), que hacen fallar el
@@ -41,8 +42,9 @@
   `package.json` del paquete. Los tests reciben su URI con `inject('mongoUri')`.
 - **lefthook** corre lint, formato, tipos y tests antes de cada commit.
 - **CI** (GitHub Actions, con `pnpm/setup`): lint, formato, tipos y build; los tests en Node 22.12
-  (el mínimo), 24 y 26, y en Bun con `bun --bun vitest run`. El job que compila los `.d.ts`
-  publicados con TS 5.5 y 7 llega con los tipos estrictos (fase 2.2 del [roadmap](./roadmap.md)).
+  (el mínimo), 24 y 26, y en Bun con `bun --bun vitest run`. Después del build,
+  `pnpm check-dist-types` compila con TS 5.5 y 7 un consumidor de los `.d.ts` publicados
+  (`packages/mongozod/test/consumer/`), con `skipLibCheck: false`.
 - **Releases** con Changesets y el workflow de trusted publishing de su guía: cada push a `main`
   abre o actualiza el PR de versión, y al mergearlo publica en npm. El trusted publisher se
   configura en npm después de la primera publicación (fase 5).

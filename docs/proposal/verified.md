@@ -332,6 +332,16 @@
     implementación, las dos firmas del driver (sin filtro y con filtro), y se comparan con la
     interfaz sin casts.
 
+- **Tipos publicados** (TypeScript 5.5.4 y 7.0.2):
+  - Un consumidor que importa `mongozod` desde `dist/` compila con las dos versiones, con
+    `skipLibCheck: false`: los `.d.ts` de mongozod, Zod y el driver son válidos en TS 5.5. Los usos
+    inválidos fallan en las dos con los mismos mensajes, como `"titel" is not a path of the document`
+    o `"url" is not in every type allowed: fix "kind" in the filter`.
+  - Como cualquier proyecto que use el driver 7, el consumidor necesita `@types/node` y la lib
+    `ESNext.Disposable`: sus `.d.ts` usan módulos de Node.js y `Symbol.asyncDispose`.
+  - TS 7 no trae `tsserver`, así que el alias de TS 5.5 deja el suyo en `node_modules/.bin`. El
+    `tsc` sigue siendo el de TS 7.
+
 - **Herramientas del repo** (pnpm 12.11.2, Node 22.23.2, Bun 1.4.3):
   - Vitest 5, tsdown 0.23 y Changesets 3 piden Node 22.12 o superior, y Node 20 llegó al final de su
     vida el 2026-04-30. El driver 7 todavía acepta Node 20.19.
