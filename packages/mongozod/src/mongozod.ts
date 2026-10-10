@@ -1,15 +1,13 @@
-import type { Model, ModelBulkWriteOperation, ModelSchema } from './model'
+import type { Model, ModelSchema } from './model'
 import type {
   Abortable,
   AggregateOptions,
+  AnyBulkWriteOperation,
+  BulkWriteOptions,
   Collection,
   Db,
   Document,
-  FindOneAndDeleteOptions,
-  FindOneAndReplaceOptions,
-  FindOneAndUpdateOptions,
   ModifyResult,
-  UpdateFilter,
   WithId
 } from 'mongodb'
 import type * as core from 'zod/v4/core'
@@ -56,7 +54,7 @@ export interface MongozodOptions<S extends ModelSchema> {
  */
 export function mongozod<S extends ModelSchema>(options: MongozodOptions<S>): Model<S>
 // The implementation works with plain documents: the signature above types them with the schema.
-export function mongozod(options: MongozodOptions<ModelSchema>) {
+export function mongozod(options: MongozodOptions<ModelSchema>): Model<ModelSchema> {
   checkFieldNames(options.schema)
 
   let db: Db | undefined
@@ -86,19 +84,19 @@ export function mongozod(options: MongozodOptions<ModelSchema>) {
   }
 
   function aggregate<R extends core.$ZodType>(
-    pipeline: Document[],
+    pipeline: readonly Document[],
     aggregateOptions: AggregateOptions & Abortable & { schema: R }
   ): ModelCursor<core.output<R>>
   function aggregate(
-    pipeline?: Document[],
+    pipeline?: readonly Document[],
     aggregateOptions?: AggregateOptions & Abortable
   ): ModelCursor<Document>
   function aggregate(
-    pipeline?: Document[],
+    pipeline: readonly Document[] = [],
     aggregateOptions?: AggregateOptions & Abortable & { schema?: core.$ZodType }
   ): ModelCursor<unknown> {
     const { schema, ...driverOptions } = aggregateOptions ?? {}
-    const cursor = getCollection().aggregate(pipeline, driverOptions)
+    const cursor = getCollection().aggregate([...pipeline], driverOptions)
 
     if (!schema) return new ModelCursor(cursor)
 
@@ -107,15 +105,15 @@ export function mongozod(options: MongozodOptions<ModelSchema>) {
 
   function findOneAndDelete(
     filter: Document,
-    deleteOptions: FindOneAndDeleteOptions & { includeResultMetadata: true }
+    deleteOptions: Document & { includeResultMetadata: true }
   ): Promise<ModifyResult>
   function findOneAndDelete(
     filter: Document,
-    deleteOptions?: FindOneAndDeleteOptions
+    deleteOptions?: Document
   ): Promise<WithId<Document> | null>
   function findOneAndDelete(
     filter: Document,
-    deleteOptions: FindOneAndDeleteOptions = {}
+    deleteOptions: Document = {}
   ): Promise<ModifyResult | WithId<Document> | null> {
     return getCollection().findOneAndDelete(filter, deleteOptions)
   }
@@ -123,35 +121,35 @@ export function mongozod(options: MongozodOptions<ModelSchema>) {
   function findOneAndReplace(
     filter: Document,
     replacement: Document,
-    replaceOptions: FindOneAndReplaceOptions & { includeResultMetadata: true }
+    replaceOptions: Document & { includeResultMetadata: true }
   ): Promise<ModifyResult>
   function findOneAndReplace(
     filter: Document,
     replacement: Document,
-    replaceOptions?: FindOneAndReplaceOptions
+    replaceOptions?: Document
   ): Promise<WithId<Document> | null>
   async function findOneAndReplace(
     filter: Document,
     replacement: Document,
-    replaceOptions: FindOneAndReplaceOptions = {}
+    replaceOptions: Document = {}
   ): Promise<ModifyResult | WithId<Document> | null> {
     return getCollection().findOneAndReplace(filter, parseReplacement(replacement), replaceOptions)
   }
 
   function findOneAndUpdate(
     filter: Document,
-    update: UpdateFilter<Document> | Document[],
-    updateOptions: FindOneAndUpdateOptions & { includeResultMetadata: true }
+    update: Document,
+    updateOptions: Document & { includeResultMetadata: true }
   ): Promise<ModifyResult>
   function findOneAndUpdate(
     filter: Document,
-    update: UpdateFilter<Document> | Document[],
-    updateOptions?: FindOneAndUpdateOptions
+    update: Document,
+    updateOptions?: Document
   ): Promise<WithId<Document> | null>
   function findOneAndUpdate(
     filter: Document,
-    update: UpdateFilter<Document> | Document[],
-    updateOptions: FindOneAndUpdateOptions = {}
+    update: Document,
+    updateOptions: Document = {}
   ): Promise<ModifyResult | WithId<Document> | null> {
     return getCollection().findOneAndUpdate(filter, update, updateOptions)
   }
@@ -168,9 +166,9 @@ export function mongozod(options: MongozodOptions<ModelSchema>) {
 
     aggregate,
 
-    async bulkWrite(operations: ReadonlyArray<ModelBulkWriteOperation<ModelSchema>>, bulkOptions) {
+    async bulkWrite(operations: ReadonlyArray<Document>, bulkOptions?: BulkWriteOptions) {
       return getCollection().bulkWrite(
-        operations.map((operation) => {
+        operations.map((operation): AnyBulkWriteOperation => {
           if ('insertOne' in operation) {
             return {
               insertOne: { document: parseDocument(options.schema, operation.insertOne.document) }
@@ -186,37 +184,41 @@ export function mongozod(options: MongozodOptions<ModelSchema>) {
             }
           }
 
-          return operation
+          if ('updateOne' in operation) return { updateOne: operation.updateOne }
+          if ('updateMany' in operation) return { updateMany: operation.updateMany }
+          if ('deleteOne' in operation) return { deleteOne: operation.deleteOne }
+
+          return { deleteMany: operation.deleteMany }
         }),
         bulkOptions
       )
     },
 
-    countDocuments(filter, countOptions) {
+    countDocuments(filter?: Document, countOptions?: Document) {
       return getCollection().countDocuments(filter, countOptions)
     },
 
-    deleteMany(filter, deleteOptions) {
+    deleteMany(filter?: Document, deleteOptions?: Document) {
       return getCollection().deleteMany(filter, deleteOptions)
     },
 
-    deleteOne(filter, deleteOptions) {
+    deleteOne(filter?: Document, deleteOptions?: Document) {
       return getCollection().deleteOne(filter, deleteOptions)
     },
 
-    distinct(key, filter = {}, distinctOptions = {}) {
+    distinct(key: string, filter: Document = {}, distinctOptions: Document = {}) {
       return getCollection().distinct(key, filter, distinctOptions)
     },
 
-    estimatedDocumentCount(countOptions) {
+    estimatedDocumentCount(countOptions?: Document) {
       return getCollection().estimatedDocumentCount(countOptions)
     },
 
-    find(filter = {}, findOptions) {
+    find(filter: Document = {}, findOptions?: Document) {
       return new ModelFindCursor(getCollection().find(filter, findOptions))
     },
 
-    findOne(filter = {}, findOptions = {}) {
+    findOne(filter: Document = {}, findOptions: Document = {}) {
       return getCollection().findOne(filter, findOptions)
     },
 
@@ -224,7 +226,7 @@ export function mongozod(options: MongozodOptions<ModelSchema>) {
     findOneAndReplace,
     findOneAndUpdate,
 
-    async insertMany(inputs, insertOptions) {
+    async insertMany(inputs: readonly Document[], insertOptions?: BulkWriteOptions) {
       const documents = inputs.map((input) => parseDocument(options.schema, input))
       const result = await getCollection().insertMany(documents, insertOptions)
 
@@ -237,23 +239,23 @@ export function mongozod(options: MongozodOptions<ModelSchema>) {
       }
     },
 
-    async insertOne(input, insertOptions) {
+    async insertOne(input: Document, insertOptions?: Document) {
       const document = parseDocument(options.schema, input)
       const result = await getCollection().insertOne(document, insertOptions)
 
       return { ...result, document: { _id: result.insertedId, ...document } }
     },
 
-    async replaceOne(filter, replacement, replaceOptions) {
+    async replaceOne(filter: Document, replacement: Document, replaceOptions?: Document) {
       return getCollection().replaceOne(filter, parseReplacement(replacement), replaceOptions)
     },
 
-    updateMany(filter, update, updateOptions) {
+    updateMany(filter: Document, update: Document, updateOptions?: Document) {
       return getCollection().updateMany(filter, update, updateOptions)
     },
 
-    updateOne(filter, update, updateOptions) {
+    updateOne(filter: Document, update: Document, updateOptions?: Document) {
       return getCollection().updateOne(filter, update, updateOptions)
     }
-  } satisfies Model<ModelSchema>
+  }
 }

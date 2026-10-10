@@ -210,6 +210,86 @@ describe('aggregate', () => {
   })
 })
 
+describe('filters', () => {
+  test('are checked against the schema in every operation', async () => {
+    await NotesModel.insertMany([
+      { author: { name: 'Ana' }, tags: ['home', 'work'], title: 'One' },
+      { tags: ['home'], title: 'Two' }
+    ])
+
+    expect(await NotesModel.countDocuments({ 'author.name': 'Ana', 'tags': 'work' })).toBe(1)
+    expect(await NotesModel.countDocuments({ author: null })).toBe(1)
+    expect(await NotesModel.find({ tags: { $all: ['home'], $size: 1 } })).toMatchObject([
+      { title: 'Two' }
+    ])
+
+    // @ts-expect-error "author.nickame" is not a path of the document
+    await NotesModel.countDocuments({ 'author.nickame': 'A' })
+    // @ts-expect-error a title is a string
+    await NotesModel.deleteMany({ title: { $in: [1] } })
+  })
+
+  test('check sort keys in the options and in the cursor', async () => {
+    await NotesModel.insertMany([{ title: 'B' }, { title: 'A' }])
+
+    expect(await NotesModel.findOne({}, { sort: { title: 1 } })).toMatchObject({ title: 'A' })
+    expect(await NotesModel.find().sort({ title: -1 }).limit(1)).toMatchObject([{ title: 'B' }])
+
+    // @ts-expect-error "name" is not a path of the document
+    await NotesModel.findOne({}, { sort: { name: 1 } })
+    // Only checks the types: the driver rejects the direction before sending it.
+    expectTypeOf(() =>
+      // @ts-expect-error a direction is 1, -1, asc, desc, ascending, descending or $meta
+      NotesModel.find().sort({ title: 2 })
+    ).toBeFunction()
+  })
+
+  test('type distinct by its key', async () => {
+    await NotesModel.insertMany([
+      { tags: ['home', 'work'], title: 'One' },
+      { tags: ['home'], title: 'Two' }
+    ])
+
+    const tags = await NotesModel.distinct('tags', { title: { $ne: 'Three' } })
+
+    expect(tags.toSorted()).toEqual(['home', 'work'])
+    expectTypeOf(tags).toEqualTypeOf<string[]>()
+
+    // @ts-expect-error "label" is not a path of the document
+    await NotesModel.distinct('label')
+  })
+
+  test('check the $match stages that still see the documents of the model', async () => {
+    await NotesModel.insertMany([{ title: 'One' }, { title: 'Two' }])
+
+    const titles = await NotesModel.aggregate([
+      { $match: { title: { $in: ['One', 'Two'] } } },
+      { $sort: { title: 1 } },
+      { $match: { title: { $ne: 'Two' } } },
+      { $group: { _id: '$title' } },
+      { $match: { anything: { $exists: false } } }
+    ])
+
+    expect(titles).toEqual([{ _id: 'One' }])
+
+    // @ts-expect-error a title is a string
+    await NotesModel.aggregate([{ $limit: 5 }, { $match: { title: 1 } }])
+  })
+
+  test('check the filters of bulkWrite', async () => {
+    await NotesModel.insertMany([{ tags: ['home'], title: 'One' }, { title: 'Two' }])
+
+    const { deletedCount } = await NotesModel.bulkWrite([
+      { deleteMany: { filter: { tags: 'home' } } }
+    ])
+
+    expect(deletedCount).toBe(1)
+
+    // @ts-expect-error "name" is not a path of the document
+    await NotesModel.bulkWrite([{ deleteOne: { filter: { name: 'x' } } }])
+  })
+})
+
 describe('db', () => {
   test('resolves a function on the first operation, once', async () => {
     const getDb = vi.fn<() => Db>(() => db)

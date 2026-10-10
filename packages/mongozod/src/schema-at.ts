@@ -1,3 +1,5 @@
+import type { ObjectId } from 'mongodb'
+
 import { z } from 'zod'
 import * as core from 'zod/v4/core'
 
@@ -10,9 +12,11 @@ import { unwrapSchema } from './unwrap-schema'
  */
 export type PathMode = 'filter' | 'projection' | 'update'
 
-type Def<S> = S extends { _zod: { def: infer D } } ? D : never
+/** The definition of a schema, which says what kind of schema it is. */
+export type Def<S> = S extends { _zod: { def: infer D } } ? D : never
 
-type Wrapper =
+/** The schemas that wrap another one without changing its paths. */
+export type Wrapper =
   | 'catch'
   | 'default'
   | 'nonoptional'
@@ -118,6 +122,24 @@ export type SchemaAt<
   P extends string,
   M extends PathMode
 > = P extends `${infer Seg}.${infer Rest}` ? SchemaAt<Step<S, Seg, M>, Rest, M> : Step<S, P, M>
+
+/** The error a check shows for a key that is not a path of the document. */
+export type NotAPath<K extends string> = `"${K}" is not a path of the document`
+
+/** The `_id` the driver generates when the schema does not declare one. */
+interface ObjectIdSchema {
+  _zod: { def: { type: 'custom' }; input: ObjectId; output: ObjectId }
+}
+
+/**
+ * `SchemaAt` on a stored document, which always has an `_id`: an `ObjectId` when the schema does
+ * not declare one.
+ */
+export type FieldAt<S, P extends string, M extends PathMode> = P extends '_id'
+  ? [SchemaAt<S, P, M>] extends [never]
+    ? ObjectIdSchema
+    : SchemaAt<S, P, M>
+  : SchemaAt<S, P, M>
 
 /** An `arrayFilters` identifier, as the MongoDB manual defines it. */
 const IDENTIFIER = /^\$\[[a-z][a-zA-Z0-9]*\]$/

@@ -1,4 +1,7 @@
-export type { Input, Model, ModelBulkWriteOperation, ModelSchema, Output } from './model'
+export type { ModelFilter } from './filter'
+export type { BulkWriteCheck, Input, Model, ModelSchema, Output } from './model'
+export type { PipelineCheck } from './pipeline'
+export type { ModelSort, SortDirection } from './sort'
 export type { MongozodOptions } from './mongozod'
 
 export { ModelCursor } from './model-cursor'
