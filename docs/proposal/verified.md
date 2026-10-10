@@ -453,18 +453,21 @@
   - 7 tests del generador (tipos BSON, obligatorios, anidados, uniones, nullables, records, tuplas,
     pipes y codecs, lo que queda sin regla, objetos estrictos o abiertos, Zod Mini) y 10 de `sync()`:
     crea los índices y devuelve sus nombres, con un `unique` parcial; devuelve los que sobran sin
-    borrarlos; falla con el 86 cuando uno difiere; anda sin colección; una clave que no es un path y
-    un `partialFilterExpression` con otro tipo no compilan; crea la colección con el validador, que
+    borrarlos; falla con el 86 cuando uno difiere; anda sin colección; una clave que no es un path no
+    compila y lanza al definir el modelo, y un `partialFilterExpression` con otro tipo no compila; crea la colección con el validador, que
     rechaza un `$set` con punto que crea un padre incompleto; reemplaza el validador con el nivel
     pedido; acepta un documento complejo que escribe la app; valida cada tipo de una unión; y no toca
     el validador de un modelo que no lo pide.
   - Tres índices en un modelo cuestan 2 mil instanciaciones y 4 ms en un consumidor de las
     declaraciones. El consumidor de los `.d.ts` publicados compila `indexes`, `jsonSchema`, `sync()`
     y el codec de fechas con TS 5.5 y 7.
-  - El editor no sugiere los paths dentro de `indexes` en `mongozod()`: con el language service de
-    TypeScript 5.5, ninguna forma de la firma los sugiere mientras el schema y los índices se
-    infieren del mismo objeto, y una lista sin genérico pierde los paths profundos y el chequeo del
-    filtro parcial.
+  - Sugerencias del editor, con el language service de TypeScript 5.5: con `indexes` como array, ni
+    con `mongozod(schema, { indexes })`, ni con un callback que devuelve el array, el editor sugiere
+    los paths, porque el schema y los índices se infieren del mismo objeto; un array sin genérico
+    los sugiere, pero pierde los paths profundos y el chequeo del filtro parcial. Con
+    `indexes: (index) => [index(key, options)]` sugiere los paths de la clave, los comodines y los
+    paths y operadores del `partialFilterExpression`, en cualquier orden de las opciones, y los
+    chequeos siguen andando.
 
 - **Herramientas del repo** (pnpm 12.11.2, Node 22.23.2, Bun 1.4.3):
   - Vitest 5, tsdown 0.23 y Changesets 3 piden Node 22.12 o superior, y Node 20 llegó al final de su

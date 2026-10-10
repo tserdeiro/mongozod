@@ -8,7 +8,7 @@ export const NotesModel = mongozod({
   schema: noteSchema,
   collection: 'notes',
   db: () => client.db(),
-  indexes: [{ key: { organization: 1, createdAt: -1 } }],
+  indexes: (index) => [index({ organization: 1, createdAt: -1 })],
   plugins: [softDelete()]
 })
 ```
@@ -96,22 +96,29 @@ export const PluginsModel = mongozod({
   schema: pluginSchema,
   collection: 'plugins',
   db,
-  indexes: [{ key: { organization: 1, plugin: 1 }, unique: true }],
+  indexes: (index) => [index({ organization: 1, plugin: 1 }, { unique: true })],
   jsonSchema: true
 })
 
 const { extraIndexes } = await PluginsModel.sync()
 ```
 
-- **Índices**: con la forma del driver, el `IndexDescription` de `createIndexes`, como app-maker:
-  `{ key, unique, partialFilterExpression, name, expireAfterSeconds, … }`. adsgpt y
-  wortise-dashboard-monorepo los declaran como `{ key, options }`; wortise se los pasa así al
-  driver, que descarta `options`, así que el `unique` de waitlists nunca se creó.
+- **Índices**: un callback que declara cada uno con `index(key, options)`, como el
+  `createIndex(key, options)` del driver y el `schema.index(fields, options)` de Mongoose. Las
+  opciones son las del `IndexDescription` del driver (`unique`, `partialFilterExpression`, `name`,
+  `expireAfterSeconds`…), y cada `index()` devuelve uno. adsgpt y wortise-dashboard-monorepo los
+  declaran como `{ key, options }`; wortise se los pasa así al driver, que descarta `options`, así
+  que el `unique` de waitlists nunca se creó.
+- **Por qué un callback**: así el editor sugiere los paths. Con un array, como
+  `[{ key, unique }]`, el schema y los índices se infieren del mismo objeto, y mientras se escribe
+  el array TypeScript no tiene con qué completar; tampoco con `mongozod(schema, { indexes })` ni con
+  un callback que devuelve el array. TypeScript chequea el callback después de fijar el schema, y
+  cada `index()` se tipa por separado, como un `find()`.
 - **Tipos**: cada clave es un path del documento, con punto y a través de arrays, como en un filtro,
   o un comodín (`$**`, `path.$**`), con los valores del driver: 1, -1, `'text'`, `'2dsphere'`… El
   `partialFilterExpression` se chequea como el filtro del modelo; el servidor rechaza los operadores
-  que no acepta un índice parcial, como `$ne` (código 67). El editor no sugiere los paths dentro de
-  `indexes`: el schema y los índices se infieren del mismo objeto.
+  que no acepta un índice parcial, como `$ne` (código 67). En runtime, una clave que no es un path
+  lanza un `Error` al definir el modelo.
 - **Nunca borra un índice**, a diferencia del `syncIndexes()` de Mongoose. Uno existente que difiere
   del declarado falla con el error del servidor, que lo nombra: 85 con la misma clave y otro nombre,
   86 con el mismo nombre y otras opciones. `createIndexes` es atómico, así que no se crea ninguno.
