@@ -17,7 +17,7 @@ opciones ni métodos: todo se expresa con filtros de Mongo.
   `find` sí lo modifica, y `filter.deletedAt ??=` falla cuando el router envuelve el filtro en
   `$and`.
 - **Borrado**: `deleteOne` y `deleteMany` marcan `deletedAt` con un `updateOne` o un `updateMany`
-  despachados por el modelo, así [`timestamps`](./timestamps.md), [auditoría](./audit.md) e
+  despachados por el modelo, así [`timestamps`](../model.md#timestamps), [auditoría](./audit.md) e
   [historial](./history.md) ven un update. Devuelven un
   `DeleteResult` cuyo `deletedCount` cuenta los documentos marcados. Un documento ya borrado no se
   vuelve a marcar: el segundo borrado da `deletedCount: 0`.

@@ -220,14 +220,13 @@ de `Note` y `exists({ title: 1 })` no compila. `...options` reenvía las opcione
 
 ## Plugins oficiales
 
-Cada plugin tiene su documento, con lo que ya se sabe de él. `softDelete` tiene diseño y
-`timestamps`, su alcance; el resto describe la idea y queda por diseñar. Las referencias y los
-virtuals ya no figuran: pasaron al [núcleo](../model.md).
+Cada plugin tiene su documento, con lo que ya se sabe de él. `softDelete` tiene diseño; el resto
+describe la idea y queda por diseñar. Las referencias, los virtuals y `timestamps` ya no figuran:
+pasaron al [núcleo](../model.md).
 
-| Plugin                           | Qué hace                                                                                                                     | Campos que exige                                          | Opciones o contexto                                            | Métodos    |
-| -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- | -------------------------------------------------------------- | ---------- |
-| [`timestamps`](./timestamps.md)  | Completa `createdAt` al insertar (en un upsert, con `$setOnInsert`) y `updatedAt` en cada escritura.                         | `createdAt`, `updatedAt`, con otro nombre si se configura | Los nombres de los campos, y `timestamps: false` por operación | —          |
-| [`softDelete`](./soft-delete.md) | Borrado lógico.                                                                                                              | `deletedAt`                                               | —                                                              | —          |
-| [`audit`](./audit.md)            | Completa `createdBy` y `updatedBy` desde el contexto.                                                                        | `createdBy`, `updatedBy`                                  | Contexto `actor` en las escrituras                             | —          |
-| [`logger`](./logger.md)          | Registra cada operación, su colección y su duración con el logger del proyecto.                                              | —                                                         | —                                                              | —          |
-| [`history`](./history.md)        | Guarda el documento antes y después, con el filtro y el update, dentro de una transacción, y permite volver atrás un cambio. | —                                                         | Contexto                                                       | `rollback` |
+| Plugin                           | Qué hace                                                                                                                     | Campos que exige         | Opciones o contexto                | Métodos    |
+| -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- | ------------------------ | ---------------------------------- | ---------- |
+| [`softDelete`](./soft-delete.md) | Borrado lógico.                                                                                                              | `deletedAt`              | —                                  | —          |
+| [`audit`](./audit.md)            | Completa `createdBy` y `updatedBy` desde el contexto.                                                                        | `createdBy`, `updatedBy` | Contexto `actor` en las escrituras | —          |
+| [`logger`](./logger.md)          | Registra cada operación, su colección y su duración con el logger del proyecto.                                              | —                        | —                                  | —          |
+| [`history`](./history.md)        | Guarda el documento antes y después, con el filtro y el update, dentro de una transacción, y permite volver atrás un cambio. | —                        | Contexto                           | `rollback` |

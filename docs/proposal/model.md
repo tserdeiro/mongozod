@@ -27,10 +27,32 @@ export const NotesModel = mongozod({
 - **`plugins`**: los plugins del modelo, en el orden en que se aplican.
 - **`references`**: los campos que guardan el `_id` de otra colección, lo que `populate` puede
   expandir. Se describen en [Inputs de los endpoints](./inputs.md#decisiones-de-los-inputs).
+- **`timestamps`**: completa `createdAt` y `updatedAt`. Ver [Timestamps](#timestamps).
 - **`virtuals`**: campos calculados a partir de otros, que no se guardan. Ver [Virtuals](#virtuals).
 
 El modelo expone `.schema`, `.collection` (el `Collection` tipado del driver), `.db` y `.name`.
 Además tiene las operaciones, `sync()` y los métodos de sus plugins.
+
+## Timestamps
+
+Completan `createdAt` al insertar (en un upsert, con `$setOnInsert`) y `updatedAt` en cada
+escritura. Son una opción de `mongozod()`, no un plugin, como en Mongoose: `timestamps: true`, o un
+objeto por campo. Está apagada por defecto.
+
+- **Solo `createdAt` y `updatedAt`**, como en Mongoose: son las únicas fechas que tiene cualquier
+  documento. Las demás son eventos del dominio, como `approvedAt` o `syncedAt`, y `deletedAt` es de
+  [`softDelete`](./plugins/soft-delete.md).
+- **Configurables**: cada una se puede renombrar o apagar, como
+  `{ createdAt: 'created_at', updatedAt: false }` en una colección cuyos documentos no cambian.
+- **En el schema**: los campos se declaran en el schema, que sigue siendo la única fuente de verdad,
+  y siguen a la opción, renombrados o apagados. Si falta uno, `mongozod()` no compila. Se verificó
+  con un prototipo, en los tipos y en runtime (ver [Qué se verificó](./verified.md)).
+- **Por operación**: una operación puede saltearlos con la opción `timestamps: false`, como en
+  Mongoose.
+- **`createdAt`**: no se cambia con un update.
+- **Borrados**: un borrado de `softDelete` es un update, así que también completa `updatedAt`.
+
+Lo demás queda por diseñar.
 
 ## Virtuals
 

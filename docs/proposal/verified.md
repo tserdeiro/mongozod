@@ -200,3 +200,7 @@
   - better-auth publica la mayoría de sus plugins como subpaths de `better-auth`, como
     `better-auth/plugins/organization`, y algunos como paquetes aparte, como `@better-auth/passkey`,
     `@better-auth/sso` y `@better-auth/stripe`. Varios de estos traen dependencias propias.
+
+- **`timestamps`** (documentación de Mongoose y README de zod-mongo):
+  - Mongoose tiene `timestamps` como opción del schema, no como plugin. zod-mongo también la tiene
+    como opción, encendida por defecto, y agrega los campos por su cuenta.
