@@ -11,7 +11,8 @@ El orden de implementación. Al cerrar una fase, se marca acá en el mismo cambi
    2. Los tipos estrictos y los paths con punto, en este orden. Ver [Tipos](./types.md).
       1. El recorrido de los paths, en los tipos y en runtime, y el `Error` por los nombres de
          campo con `.` o `$` (hecho).
-      2. Los filtros, con todos los operadores, también en el `$match` de `aggregate` y en `sort`.
+      2. Los filtros, con todos los operadores, también en el `$match` de `aggregate` y en `sort`
+         (hecho).
       3. Los tipos de los updates: los operadores, las uniones y los `arrayFilters`.
       4. Las proyecciones, con el tipo de su resultado.
       5. El job de CI que compila los `.d.ts` publicados con TS 5.5 y 7.

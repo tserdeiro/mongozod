@@ -268,6 +268,29 @@
   - Un campo con `.` o que empieza con `$` lanza un `Error` al definir el modelo, también dentro de
     arrays y uniones; un schema recursivo no entra en un ciclo.
 
+- **Filtros** (TypeScript 7.0.2, driver 7.7.0, MongoDB 8.2.6 y 8 schemas de adsgpt):
+  - Con las opciones por defecto, `{ org: undefined }` coincide con los mismos documentos que
+    `{ org: null }`: los que no tienen `org` y los que lo tienen en `null`, también dentro de `$eq`,
+    `$in` y `$and`. Con `ignoreUndefined: true`, en la operación o en el cliente, coincide con
+    todos.
+  - El manual no depreca `$where`: solo su forma con scope, desde la 4.2.1. Recomienda `$expr`, que
+    no ejecuta JavaScript, y `$function` si hace falta JavaScript.
+  - Los tipos compilan los casos válidos de cada operador y fallan con el motivo correcto en los
+    inválidos: un valor de otro tipo, una opción que no está en el enum, `$regex` en un número,
+    `$gt` en un booleano, un operador que no existe, `null` en un campo obligatorio, `$size` en un
+    string, un campo que el elemento de `$elemMatch` no tiene, un path que no existe, una condición
+    inválida dentro de `$or`, un `undefined` y una key `string`. Un filtro armado con keys
+    opcionales sigue compilando.
+  - Con 23 llamadas de filtros, `sort` y `distinct` sobre 8 schemas de adsgpt, `blueprints` y
+    `plugins` incluidos, suma 53 mil instanciaciones, y el chequeo pasa de 0,049 s a 0,078 s. Atrapó
+    dos errores reales al escribirlas: `budget.amount`, que en el schema es `amountMicros`, y un
+    string donde va un enum de TypeScript.
+  - El language server de TS 7 sugiere 128 keys en un filtro de `blueprints` (los paths y los
+    operadores de la raíz), 120 en `sort`, en las opciones y en el cursor, y 120 en `distinct`.
+  - Una restricción genérica que es una unión con un condicional sobre el mismo parámetro es
+    circular para TypeScript (`TS2313`). Por eso `distinct` chequea la key en el parámetro
+    (`K & DistinctKey<S, K>`), y el pipeline usa un condicional no distributivo.
+
 - **Herramientas del repo** (pnpm 12.11.2, Node 22.23.2, Bun 1.4.3):
   - Vitest 5, tsdown 0.23 y Changesets 3 piden Node 22.12 o superior, y Node 20 llegó al final de su
     vida el 2026-04-30. El driver 7 todavía acepta Node 20.19.

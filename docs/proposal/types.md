@@ -19,6 +19,43 @@
   en los arrays de los updates, y sin entrar en `z.custom`, records, `z.lazy` ni transforms. Una key
   de tipo `string` no compila: tiene que ser literal.
 
+## Filtros
+
+Cada key del filtro es un path del documento, que se busca en el schema como en
+[Paths con punto](#paths-con-punto), y cada condición tiene que servir para su campo. Se aplica en
+todas las operaciones, en los filtros de `bulkWrite` y en los `$match` de `aggregate`. `V` es el
+tipo del campo y `E` el de sus elementos, si es un array:
+
+| Operadores                                            | Regla                                                                                                                                    |
+| ----------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| Igualdad, `$eq`, `$ne`, `$in`, `$nin`                 | `V`, o `E` en un array. Un `RegExp` en strings, y `null` solo donde el campo puede faltar o ser `null`.                                  |
+| `$gt`, `$gte`, `$lt`, `$lte`                          | Del tipo del campo, salvo en booleanos y objetos: números, strings, fechas e ids.                                                        |
+| `$exists`, `$type`                                    | En cualquier campo, como el driver.                                                                                                      |
+| `$regex` (con `$options`)                             | Solo en strings. `$not` recibe operadores o un `RegExp`.                                                                                 |
+| `$mod` y los operadores de bits                       | Solo en números; los de bits, también en `Binary`.                                                                                       |
+| `$all`, `$size`, `$elemMatch`                         | Solo en arrays. `$elemMatch` chequea el elemento como un filtro: sus paths si es un objeto, operadores si no.                            |
+| Geoespaciales                                         | Con las formas del driver. Ningún proyecto los usa.                                                                                      |
+| `$and`, `$or`, `$nor`                                 | Cada filtro de la lista se chequea igual.                                                                                                |
+| `$expr`, `$jsonSchema`, `$text`, `$where`, `$comment` | Como el driver. `$where` no está deprecado, pero el manual recomienda `$expr`, que no ejecuta JavaScript. `mz` no los expone a clientes. |
+
+- **`_id`**: siempre existe; es un `ObjectId` si el schema no lo declara.
+- **`undefined`**: no compila. El driver lo manda como `null`, que coincide con los documentos sin
+  el campo o con `null`, y con `ignoreUndefined` la key desaparece y coincide con todos. Para eso
+  se escribe `null` o `$exists: false`. En runtime no se toca. Un filtro armado con tipos que tienen
+  keys opcionales, como la salida de `mz.filter`, sigue compilando.
+- **Errores**: cada uno nombra su motivo, como `"author.nam" is not a path of the document` o
+  `"$regex" only applies to strings`.
+- **`$match`**: se chequean los del principio del pipeline, hasta la primera etapa que cambia la
+  forma de los documentos; `$sort`, `$limit` y `$skip` la conservan. Un pipeline armado en otro
+  lado, como un `Document[]`, no se chequea.
+- **`sort`**: solo la forma de objeto, `{ path: dirección }`, con `1`, `-1`, `'asc'`, `'desc'`,
+  `'ascending'`, `'descending'` o `{ $meta: 'textScore' }`, en las opciones y en el cursor. Las keys
+  se chequean como en los filtros.
+- **`distinct`**: la key es un path, y el resultado tiene el tipo de sus valores, aplanando los
+  arrays como el driver.
+- **Services**: un service que reenvía un filtro lo recibe con un genérico, como
+  `<const F extends ModelFilter<typeof schema, F>>(filter: F)`, en vez del `Filter` del driver.
+
 ## Paths con punto
 
 Los tipos siguen la regla de [Tipos](#tipos). Además:
