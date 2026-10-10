@@ -1,0 +1,15 @@
+# Git hooks (https://lefthook.dev). Installed by lefthook's postinstall on `pnpm install`;
+# the config is read on every run, so editing this file needs no reinstall.
+assert_lefthook_installed: true
+
+pre-commit:
+  piped: true # stop at the first failing step
+  jobs:
+    - name: lint
+      run: pnpm lint
+    - name: format
+      run: pnpm format:check
+    - name: check-types
+      run: pnpm check-types
+    - name: test
+      run: pnpm test

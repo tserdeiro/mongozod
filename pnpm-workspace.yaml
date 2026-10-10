@@ -5,7 +5,8 @@ packages:
 # Exact versions only: `pnpm add` writes `1.2.3`, never `^1.2.3`.
 savePrefix: ''
 
-
 allowBuilds:
+  # lefthook installs the git hooks from its postinstall script (lefthook.dev/installation/node).
+  lefthook: true
   # Downloads the MongoDB binary the tests run against.
   mongodb-memory-server: true
