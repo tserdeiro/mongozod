@@ -4,6 +4,7 @@ import type { PathSuggestions } from './path-suggestions'
 import type { ProjectionCheck } from './projection'
 import type { Def, ExtraKey, IsIdentifier, NotAPath, SchemaAt, Wrapper } from './schema-at'
 import type { SortCheck } from './sort'
+import type { LockedFields, NoTimestamps, TimestampNames } from './timestamps'
 import type * as core from 'zod/v4/core'
 
 type IntersectAll<T> = (T extends [infer V] ? (value: V) => void : never) extends (
@@ -351,9 +352,11 @@ type FieldOperator =
 
 type ArrayFiltersOf<O> = O extends { arrayFilters: infer AF } ? AF : never
 
-type OperatorCheck<S, Op, Fields, F, AF> = {
+type OperatorCheck<S, Op, Fields, F, AF, Locked> = {
   [K in keyof Fields]: K extends string
-    ? FieldCheck<S, Op, K, Targets<S, K, F, AF, Op>, Fields[K]>
+    ? K extends Locked
+      ? `"${K}" is set by timestamps: pass timestamps: false to write it`
+      : FieldCheck<S, Op, K, Targets<S, K, F, AF, Op>, Fields[K]>
     : never
 }
 
@@ -361,11 +364,11 @@ type OperatorCheck<S, Op, Fields, F, AF> = {
  * Checks an update operator by operator and path by path: each path must exist in every type of
  * document the filter allows, and each value must fit its operator and its field.
  */
-export type UpdateCheck<S, U, F, O> = {
+export type UpdateCheck<S, U, F, O, N extends TimestampNames = NoTimestamps> = {
   [Op in keyof U]: U extends ReadonlyArray<unknown>
     ? 'an update with a pipeline does not compile: use .collection'
     : Op extends FieldOperator
-      ? OperatorCheck<S, Op, U[Op], F, ArrayFiltersOf<O>>
+      ? OperatorCheck<S, Op, U[Op], F, ArrayFiltersOf<O>, LockedFields<N, Op, O>>
       : `"${Op & string}" is not an update operator`
 }
 
@@ -379,7 +382,14 @@ export type SuggestedUpdate<S> = {
  * one and passes it to the model. The model's operations check `UpdateCheck` in the type parameter
  * and take `SuggestedUpdate` in the parameter, which costs less to compile.
  */
-export type ModelUpdate<S, U, F, O> = UpdateCheck<S, U, F, O> & SuggestedUpdate<S>
+export type ModelUpdate<S, U, F, O, N extends TimestampNames = NoTimestamps> = UpdateCheck<
+  S,
+  U,
+  F,
+  O,
+  N
+> &
+  SuggestedUpdate<S>
 
 // `arrayFilters`: one entry per `$[id]` of the update, checked against the elements it filters.
 

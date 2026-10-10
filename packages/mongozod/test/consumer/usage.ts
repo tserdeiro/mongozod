@@ -30,6 +30,17 @@ const EventsModel = mongozod({
   ])
 })
 
+const timestampSchema = z
+  .union([z.date(), z.iso.datetime().transform((value) => new Date(value))])
+  .default(() => new Date())
+
+const PostsModel = mongozod({
+  collection: 'posts',
+  db,
+  schema: z.object({ createdAt: timestampSchema, title: z.string(), updatedAt: timestampSchema }),
+  timestamps: true
+})
+
 /** A service that forwards a filter to the model keeps its checks. */
 function countNotes<const F extends ModelFilter<typeof noteSchema, F>>(filter: F) {
   return NotesModel.countDocuments(filter)
@@ -79,6 +90,14 @@ export async function usage() {
   await EventsModel.updateOne({}, { $set: { url: 'https://example.com' } })
   // @ts-expect-error an index is a field name for a projection
   await NotesModel.find({}, { projection: { 'connections.0.enabled': 1 } })
+  await PostsModel.insertOne({ title: 'Post' })
+  await PostsModel.updateOne(
+    { title: 'Post' },
+    { $set: { updatedAt: new Date() } },
+    { timestamps: false }
+  )
+  // @ts-expect-error updatedAt is set by timestamps
+  await PostsModel.updateOne({ title: 'Post' }, { $set: { updatedAt: new Date() } })
   // @ts-expect-error "title" is required
   await NotesModel.insertOne({ createdAt: new Date() })
 

@@ -6,6 +6,7 @@ import type { PipelineCheck } from './pipeline'
 import type { Projected, ProjectionCheck, SuggestedProjection } from './projection'
 import type { FieldAt, NotAPath } from './schema-at'
 import type { SortCheck, SuggestedSort } from './sort'
+import type { NoTimestamps, TimestampNames, TimestampsOperationOption } from './timestamps'
 import type {
   ArrayFiltersEntriesCheck,
   SuggestedUpdate,
@@ -101,20 +102,27 @@ type DistinctKey<S, K extends string> =
 type BulkUpdateCheck<
   S extends ModelSchema,
   Base,
-  M extends { filter: unknown; update: unknown }
+  M extends { filter: unknown; update: unknown },
+  N extends TimestampNames,
+  BulkOptions
 > = Omit<Base, 'arrayFilters' | 'filter' | 'update'> & {
   arrayFilters?: M extends { arrayFilters: infer AF }
     ? ArrayFiltersEntriesCheck<S, M['update'], AF>
     : never
   filter: FilterCheck<S, M['filter']>
-  update: UpdateCheck<S, M['update'], M['filter'], M>
+  update: UpdateCheck<S, M['update'], M['filter'], M & BulkOptions, N>
 }
 
 /**
  * One `bulkWrite` operation: filters and updates are checked, and inserts and replacements take the
  * input.
  */
-type BulkWriteOperationCheck<S extends ModelSchema, O> = O extends { insertOne: unknown }
+type BulkWriteOperationCheck<
+  S extends ModelSchema,
+  O,
+  N extends TimestampNames,
+  BulkOptions
+> = O extends { insertOne: unknown }
   ? { insertOne: { document: Input<S> } }
   : O extends { replaceOne: { filter: infer F } }
     ? {
@@ -124,9 +132,9 @@ type BulkWriteOperationCheck<S extends ModelSchema, O> = O extends { insertOne: 
         }
       }
     : O extends { updateOne: infer M extends { filter: unknown; update: unknown } }
-      ? { updateOne: BulkUpdateCheck<S, UpdateOneModel<Output<S>>, M> }
+      ? { updateOne: BulkUpdateCheck<S, UpdateOneModel<Output<S>>, M, N, BulkOptions> }
       : O extends { updateMany: infer M extends { filter: unknown; update: unknown } }
-        ? { updateMany: BulkUpdateCheck<S, UpdateManyModel<Output<S>>, M> }
+        ? { updateMany: BulkUpdateCheck<S, UpdateManyModel<Output<S>>, M, N, BulkOptions> }
         : O extends { deleteOne: { filter: infer F } }
           ? { deleteOne: Omit<DeleteOneModel<Output<S>>, 'filter'> & { filter: FilterCheck<S, F> } }
           : O extends { deleteMany: { filter: infer F } }
@@ -137,9 +145,14 @@ type BulkWriteOperationCheck<S extends ModelSchema, O> = O extends { insertOne: 
               }
             : 'an operation is insertOne, replaceOne, updateOne, updateMany, deleteOne or deleteMany'
 
-/** Checks the operations of a `bulkWrite` one by one. */
-export type BulkWriteCheck<S extends ModelSchema, Operations> = {
-  [I in keyof Operations]: BulkWriteOperationCheck<S, Operations[I]>
+/** Checks the operations of a `bulkWrite` one by one, given the options of the call. */
+export type BulkWriteCheck<
+  S extends ModelSchema,
+  Operations,
+  N extends TimestampNames = NoTimestamps,
+  BulkOptions = unknown
+> = {
+  [I in keyof Operations]: BulkWriteOperationCheck<S, Operations[I], N, BulkOptions>
 }
 
 /**
@@ -147,7 +160,7 @@ export type BulkWriteCheck<S extends ModelSchema, Operations> = {
  * and typing what is read. Filters, sorts and the `$match` stages of a pipeline are checked key by
  * key against the schema.
  */
-export interface Model<S extends ModelSchema> {
+export interface Model<S extends ModelSchema, N extends TimestampNames = NoTimestamps> {
   /** The schema of each document. */
   readonly schema: S
 
@@ -175,9 +188,13 @@ export interface Model<S extends ModelSchema> {
   ): ModelCursor<Document>
 
   /** Runs several writes in one command. Inserts and replacements are validated like `insertOne`. */
-  bulkWrite<const Operations extends ReadonlyArray<Document> & BulkWriteCheck<S, Operations>>(
+  bulkWrite<
+    const Operations extends ReadonlyArray<Document> &
+      BulkWriteCheck<S, Operations, N, BulkOptions>,
+    const BulkOptions extends BulkWriteOptions & TimestampsOperationOption<N> = BulkWriteOptions
+  >(
     operations: Operations,
-    options?: BulkWriteOptions
+    options?: BulkOptions
   ): Promise<BulkWriteResult>
 
   /** Counts the documents that match the filter. */
@@ -257,7 +274,8 @@ export interface Model<S extends ModelSchema> {
   >(
     filter: F & SuggestedFilter<S>,
     replacement: Input<S>,
-    options: ReadOptions<S, FindOneAndReplaceOptions, Sort, P> & { includeResultMetadata: true }
+    options: ReadOptions<S, FindOneAndReplaceOptions, Sort, P> &
+      TimestampsOperationOption<N> & { includeResultMetadata: true }
   ): Promise<ModifyResultOf<S, P>>
   findOneAndReplace<
     const F extends FilterCheck<S, F>,
@@ -266,14 +284,16 @@ export interface Model<S extends ModelSchema> {
   >(
     filter: F & SuggestedFilter<S>,
     replacement: Input<S>,
-    options?: ReadOptions<S, FindOneAndReplaceOptions, Sort, P>
+    options?: ReadOptions<S, FindOneAndReplaceOptions, Sort, P> & TimestampsOperationOption<N>
   ): Promise<Projected<WithId<Output<S>>, P> | null>
 
   /** Updates the first document that matches the filter and returns it. */
   findOneAndUpdate<
     const F extends FilterCheck<S, F>,
-    const U extends UpdateCheck<S, U, F, O>,
-    const O extends UpdateOptionsBase<FindOneAndUpdateOptions> & UpdateOptionsCheck<S, U, O>
+    const U extends UpdateCheck<S, U, F, O, N>,
+    const O extends UpdateOptionsBase<FindOneAndUpdateOptions> &
+      TimestampsOperationOption<N> &
+      UpdateOptionsCheck<S, U, O>
   >(
     filter: F & SuggestedFilter<S>,
     update: U & SuggestedUpdate<S>,
@@ -281,8 +301,10 @@ export interface Model<S extends ModelSchema> {
   ): Promise<ModifyResultOf<S, ProjectionOf<O>>>
   findOneAndUpdate<
     const F extends FilterCheck<S, F>,
-    const U extends UpdateCheck<S, U, F, O>,
-    const O extends UpdateOptionsBase<FindOneAndUpdateOptions> & UpdateOptionsCheck<S, U, O>
+    const U extends UpdateCheck<S, U, F, O, N>,
+    const O extends UpdateOptionsBase<FindOneAndUpdateOptions> &
+      TimestampsOperationOption<N> &
+      UpdateOptionsCheck<S, U, O>
   >(
     filter: F & SuggestedFilter<S>,
     update: U & SuggestedUpdate<S>,
@@ -295,7 +317,7 @@ export interface Model<S extends ModelSchema> {
    */
   insertMany(
     documents: ReadonlyArray<Input<S>>,
-    options?: BulkWriteOptions
+    options?: BulkWriteOptions & TimestampsOperationOption<N>
   ): Promise<InsertManyResult<Output<S>> & { documents: Array<WithId<Output<S>>> }>
 
   /**
@@ -304,7 +326,7 @@ export interface Model<S extends ModelSchema> {
    */
   insertOne(
     document: Input<S>,
-    options?: InsertOneOptions
+    options?: InsertOneOptions & TimestampsOperationOption<N>
   ): Promise<InsertOneResult<Output<S>> & { document: WithId<Output<S>> }>
 
   /**
@@ -315,14 +337,16 @@ export interface Model<S extends ModelSchema> {
   replaceOne<const F extends FilterCheck<S, F>, const Sort extends SortCheck<S, Sort>>(
     filter: F & SuggestedFilter<S>,
     replacement: Input<S>,
-    options?: Sorted<S, ReplaceOptions, Sort>
+    options?: Sorted<S, ReplaceOptions, Sort> & TimestampsOperationOption<N>
   ): Promise<UpdateResult<Output<S>>>
 
   /** Updates every document that matches the filter. */
   updateMany<
     const F extends FilterCheck<S, F>,
-    const U extends UpdateCheck<S, U, F, O>,
-    const O extends UpdateOptionsBase<UpdateOptions> & UpdateOptionsCheck<S, U, O>
+    const U extends UpdateCheck<S, U, F, O, N>,
+    const O extends UpdateOptionsBase<UpdateOptions> &
+      TimestampsOperationOption<N> &
+      UpdateOptionsCheck<S, U, O>
   >(
     filter: F & SuggestedFilter<S>,
     update: U & SuggestedUpdate<S>,
@@ -332,8 +356,10 @@ export interface Model<S extends ModelSchema> {
   /** Updates the first document that matches the filter. */
   updateOne<
     const F extends FilterCheck<S, F>,
-    const U extends UpdateCheck<S, U, F, O>,
-    const O extends UpdateOptionsBase<UpdateOptions> & UpdateOptionsCheck<S, U, O>
+    const U extends UpdateCheck<S, U, F, O, N>,
+    const O extends UpdateOptionsBase<UpdateOptions> &
+      TimestampsOperationOption<N> &
+      UpdateOptionsCheck<S, U, O>
   >(
     filter: F & SuggestedFilter<S>,
     update: U & SuggestedUpdate<S>,
