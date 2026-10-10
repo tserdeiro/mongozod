@@ -4,9 +4,9 @@ mongozod is a MongoDB library where the Zod schema is the single source of truth
 it validates what is written, types what is read and defines what each endpoint accepts. It
 complements the official MongoDB driver instead of replacing it.
 
-Nothing is implemented yet. The proposal in `docs/proposal/` is the source of truth: read its README
-before working on any area, then the documents of the topics you touch and the roadmap for the
-order of the work.
+The roadmap in `docs/proposal/roadmap.md` marks what is implemented. The proposal in
+`docs/proposal/` is the source of truth: read its README before working on any area, then the
+documents of the topics you touch and the roadmap for the order of the work.
 
 ## Working rules
 
