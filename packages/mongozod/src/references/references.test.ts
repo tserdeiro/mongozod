@@ -714,6 +714,128 @@ describe('a reference inside objects and arrays', () => {
   })
 })
 
+describe('a reference stored in another field', () => {
+  const citySchema = z.object({ _id: z.string(), name: z.string() })
+  const countrySchema = z.object({
+    _id: z.string(),
+    capitalId: z.string().optional(),
+    cityIds: z.array(z.string()).default([]),
+    name: z.string(),
+    regions: z.array(z.object({ seatId: z.string() })).default([])
+  })
+
+  const CitiesModel = mongozod({ collection: 'cities', db, schema: citySchema })
+  const CountriesModel = mongozod({
+    collection: 'countries',
+    db,
+    references: {
+      capital: { localField: 'capitalId', model: () => CitiesModel },
+      cities: { localField: 'cityIds', model: () => CitiesModel },
+      seats: { localField: 'regions.seatId', model: () => CitiesModel }
+    },
+    schema: countrySchema
+  })
+
+  beforeEach(async () => {
+    await CitiesModel.insertMany([
+      { _id: 'bue', name: 'Buenos Aires' },
+      { _id: 'cba', name: 'Córdoba' },
+      { _id: 'mvd', name: 'Montevideo' }
+    ])
+    await CountriesModel.insertMany([
+      {
+        _id: 'ar',
+        capitalId: 'bue',
+        cityIds: ['cba', 'bue'],
+        name: 'Argentina',
+        regions: [{ seatId: 'cba' }, { seatId: 'gone' }]
+      },
+      { _id: 'uy', capitalId: 'gone', name: 'Uruguay' },
+      { _id: 'xx', name: 'Nowhere' }
+    ])
+  })
+
+  test('adds the document its localField stores, which keeps the id', async () => {
+    const [ar, uy, xx] = await CountriesModel.find(
+      {},
+      { populate: { capital: { projection: { name: 1 } } } }
+    ).sort({ _id: 1 })
+
+    expect(ar).toMatchObject({ capital: { _id: 'bue', name: 'Buenos Aires' }, capitalId: 'bue' })
+    expect(uy?.capital).toBeNull()
+    expect(xx).not.toHaveProperty('capital')
+    expectTypeOf<NonNullable<typeof ar>['capital']>().toEqualTypeOf<
+      { _id: string; name: string } | null | undefined
+    >()
+    expectTypeOf<NonNullable<typeof ar>['capitalId']>().toEqualTypeOf<string | undefined>()
+  })
+
+  test('gives an array when its localField stores one or goes through one', async () => {
+    const ar = await CountriesModel.findOne(
+      { _id: 'ar' },
+      { populate: { cities: { limit: 1, sort: { name: 1 } }, seats: true } }
+    )
+
+    expect(ar?.cities).toEqual([{ _id: 'bue', name: 'Buenos Aires' }])
+    expect(ar?.seats).toEqual([{ _id: 'cba', name: 'Córdoba' }])
+    expectTypeOf<NonNullable<typeof ar>['seats']>().toEqualTypeOf<
+      Array<WithId<{ _id: string; name: string }>>
+    >()
+  })
+
+  test('asks for the localField when the projection leaves it out, and removes it', async () => {
+    const ar = await CountriesModel.findOne(
+      { _id: 'ar' },
+      { populate: { capital: true }, projection: { name: 1 } }
+    )
+
+    expect(ar).toEqual({
+      _id: 'ar',
+      capital: { _id: 'bue', name: 'Buenos Aires' },
+      name: 'Argentina'
+    })
+    await expect(
+      CountriesModel.findOne(
+        { _id: 'ar' },
+        // @ts-expect-error populate needs "capitalId" for "capital"
+        { populate: { capital: true }, projection: { capitalId: 0 } }
+      )
+    ).rejects.toMatchObject({
+      issues: [{ message: 'populate needs "capitalId" for "capital": the projection excludes it' }]
+    })
+  })
+
+  test('is a key that is not a field, with a localField that stores the _id of its target', () => {
+    expect(() =>
+      mongozod({
+        collection: 'countries',
+        db,
+        // @ts-expect-error "name" is a field of the schema
+        references: { name: { localField: 'capitalId', model: () => CitiesModel } },
+        schema: countrySchema
+      })
+    ).toThrow('references: "name" populates from its localField, so it is not stored')
+    expect(() =>
+      mongozod({
+        collection: 'countries',
+        db,
+        references: { capital: { localField: 'capitalCity', model: () => CitiesModel } },
+        schema: countrySchema
+      })
+    ).toThrow('references: "capital" needs its localField "capitalCity" in the schema')
+
+    const NumbersModel = mongozod({
+      collection: 'countries',
+      db,
+      references: { capital: { localField: 'code', model: () => CitiesModel } },
+      schema: z.object({ code: z.number() })
+    })
+
+    // @ts-expect-error "code" stores another type than the _id of its target
+    expectTypeOf(() => NumbersModel.find({}, { populate: { capital: true } }))
+  })
+})
+
 describe('a one-to-many reference', () => {
   const authorSchema = z.object({ _id: z.string(), handle: z.string(), name: z.string() })
   const postSchema = z.object({

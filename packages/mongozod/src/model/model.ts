@@ -122,7 +122,8 @@ type PopulateOf<O> = O extends { populate: infer Pop } ? Pop : None
 export type ReadDocument<S extends ModelSchema, V, R, P, Pop> = Populated<
   Read<WithId<Output<S>>, V, PopulatedProjection<P, Pop, R>>,
   R,
-  Pop
+  Pop,
+  WithId<Output<S>>
 >
 
 /** The driver's `ModifyResult`, with the document as the read returns it. */

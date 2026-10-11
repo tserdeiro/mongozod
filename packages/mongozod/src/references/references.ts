@@ -60,13 +60,25 @@ export interface ForeignReference {
 }
 
 /**
+ * A reference stored in another field: the document of another model whose `_id` the `localField`
+ * of this document stores, as `capital` from `capitalId`. It is not stored, so its key is not a
+ * field of the schema, and `populate` gives what the `localField` stores: a document, or an array
+ * when it stores an array.
+ */
+export interface LocalReference {
+  localField: string
+  model: () => ReferencedModel
+}
+
+/**
  * What a reference points to: a function that returns another model, so that its plugins and
- * virtuals apply, a collection and its schema, for one without a model, or the documents of another
- * model that point to this one.
+ * virtuals apply, a collection and its schema, for one without a model, the document whose `_id`
+ * another field stores, or the documents of another model that point to this one.
  */
 export type ReferenceTarget =
   | (() => ReferencedModel)
   | { collection: string; schema: ModelSchema }
+  | LocalReference
   | ForeignReference
 
 /** The paths a reference can have: the fields of every type of document, and the paths under them. */
@@ -75,7 +87,8 @@ type ReferencePath<S extends ModelSchema> = FieldsOf<Output<S>> | PathSuggestion
 /**
  * The `references` of a model: the fields that store the `_id` of another document, or an array of
  * them, in one or more types of document, also inside objects and arrays of objects, such as
- * `items.product`, and the one-to-many references, whose keys are not fields. Each target is a
+ * `items.product`, and the references stored in another field or one-to-many, whose keys are not
+ * fields. Each target is a
  * `ReferenceTarget`, which `populate` checks: checking it here makes models that reference each
  * other, or themselves, circular types.
  */
@@ -89,9 +102,15 @@ type ReferenceProblem<S extends ModelSchema, K, T> = T extends { foreignField: u
     : K extends `${string}.${string}`
       ? `"${K & string}" is a path: a reference with foreignField is a key of the document`
       : never
-  : K extends ReferencePath<S>
-    ? never
-    : `"${K & string}" is not a path of the schema`
+  : T extends { localField: unknown; model: unknown }
+    ? K extends ReferencePath<S>
+      ? `"${K & string}" is a field of the schema: a reference with localField is not stored`
+      : K extends `${string}.${string}`
+        ? `"${K & string}" is a path: a reference with localField is a key of the document`
+        : never
+    : K extends ReferencePath<S>
+      ? never
+      : `"${K & string}" is not a path of the schema`
 
 /**
  * The keys of `references` that do not fit: a path that is not in the schema, or a one-to-many
@@ -110,8 +129,17 @@ type ForeignKeys<R> = {
   [K in keyof R]: R[K] extends { foreignField: unknown } ? K : never
 }[keyof R]
 
-/** The target of a reference: the model of a one-to-many one. */
-type TargetOf<T> = T extends { foreignField: unknown; model: infer M } ? M : T
+/** The references stored in another field, which reads add to the documents. */
+type LocalKeys<R> = {
+  [K in keyof R]: R[K] extends { foreignField: unknown }
+    ? never
+    : R[K] extends { localField: string; model: unknown }
+      ? K
+      : never
+}[keyof R]
+
+/** The target of a reference: the model of one with a `localField` or a `foreignField`. */
+type TargetOf<T> = T extends { model: infer M } ? M : T
 
 type TargetSchema<T> =
   TargetOf<T> extends () => { readonly schema: infer TS extends ModelSchema }
@@ -206,19 +234,21 @@ export type PopulateCheck<S extends ModelSchema, R, Pop, P> = {
       ? `"${K & string}" points to neither a function that returns a model nor { collection, schema }`
       : R[K] extends { foreignField: infer FF extends string }
         ? ForeignCheck<S, R[K], K, FF, LocalField<R[K]>, Pop[K], P>
-        : [FieldIds<S, K>] extends [TargetDocument<R[K]>['_id']]
-          ? [ExcludedBy<P, K>] extends [never]
-            ? PopulateValueCheck<
-                R[K],
-                Exclude<Pop[K], undefined>,
-                NonNullable<
-                  core.output<SchemaAt<S, K & string, 'filter'>>
-                > extends ReadonlyArray<unknown>
-                  ? 'array'
-                  : 'one'
-              >
-            : `populate needs "${K & string}": the projection excludes it`
-          : `"${K & string}" stores another type than the _id of its target`
+        : R[K] extends { localField: infer L extends string }
+          ? LocalCheck<S, R[K], K, L, Pop[K], P>
+          : [FieldIds<S, K>] extends [TargetDocument<R[K]>['_id']]
+            ? [ExcludedBy<P, K>] extends [never]
+              ? PopulateValueCheck<
+                  R[K],
+                  Exclude<Pop[K], undefined>,
+                  NonNullable<
+                    core.output<SchemaAt<S, K & string, 'filter'>>
+                  > extends ReadonlyArray<unknown>
+                    ? 'array'
+                    : 'one'
+                >
+              : `populate needs "${K & string}": the projection excludes it`
+            : `"${K & string}" stores another type than the _id of its target`
     : `"${K & string}" is not a reference of the model`
 }
 
@@ -233,6 +263,40 @@ type LocalExcludedBy<P, L> = L extends '_id'
       : ExcludedBy<P, L>
     : ExcludedBy<P, L>
   : ExcludedBy<P, L>
+
+/**
+ * What a path stores in a document: its value, or, when it goes through an array, the values of
+ * its elements in one array, as `populate` takes them at runtime.
+ */
+type StoredAt<T, P extends string> = T extends null | undefined
+  ? undefined
+  : T extends ReadonlyArray<infer E>
+    ? Array<Flatten<Exclude<StoredAt<E, P>, null | undefined>>>
+    : P extends `${infer Head}.${infer Rest}`
+      ? Head extends keyof T
+        ? StoredAt<T[Head], Rest>
+        : undefined
+      : P extends keyof T
+        ? T[P]
+        : undefined
+
+/**
+ * Checks a reference stored in another field: its `localField` is a path of this document that
+ * stores the `_id` of the target, or an array of them, and the projection of the read keeps it.
+ */
+type LocalCheck<S extends ModelSchema, T, K, L extends string, X, P> = [
+  FieldAt<S, L, 'filter'>
+] extends [never]
+  ? `"${K & string}": "${L}" is not a path of the document`
+  : [ValuesAt<S, L>] extends [TargetDocument<T>['_id']]
+    ? [ExcludedBy<P, L>] extends [never]
+      ? PopulateValueCheck<
+          T,
+          Exclude<X, undefined>,
+          NonNullable<StoredAt<Output<S>, L>> extends ReadonlyArray<unknown> ? 'array' : 'one'
+        >
+      : `populate needs "${L}" for "${K & string}": the projection excludes it`
+    : `"${K & string}": "${L}" stores another type than the _id of its target`
 
 /**
  * Checks a one-to-many reference: its `foreignField` is a path of the target and its `localField`
@@ -289,7 +353,7 @@ export type PopulatedProjection<P, Pop, R> = [keyof Pop] extends [never]
     ? Mode<Entries<P>> extends 'inclusion'
       ? P & {
           [
-            K in keyof Pop as K extends ForeignKeys<R>
+            K in keyof Pop as K extends ForeignKeys<R> | LocalKeys<R>
               ? never
               : [IncludedBy<P, K>] extends [never]
                 ? K
@@ -353,14 +417,44 @@ type ForeignPopulated<R, Pop> = {
   ]?: Array<ReadOf<R[K], Exclude<Pop[K], undefined>>>
 }
 
-/** The documents a read returns, with the references of its `populate` replaced. */
-export type Populated<T, R, Pop> = [keyof Pop] extends [never]
+/**
+ * The references stored in another field a read asks for: what their `localField` stores in the
+ * document `D`, populated, which a `populate` that arrives at runtime may not have asked for.
+ */
+type LocalPopulated<D, R, Pop> = {
+  [
+    K in LocalKeys<R> & keyof Pop as Pick<Pop, K> extends Required<Pick<Pop, K>> ? K : never
+  ]: PopulatedValue<StoredAt<D, LocalField<R[K]>>, R[K], Exclude<Pop[K], undefined>>
+} & {
+  [
+    K in LocalKeys<R> & keyof Pop as Pick<Pop, K> extends Required<Pick<Pop, K>> ? never : K
+  ]?: PopulatedValue<StoredAt<D, LocalField<R[K]>>, R[K], Exclude<Pop[K], undefined>>
+}
+
+/**
+ * The documents a read returns, with the references of its `populate` replaced, and those that
+ * are not stored added. `D` is the document as stored, whose `localField`s the read asks for even
+ * when the projection leaves them out.
+ */
+export type Populated<T, R, Pop, D = T> = [keyof Pop] extends [never]
   ? T
   : T extends unknown
-    ? [ForeignKeys<R> & keyof Pop] extends [never]
+    ? [(ForeignKeys<R> | LocalKeys<R>) & keyof Pop] extends [never]
       ? PopulatedLevel<T, R, Pop, ''>
-      : Simplify<PopulatedLevel<T, R, Pop, ''> & ForeignPopulated<R, Pop>>
+      : Simplify<
+          PopulatedLevel<T, R, Pop, ''> & ForeignPopulated<R, Pop> & LocalPopulated<D, R, Pop>
+        >
     : never
+
+/** Whether a reference is stored in another field: a `localField` without a `foreignField`. */
+function isLocal(target: unknown): target is LocalReference {
+  return (
+    isPlainObject(target) &&
+    target.foreignField === undefined &&
+    typeof target.localField === 'string' &&
+    typeof target.model === 'function'
+  )
+}
 
 /** Whether a reference is a one-to-many one, with a `foreignField`. */
 function isForeign(target: unknown): target is ForeignReference {
@@ -382,6 +476,22 @@ export function checkReferences(schema: core.$ZodType, references: object = {}):
   const inSchema = (path: string) => types.some((type) => schemaAt(type, path, 'filter').length > 0)
 
   for (const [name, target] of Object.entries(references)) {
+    if (isLocal(target)) {
+      if (name.includes('.') || inSchema(name)) {
+        throw new Error(
+          `references: "${name}" populates from its localField, so it is not stored: it is a key that is not a field`
+        )
+      }
+
+      if (!inSchema(target.localField)) {
+        throw new Error(
+          `references: "${name}" needs its localField "${target.localField}" in the schema`
+        )
+      }
+
+      continue
+    }
+
     if (isForeign(target)) {
       if (name.includes('.') || inSchema(name)) {
         throw new Error(
@@ -413,7 +523,7 @@ export function checkReferences(schema: core.$ZodType, references: object = {}):
 
     if (!isTarget) {
       throw new Error(
-        `references: "${name}" points to neither a function that returns a model, { collection, schema } nor { model, foreignField }`
+        `references: "${name}" points to neither a function that returns a model, { collection, schema }, { model, localField } nor { model, foreignField }`
       )
     }
   }
@@ -436,6 +546,8 @@ export type PopulateEntry = [field: string, target: ReferenceTarget, options: Po
  * which a read's projection has to keep.
  */
 export function storedPath([field, target]: PopulateEntry): string {
+  if (isLocal(target)) return target.localField
+
   return isForeign(target) ? (target.localField ?? '_id') : field
 }
 
@@ -511,7 +623,10 @@ export function populateEntries(
             message: `"${field}" cannot populate "${target.foreignField}", its foreignField: it points back to this document`,
             path: ['populate', field, name, target.foreignField]
           })
-        } else if (name === 'populate' && !(typeof target === 'function' || isForeign(target))) {
+        } else if (
+          name === 'populate' &&
+          !(typeof target === 'function' || isLocal(target) || isForeign(target))
+        ) {
           issues.push({
             code: 'custom',
             input: option,
@@ -599,6 +714,22 @@ function idKey(id: unknown) {
 /** Each id once, by its key: many documents of a batch may point to the same one. */
 function distinctIds(ids: readonly unknown[]): unknown[] {
   return [...new Map(ids.map((id) => [idKey(id), id])).values()]
+}
+
+/**
+ * What a path stores in a document: its value, or, when it goes through an array, the values of
+ * its elements in one array, without the missing ones.
+ */
+function storedAt(value: unknown, segments: readonly string[]): unknown {
+  if (Array.isArray(value)) {
+    return value.flatMap((element) => storedAt(element, segments) ?? [])
+  }
+
+  const [segment, ...rest] = segments
+
+  if (!isPlainObject(value) || segment === undefined) return undefined
+
+  return rest.length === 0 ? value[segment] : storedAt(value[segment], rest)
 }
 
 /** The values a path holds in a document, through its arrays, with the elements of arrays of them. */
@@ -740,66 +871,90 @@ export async function populateDocuments(
   session: ClientSession | undefined
 ): Promise<void> {
   await Promise.all(
-    entries.map(async ([key, target, options]) => {
+    entries.map(([key, target, options]) => {
       if (isForeign(target)) return populateForeign(documents, key, target, options, session)
 
-      const { filter, limit, populate, projection, sort } = options
-      const segments = key.split('.')
-      const stored: unknown[] = []
+      if (isLocal(target)) {
+        // It takes what the localField stores, and then populates it as a stored reference.
+        for (const document of documents) {
+          const stored = storedAt(document, target.localField.split('.'))
 
-      eachHolder(documents, segments, (holder, field) => stored.push(holder[field] ?? []))
+          if (stored !== undefined) document[key] = stored
+        }
 
-      const ids = distinctIds(stored.flat())
-
-      if (ids.length === 0) return
-
-      // The `_id` maps each document back to its reference: when the projection leaves it out, it
-      // is asked for and removed afterwards.
-      const { _id: idProjection, ...rest } = projection ?? {}
-      const withoutId = idProjection === 0 || idProjection === false
-      const findOptions: FindOptions = {}
-
-      if (projection) findOptions.projection = withoutId ? rest : projection
-      if (session) findOptions.session = session
-      if (sort) findOptions.sort = sort
-
-      // In `$and`, so that a `filter` on the `_id` narrows the references instead of replacing them.
-      const query: Document = filter
-        ? { $and: [{ _id: { $in: ids } }, filter] }
-        : { _id: { $in: ids } }
-      let found: Document[]
-
-      if (typeof target === 'function') {
-        // The target model populates its own references, which validates the nested `populate`.
-        found = await finderOf(target, key)(
-          query,
-          populate ? { ...findOptions, populate } : findOptions
-        )
-      } else {
-        found = await db().collection(target.collection).find(query, findOptions).toArray()
+        return populateStored(documents, key, target.model, options, db, session)
       }
 
-      const byId = new Map(found.map((document) => [idKey(document._id), document]))
-
-      if (withoutId) for (const document of found) delete document._id
-
-      // With a `sort`, an array follows the order of the query, the one the server sorted.
-      const position = new Map(found.map((document, index) => [document, index]))
-
-      eachHolder(documents, segments, (holder, field) => {
-        const value = holder[field]
-
-        if (Array.isArray(value)) {
-          const populated = value.flatMap((id) => byId.get(idKey(id)) ?? [])
-
-          if (sort) populated.sort((a, b) => (position.get(a) ?? 0) - (position.get(b) ?? 0))
-
-          // The limit of each array: the query brings every id, which the arrays already bound.
-          holder[field] = limit === undefined ? populated : populated.slice(0, limit)
-        } else if (value !== null && value !== undefined) {
-          holder[field] = byId.get(idKey(value)) ?? null
-        }
-      })
+      return populateStored(documents, key, target, options, db, session)
     })
   )
+}
+
+/**
+ * Replaces each reference stored at a path of the documents with the document it points to, in
+ * place, with one `$in` query.
+ */
+async function populateStored(
+  documents: readonly Document[],
+  key: string,
+  target: (() => ReferencedModel) | { collection: string; schema: ModelSchema },
+  options: PopulateOptions,
+  db: () => Db,
+  session: ClientSession | undefined
+): Promise<void> {
+  const { filter, limit, populate, projection, sort } = options
+  const segments = key.split('.')
+  const stored: unknown[] = []
+
+  eachHolder(documents, segments, (holder, field) => stored.push(holder[field] ?? []))
+
+  const ids = distinctIds(stored.flat())
+
+  if (ids.length === 0) return
+
+  // The `_id` maps each document back to its reference: when the projection leaves it out, it
+  // is asked for and removed afterwards.
+  const { _id: idProjection, ...rest } = projection ?? {}
+  const withoutId = idProjection === 0 || idProjection === false
+  const findOptions: FindOptions = {}
+
+  if (projection) findOptions.projection = withoutId ? rest : projection
+  if (session) findOptions.session = session
+  if (sort) findOptions.sort = sort
+
+  // In `$and`, so that a `filter` on the `_id` narrows the references instead of replacing them.
+  const query: Document = filter ? { $and: [{ _id: { $in: ids } }, filter] } : { _id: { $in: ids } }
+  let found: Document[]
+
+  if (typeof target === 'function') {
+    // The target model populates its own references, which validates the nested `populate`.
+    found = await finderOf(target, key)(
+      query,
+      populate ? { ...findOptions, populate } : findOptions
+    )
+  } else {
+    found = await db().collection(target.collection).find(query, findOptions).toArray()
+  }
+
+  const byId = new Map(found.map((document) => [idKey(document._id), document]))
+
+  if (withoutId) for (const document of found) delete document._id
+
+  // With a `sort`, an array follows the order of the query, the one the server sorted.
+  const position = new Map(found.map((document, index) => [document, index]))
+
+  eachHolder(documents, segments, (holder, field) => {
+    const value = holder[field]
+
+    if (Array.isArray(value)) {
+      const populated = value.flatMap((id) => byId.get(idKey(id)) ?? [])
+
+      if (sort) populated.sort((a, b) => (position.get(a) ?? 0) - (position.get(b) ?? 0))
+
+      // The limit of each array: the query brings every id, which the arrays already bound.
+      holder[field] = limit === undefined ? populated : populated.slice(0, limit)
+    } else if (value !== null && value !== undefined) {
+      holder[field] = byId.get(idKey(value)) ?? null
+    }
+  })
 }
