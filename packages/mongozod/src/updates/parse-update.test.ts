@@ -44,9 +44,9 @@ const eventSchema = z.discriminatedUnion('kind', [
 ])
 
 /** The messages of the issues an update throws, by path. */
-function issuesOf(run: () => unknown) {
+async function issuesOf(run: () => Promise<unknown>) {
   try {
-    run()
+    await run()
   } catch (error) {
     if (error instanceof z.ZodError) {
       return error.issues.map((issue) => [issue.path.join(' '), issue.message])
@@ -57,8 +57,8 @@ function issuesOf(run: () => unknown) {
 }
 
 describe('values', () => {
-  test('are parsed with the schema at their path, transforms and defaults included', () => {
-    const update = parseUpdate(
+  test('are parsed with the schema at their path, transforms and defaults included', async () => {
+    const update = await parseUpdate(
       pluginSchema,
       {},
       {
@@ -80,9 +80,9 @@ describe('values', () => {
     })
   })
 
-  test('drop the keys left undefined, at any level', () => {
+  test('drop the keys left undefined, at any level', async () => {
     expect(
-      parseUpdate(
+      await parseUpdate(
         pluginSchema,
         {},
         { $set: { nickname: undefined, settings: { theme: 'dark', layout: undefined } } }
@@ -90,9 +90,9 @@ describe('values', () => {
     ).toEqual({ $set: { settings: { layout: 'grid', theme: 'dark' } } })
   })
 
-  test('reject what the field does not take, with every problem at once', () => {
+  test('reject what the field does not take, with every problem at once', async () => {
     expect(
-      issuesOf(() =>
+      await issuesOf(() =>
         parseUpdate(
           pluginSchema,
           {},
@@ -106,9 +106,9 @@ describe('values', () => {
     ])
   })
 
-  test('reject keys no path can reach, inside records and unknown values', () => {
+  test('reject keys no path can reach, inside records and unknown values', async () => {
     expect(
-      issuesOf(() =>
+      await issuesOf(() =>
         parseUpdate(pluginSchema, {}, { $set: { counters: { 'a.b': 1 }, data: { $x: 1 } } })
       )
     ).toEqual([
@@ -125,7 +125,7 @@ describe('values', () => {
 })
 
 describe('operators', () => {
-  test('take the fields they apply to', () => {
+  test('take the fields they apply to', async () => {
     const update = {
       $addToSet: { history: { $each: [{ at: new Date(0), label: 'x' }] } },
       $bit: { views: { and: 1 } },
@@ -141,12 +141,12 @@ describe('operators', () => {
       $unset: { settings: '' }
     }
 
-    expect(parseUpdate(pluginSchema, {}, update)).toEqual(update)
+    expect(await parseUpdate(pluginSchema, {}, update)).toEqual(update)
   })
 
-  test('reject the fields they do not apply to', () => {
+  test('reject the fields they do not apply to', async () => {
     expect(
-      issuesOf(() =>
+      await issuesOf(() =>
         parseUpdate(
           pluginSchema,
           {},
@@ -174,7 +174,7 @@ describe('operators', () => {
     ])
   })
 
-  test('keep a set: no $push, and no write to one of its elements', () => {
+  test('keep a set: no $push, and no write to one of its elements', async () => {
     const postSchema = z.object({
       sections: z.array(z.object({ _id: z.string(), labels: set(z.string()) })),
       tags: set(z.string())
@@ -182,11 +182,13 @@ describe('operators', () => {
     const filter = { 'sections._id': 's1' }
     const whole = 'write it whole, or use $addToSet, $pull, $pullAll or $pop'
 
-    expect(parseUpdate(postSchema, filter, { $addToSet: { 'sections.$.labels': 'x' } })).toEqual({
+    expect(
+      await parseUpdate(postSchema, filter, { $addToSet: { 'sections.$.labels': 'x' } })
+    ).toEqual({
       $addToSet: { 'sections.$.labels': 'x' }
     })
     expect(
-      issuesOf(() =>
+      await issuesOf(() =>
         parseUpdate(postSchema, filter, {
           $inc: { 'tags.$': 1 },
           $push: { tags: 'a' },
@@ -201,46 +203,46 @@ describe('operators', () => {
     ])
   })
 
-  test('reject a pipeline, which the model takes before with updatePipeline: true', () => {
-    expect(issuesOf(() => parseUpdate(pluginSchema, {}, [{ $set: { title: 'x' } }]))).toEqual([
-      ['', 'an update is an object of operators, or a pipeline with updatePipeline: true']
-    ])
+  test('reject a pipeline, which the model takes before with updatePipeline: true', async () => {
+    expect(await issuesOf(() => parseUpdate(pluginSchema, {}, [{ $set: { title: 'x' } }]))).toEqual(
+      [['', 'an update is an object of operators, or a pipeline with updatePipeline: true']]
+    )
   })
 })
 
 describe('discriminated unions', () => {
-  test('the filter fixes the type of document an update writes', () => {
+  test('the filter fixes the type of document an update writes', async () => {
     expect(
-      parseUpdate(eventSchema, { kind: 'click' }, { $set: { url: 'https://a.b' } })
+      await parseUpdate(eventSchema, { kind: 'click' }, { $set: { url: 'https://a.b' } })
     ).toBeDefined()
     expect(
-      parseUpdate(eventSchema, { kind: { $in: ['view'] } }, { $inc: { seconds: 1 } })
+      await parseUpdate(eventSchema, { kind: { $in: ['view'] } }, { $inc: { seconds: 1 } })
     ).toBeDefined()
     expect(
-      parseUpdate(
+      await parseUpdate(
         eventSchema,
         { $and: [{ kind: { $eq: 'click' } }] },
         { $set: { url: 'https://a.b' } }
       )
     ).toBeDefined()
     expect(
-      parseUpdate(eventSchema, {}, { $set: { shared: 'x' }, $setOnInsert: { kind: 'view' } })
+      await parseUpdate(eventSchema, {}, { $set: { shared: 'x' }, $setOnInsert: { kind: 'view' } })
     ).toBeDefined()
 
-    expect(issuesOf(() => parseUpdate(eventSchema, {}, { $set: { url: 'https://a.b' } }))).toEqual([
-      ['$set url', '"url" is not in every type allowed: fix "kind" in the filter']
-    ])
     expect(
-      issuesOf(() =>
+      await issuesOf(() => parseUpdate(eventSchema, {}, { $set: { url: 'https://a.b' } }))
+    ).toEqual([['$set url', '"url" is not in every type allowed: fix "kind" in the filter']])
+    expect(
+      await issuesOf(() =>
         parseUpdate(eventSchema, { kind: { $ne: 'view' } }, { $set: { url: 'https://a.b' } })
       )
     ).toEqual([['$set url', '"url" is not in every type allowed: fix "kind" in the filter']])
     expect(
-      issuesOf(() => parseUpdate(eventSchema, { kind: 'click' }, { $set: { kind: 'view' } }))
+      await issuesOf(() => parseUpdate(eventSchema, { kind: 'click' }, { $set: { kind: 'view' } }))
     ).toEqual([['$set kind', '"kind" changes the type of its object: replace the object']])
   })
 
-  test('the filter fixes the discriminator of each nested union', () => {
+  test('the filter fixes the discriminator of each nested union', async () => {
     const car = z.object({ kind: z.literal('car'), wheels: z.number().int() })
     const vehicleSchema = z.discriminatedUnion('kind', [
       z.discriminatedUnion('fuel', [
@@ -250,30 +252,30 @@ describe('discriminated unions', () => {
       z.object({ gears: z.number().int(), kind: z.literal('bike') })
     ])
 
-    expect(parseUpdate(vehicleSchema, { kind: 'car' }, { $set: { wheels: 3 } })).toBeDefined()
+    expect(await parseUpdate(vehicleSchema, { kind: 'car' }, { $set: { wheels: 3 } })).toBeDefined()
     expect(
-      parseUpdate(vehicleSchema, { fuel: 'electric', kind: 'car' }, { $set: { kwh: 70 } })
+      await parseUpdate(vehicleSchema, { fuel: 'electric', kind: 'car' }, { $set: { kwh: 70 } })
     ).toBeDefined()
     expect(
-      parseUpdate(vehicleSchema, {}, { $setOnInsert: { fuel: 'gas', kind: 'car' } })
+      await parseUpdate(vehicleSchema, {}, { $setOnInsert: { fuel: 'gas', kind: 'car' } })
     ).toBeDefined()
 
-    expect(issuesOf(() => parseUpdate(vehicleSchema, {}, { $set: { wheels: 3 } }))).toEqual([
+    expect(await issuesOf(() => parseUpdate(vehicleSchema, {}, { $set: { wheels: 3 } }))).toEqual([
       ['$set wheels', '"wheels" is not in every type allowed: fix "kind" in the filter']
     ])
     expect(
-      issuesOf(() => parseUpdate(vehicleSchema, { kind: 'car' }, { $set: { kwh: 70 } }))
+      await issuesOf(() => parseUpdate(vehicleSchema, { kind: 'car' }, { $set: { kwh: 70 } }))
     ).toEqual([['$set kwh', '"kwh" is not in every type allowed: fix "fuel" in the filter']])
     expect(
-      issuesOf(() => parseUpdate(vehicleSchema, { kind: 'car' }, { $set: { fuel: 'gas' } }))
+      await issuesOf(() => parseUpdate(vehicleSchema, { kind: 'car' }, { $set: { fuel: 'gas' } }))
     ).toEqual([['$set fuel', '"fuel" changes the type of its object: replace the object']])
   })
 
-  test('an arrayFilters entry fixes the type of an element', () => {
+  test('an arrayFilters entry fixes the type of an element', async () => {
     const path = 'connections.$[c].accounts.$[a].details.loginCustomerId'
 
     expect(
-      parseUpdate(
+      await parseUpdate(
         pluginSchema,
         {},
         { $set: { [path]: '123' } },
@@ -281,7 +283,7 @@ describe('discriminated unions', () => {
       )
     ).toEqual({ $set: { [path]: '123' } })
     expect(
-      issuesOf(() =>
+      await issuesOf(() =>
         parseUpdate(
           pluginSchema,
           {},
@@ -296,7 +298,7 @@ describe('discriminated unions', () => {
       ]
     ])
     expect(
-      issuesOf(() =>
+      await issuesOf(() =>
         parseUpdate(
           pluginSchema,
           {},
@@ -320,9 +322,9 @@ function upsertIssues(filter: Record<string, unknown>) {
 }
 
 describe('upserts', () => {
-  test('validate the document the server would insert', () => {
+  test('validate the document the server would insert', async () => {
     expect(
-      issuesOf(() =>
+      await issuesOf(() =>
         parseUpdate(
           pluginSchema,
           { _id: crypto.randomUUID() },
@@ -336,8 +338,8 @@ describe('upserts', () => {
     ])
   })
 
-  test('add the defaults it lacks, without touching what the filter or the update decide', () => {
-    const update = parseUpdate(
+  test('add the defaults it lacks, without touching what the filter or the update decide', async () => {
+    const update = await parseUpdate(
       pluginSchema,
       { title: 'Ads' },
       { $currentDate: { createdAt: true }, $set: { 'settings.theme': 'dark' } },
@@ -358,22 +360,24 @@ describe('upserts', () => {
     })
   })
 
-  test('copy the filter as the server does: a regex matches, and undefined is null', () => {
+  test('copy the filter as the server does: a regex matches, and undefined is null', async () => {
     // The regex is not copied, so only the missing title fails.
-    expect(upsertIssues({ title: /^Ads/ })).toEqual([
+    expect(await upsertIssues({ title: /^Ads/ })).toEqual([
       ['title', 'Invalid input: expected string, received undefined']
     ])
-    expect(upsertIssues({ title: 'Ads', nickname: undefined })).toEqual([
+    expect(await upsertIssues({ title: 'Ads', nickname: undefined })).toEqual([
       ['nickname', 'Invalid input: expected string, received null']
     ])
-    for (const _id of [null, undefined]) {
-      expect(upsertIssues({ _id, title: 'Ads' })).toEqual([
+    expect(
+      await Promise.all([null, undefined].map((_id) => upsertIssues({ _id, title: 'Ads' })))
+    ).toEqual(
+      [null, undefined].map(() => [
         ['_id', 'an upsert whose filter has a null _id would insert a document with a null _id']
       ])
-    }
+    )
   })
 
-  test("reject a filter's value that the schema stores differently, unless the update writes it", () => {
+  test("reject a filter's value that the schema stores differently, unless the update writes it", async () => {
     const schema = z.object({
       email: z.string().toLowerCase(),
       settings: z.object({ layout: z.string().default('grid'), theme: z.string() }).optional()
@@ -382,7 +386,7 @@ describe('upserts', () => {
       'as it is, which the schema stores differently: filter by the value the schema stores'
 
     expect(
-      issuesOf(() =>
+      await issuesOf(() =>
         parseUpdate(
           schema,
           { email: 'Ana@Example.com', settings: { theme: 'dark' } },
@@ -395,7 +399,7 @@ describe('upserts', () => {
       ['settings', `the upsert would insert the filter's "settings" ${message}`]
     ])
     expect(
-      parseUpdate(
+      await parseUpdate(
         schema,
         { email: 'ana@example.com', settings: { theme: 'dark' } },
         { $set: { 'settings.layout': 'list' } },

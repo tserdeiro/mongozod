@@ -41,6 +41,21 @@ export function isInteger(schema: core.$ZodType): boolean {
   )
 }
 
+/**
+ * Whether a schema takes a value of its type, for the checks that ask what a field stores. An async
+ * refinement makes the sync parse throw once the value passed the sync checks, so that counts as
+ * taking it.
+ */
+export function takes(schema: core.$ZodType, value: unknown): boolean {
+  try {
+    return z.safeParse(schema, value).success
+  } catch (error) {
+    if (error instanceof core.$ZodAsyncError) return true
+
+    throw error
+  }
+}
+
 export function isOptional(schema: core.$ZodType): boolean {
   return schema._zod.optout === 'optional'
 }

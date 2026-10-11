@@ -16,11 +16,16 @@ export type WrittenResult =
  * The fields of the schema are checked when the model is defined, so these come from records,
  * catchalls and values such as `z.unknown()`.
  *
- * Parses with Zod Classic's `z.safeParse`, which also takes Zod Mini schemas, so that a failure
- * becomes a `ZodError`: the `$ZodError` of `zod/v4/core` is not an instance of it.
+ * Parses with Zod Classic's `z.safeParseAsync`, which also takes Zod Mini schemas, so that a
+ * failure becomes a `ZodError`: the `$ZodError` of `zod/v4/core` is not an instance of it. It is
+ * async because a schema can have async refinements, such as one that checks the database, which
+ * the sync parse rejects; a write is async anyway.
  */
-export function safeParseWritten(schema: core.$ZodType, input: unknown): WrittenResult {
-  const result = z.safeParse(schema, input)
+export async function safeParseWritten(
+  schema: core.$ZodType,
+  input: unknown
+): Promise<WrittenResult> {
+  const result = await z.safeParseAsync(schema, input)
 
   if (!result.success) return { issues: result.error.issues, success: false }
 
@@ -33,8 +38,11 @@ export function safeParseWritten(schema: core.$ZodType, input: unknown): Written
 }
 
 /** Parses a document to write like `safeParseWritten`, and throws a `ZodError` when it fails. */
-export function parseDocument(schema: core.$ZodType<Document>, input: unknown): Document {
-  const result = safeParseWritten(schema, input)
+export async function parseDocument(
+  schema: core.$ZodType<Document>,
+  input: unknown
+): Promise<Document> {
+  const result = await safeParseWritten(schema, input)
 
   if (!result.success) throw new z.ZodRealError(result.issues)
   if (!isPlainObject(result.data)) {

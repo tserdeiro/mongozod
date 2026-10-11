@@ -6,7 +6,7 @@ import { z } from 'zod'
 
 import { safeParseWritten } from '../model/parse-document'
 import { schemaAt } from '../schema/schema-at'
-import { elementsOf, isInteger, isNumber, isOptional, isSet } from '../schema/schema-kinds'
+import { elementsOf, isInteger, isNumber, isOptional, isSet, takes } from '../schema/schema-kinds'
 import { isPlainObject } from '../utils/is-plain-object'
 
 import { resolveUpdatePath } from './update-path'
@@ -49,39 +49,49 @@ function fail(path: PropertyKey[], message: string, input: unknown): FieldResult
 }
 
 /** Parses a value with every schema it has to fit, and keeps what the first one returns. */
-function parseEvery(schemas: core.$ZodType[], value: unknown, at: PropertyKey[]): FieldResult {
-  let data: unknown
+async function parseEvery(
+  schemas: core.$ZodType[],
+  value: unknown,
+  at: PropertyKey[]
+): Promise<FieldResult> {
+  const [first, ...rest] = await Promise.all(
+    schemas.map((schema) => safeParseWritten(schema, value))
+  )
 
-  for (const [index, schema] of schemas.entries()) {
-    const result = safeParseWritten(schema, value)
-
-    if (!result.success) {
-      return { issues: result.issues.map((issue) => ({ ...issue, path: [...at, ...issue.path] })) }
+  for (const result of [first, ...rest]) {
+    if (result && !result.success) {
+      return {
+        issues: result.issues.map((issue) =>
+          Object.assign({}, issue, { path: [...at, ...issue.path] })
+        )
+      }
     }
-
-    if (index === 0) data = result.data
   }
 
-  return { value: data }
+  return { value: first?.success ? first.data : undefined }
 }
 
 /** Parses a value with the first schema it fits. */
-function parseAny(schemas: core.$ZodType[], value: unknown, at: PropertyKey[]): FieldResult {
-  let first: FieldResult | undefined
+async function parseAny(
+  schemas: core.$ZodType[],
+  value: unknown,
+  at: PropertyKey[]
+): Promise<FieldResult> {
+  const results = await Promise.all(schemas.map((schema) => parseEvery([schema], value, at)))
 
-  for (const schema of schemas) {
-    const result = parseEvery([schema], value, at)
-
-    if ('value' in result) return result
-
-    first ??= result
-  }
-
-  return first ?? fail(at, 'no type takes the value', value)
+  return (
+    results.find((result) => 'value' in result) ??
+    results[0] ??
+    fail(at, 'no type takes the value', value)
+  )
 }
 
 /** Parses the elements `$push` or `$addToSet` add, alone or in `$each`, keeping the modifiers. */
-function parseElements(schemas: core.$ZodType[], value: unknown, at: PropertyKey[]): FieldResult {
+async function parseElements(
+  schemas: core.$ZodType[],
+  value: unknown,
+  at: PropertyKey[]
+): Promise<FieldResult> {
   const elements = schemas.map(elementsOf)
   const flat = elements.flatMap((each) => each ?? [])
 
@@ -92,27 +102,29 @@ function parseElements(schemas: core.$ZodType[], value: unknown, at: PropertyKey
 
   if (!Array.isArray(each)) return fail([...at, '$each'], '$each takes an array', each)
 
-  const parsed: unknown[] = []
+  const results = await Promise.all(
+    each.map((element, index) => parseEvery(flat, element, [...at, '$each', index]))
+  )
+  const failed = results.find((result) => 'issues' in result)
 
-  for (const [index, element] of each.entries()) {
-    const result = parseEvery(flat, element, [...at, '$each', index])
+  if (failed) return failed
 
-    if ('issues' in result) return result
-
-    parsed.push(result.value)
+  return {
+    value: {
+      ...value,
+      $each: results.map((result) => ('value' in result ? result.value : undefined))
+    }
   }
-
-  return { value: { ...value, $each: parsed } }
 }
 
 /** Checks one path of one operator, and returns the value to write. */
-function parseField(
+async function parseField(
   schema: core.$ZodType,
   operator: string,
   path: string,
   value: unknown,
   context: UpdateContext
-): FieldResult {
+): Promise<FieldResult> {
   const at = [operator, path]
   const resolved = resolveUpdatePath(schema, path, context)
 
@@ -174,7 +186,7 @@ function parseField(
       return schemas.every(isNumber) ? { value } : fail(at, `"${path}" is not a number`, value)
 
     case '$currentDate':
-      if (!schemas.every((target) => z.safeParse(target, new Date()).success)) {
+      if (!schemas.every((target) => takes(target, new Date()))) {
         return fail(at, `"${path}" is not a date`, value)
       }
 
@@ -216,12 +228,12 @@ function parseField(
  * the server would insert, and adds the defaults that document lacks with `$setOnInsert`. Throws a
  * `ZodError` with every problem it finds.
  */
-export function parseUpdate(
+export async function parseUpdate(
   schema: core.$ZodType,
   filter: Document,
   update: unknown,
   options: ParseUpdateOptions = {}
-): Document {
+): Promise<Document> {
   if (!isPlainObject(update)) {
     throw new z.ZodRealError([
       {
@@ -237,44 +249,41 @@ export function parseUpdate(
   const issues: core.$ZodIssue[] = []
   const parsed: Document = {}
   const given: Document = {}
+  // In the order of the update, so that its issues keep it: the fields are parsed in parallel.
+  const checks: Array<Promise<FieldResult & { at?: [string, string] }>> = []
 
   for (const [operator, fields] of Object.entries(update)) {
     if (!OPERATORS.has(operator)) {
-      issues.push({
-        code: 'custom',
-        input: fields,
-        message: `"${operator}" is not an update operator`,
-        path: [operator]
-      })
+      checks.push(
+        Promise.resolve(fail([operator], `"${operator}" is not an update operator`, fields))
+      )
       continue
     }
 
     if (!isPlainObject(fields)) {
-      issues.push({
-        code: 'custom',
-        input: fields,
-        message: `${operator} takes an object of paths`,
-        path: [operator]
-      })
+      checks.push(Promise.resolve(fail([operator], `${operator} takes an object of paths`, fields)))
       continue
     }
 
-    const written: Document = {}
-    const kept: Document = {}
+    parsed[operator] = {}
+    given[operator] = {}
 
     for (const [path, value] of Object.entries(fields)) {
       if (value === undefined) continue
 
-      const result = parseField(schema, operator, path, value, context)
-
-      if ('issues' in result) issues.push(...result.issues)
-      else written[path] = result.value
-
-      kept[path] = value
+      given[operator][path] = value
+      checks.push(
+        parseField(schema, operator, path, value, context).then((result) => ({
+          ...result,
+          at: [operator, path]
+        }))
+      )
     }
+  }
 
-    parsed[operator] = written
-    given[operator] = kept
+  for (const check of await Promise.all(checks)) {
+    if ('issues' in check) issues.push(...check.issues)
+    else if (check.at) parsed[check.at[0]][check.at[1]] = check.value
   }
 
   const nullId = options.upsert ? nullIdIssue(filter) : undefined
@@ -282,7 +291,7 @@ export function parseUpdate(
   if (nullId) issues.push(nullId)
 
   if (issues.length === 0 && options.upsert) {
-    const result = safeParseWritten(schema, insertedDocument(filter, given))
+    const result = await safeParseWritten(schema, insertedDocument(filter, given))
 
     if (!result.success) issues.push(...result.issues)
     else if (isPlainObject(result.data)) {

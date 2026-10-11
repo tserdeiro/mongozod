@@ -259,7 +259,7 @@ export function mongozod(
    * Validates a replacement like an insert, keeping the `_id` only when it is given. An upsert
    * validates the document it would insert: the replacement with the `_id` of the filter.
    */
-  function parseReplacement(
+  async function parseReplacement(
     filter: Document,
     replacement: Document,
     upsert: unknown,
@@ -289,7 +289,7 @@ export function mongozod(
       upsert && replacement._id === undefined && filterId !== undefined
         ? { ...replacement, _id: filterId }
         : replacement
-    const document = parseDocument(options.schema, stampDocument(inserted, stamps, now))
+    const document = await parseDocument(options.schema, stampDocument(inserted, stamps, now))
 
     // The `_id` of a document cannot change, so the one a `.default()` generates, or the filter's,
     // is dropped, as Mongoose skips it on replacements.
@@ -303,13 +303,13 @@ export function mongozod(
    * passes with `updatePipeline: true`, stamped but without validating its values: they are
    * expressions the server computes.
    */
-  function parseModelUpdate(
+  async function parseModelUpdate(
     filter: Document,
     update: unknown,
     updateOptions: Document,
     { pipeline, stamps }: { pipeline: boolean; stamps: Timestamps },
     now: Date
-  ) {
+  ): Promise<Document | Document[]> {
     const { arrayFilters, upsert } = updateOptions
 
     if (Array.isArray(update)) {
@@ -432,10 +432,10 @@ export function mongozod(
   ): Promise<ModifyResult | WithId<Document> | null> {
     const operationArgs = { filter, options: replaceOptions, replacement }
 
-    return operate('findOneAndReplace', operationArgs, (args) => {
+    return operate('findOneAndReplace', operationArgs, async (args) => {
       const { driverOptions: writeDriverOptions, stamps } = writeOptions(args.options)
       const { driverOptions, plan } = readOptions(writeDriverOptions)
-      const document = parseReplacement(
+      const document = await parseReplacement(
         args.filter,
         args.replacement,
         driverOptions.upsert,
@@ -464,10 +464,16 @@ export function mongozod(
     update: Document,
     updateOptions: Document = {}
   ): Promise<ModifyResult | WithId<Document> | null> {
-    return operate('findOneAndUpdate', { filter, options: updateOptions, update }, (args) => {
+    return operate('findOneAndUpdate', { filter, options: updateOptions, update }, async (args) => {
       const { driverOptions: writeDriverOptions, ...write } = writeOptions(args.options)
       const { driverOptions, plan } = readOptions(writeDriverOptions)
-      const parsed = parseModelUpdate(args.filter, args.update, driverOptions, write, new Date())
+      const parsed = await parseModelUpdate(
+        args.filter,
+        args.update,
+        driverOptions,
+        write,
+        new Date()
+      )
 
       return findOneAnd(plan, driverOptions, (metadataOptions) =>
         getCollection().findOneAndUpdate(args.filter, parsed, metadataOptions)
@@ -480,53 +486,55 @@ export function mongozod(
     operations: readonly Document[],
     write: { pipeline: boolean; stamps: Timestamps },
     now: Date
-  ) {
+  ): Promise<AnyBulkWriteOperation[]> {
     const { stamps } = write
 
-    return operations.map((operation): AnyBulkWriteOperation => {
-      if ('insertOne' in operation) {
-        const document = stampDocument(operation.insertOne.document, stamps, now)
+    return Promise.all(
+      operations.map(async (operation): Promise<AnyBulkWriteOperation> => {
+        if ('insertOne' in operation) {
+          const document = stampDocument(operation.insertOne.document, stamps, now)
 
-        return { insertOne: { document: parseDocument(options.schema, document) } }
-      }
+          return { insertOne: { document: await parseDocument(options.schema, document) } }
+        }
 
-      if ('replaceOne' in operation) {
-        const { filter, replacement, upsert } = operation.replaceOne
+        if ('replaceOne' in operation) {
+          const { filter, replacement, upsert } = operation.replaceOne
 
-        return {
-          replaceOne: {
-            ...operation.replaceOne,
-            replacement: parseReplacement(filter, replacement, upsert, stamps, now)
+          return {
+            replaceOne: {
+              ...operation.replaceOne,
+              replacement: await parseReplacement(filter, replacement, upsert, stamps, now)
+            }
           }
         }
-      }
 
-      if ('updateOne' in operation) {
-        const { filter, update } = operation.updateOne
+        if ('updateOne' in operation) {
+          const { filter, update } = operation.updateOne
 
-        return {
-          updateOne: {
-            ...operation.updateOne,
-            update: parseModelUpdate(filter, update, operation.updateOne, write, now)
+          return {
+            updateOne: {
+              ...operation.updateOne,
+              update: await parseModelUpdate(filter, update, operation.updateOne, write, now)
+            }
           }
         }
-      }
 
-      if ('updateMany' in operation) {
-        const { filter, update } = operation.updateMany
+        if ('updateMany' in operation) {
+          const { filter, update } = operation.updateMany
 
-        return {
-          updateMany: {
-            ...operation.updateMany,
-            update: parseModelUpdate(filter, update, operation.updateMany, write, now)
+          return {
+            updateMany: {
+              ...operation.updateMany,
+              update: await parseModelUpdate(filter, update, operation.updateMany, write, now)
+            }
           }
         }
-      }
 
-      if ('deleteOne' in operation) return { deleteOne: operation.deleteOne }
+        if ('deleteOne' in operation) return { deleteOne: operation.deleteOne }
 
-      return { deleteMany: operation.deleteMany }
-    })
+        return { deleteMany: operation.deleteMany }
+      })
+    )
   }
 
   const model = {
@@ -544,14 +552,18 @@ export function mongozod(
     aggregate,
 
     bulkWrite(operations: readonly Document[], bulkOptions: Document = {}) {
-      return operate('bulkWrite', { operations: [...operations], options: bulkOptions }, (args) => {
-        const { driverOptions, ...write } = writeOptions(args.options)
+      return operate(
+        'bulkWrite',
+        { operations: [...operations], options: bulkOptions },
+        async (args) => {
+          const { driverOptions, ...write } = writeOptions(args.options)
 
-        return getCollection().bulkWrite(
-          parseBulkWrite(args.operations, write, new Date()),
-          driverOptions
-        )
-      })
+          return getCollection().bulkWrite(
+            await parseBulkWrite(args.operations, write, new Date()),
+            driverOptions
+          )
+        }
+      )
     },
 
     countDocuments(filter: Document = {}, countOptions: Document = {}) {
@@ -597,8 +609,10 @@ export function mongozod(
         async (args) => {
           const { driverOptions, stamps } = writeOptions(args.options)
           const now = new Date()
-          const documents: Document[] = args.documents.map((input: Document) =>
-            parseDocument(options.schema, stampDocument(input, stamps, now))
+          const documents = await Promise.all(
+            args.documents.map((input: Document) =>
+              parseDocument(options.schema, stampDocument(input, stamps, now))
+            )
           )
           const result = await getCollection().insertMany(documents, driverOptions)
 
@@ -616,7 +630,7 @@ export function mongozod(
     insertOne(input: Document, insertOptions: Document = {}) {
       return operate('insertOne', { document: input, options: insertOptions }, async (args) => {
         const { driverOptions, stamps } = writeOptions(args.options)
-        const document = parseDocument(
+        const document = await parseDocument(
           options.schema,
           stampDocument(args.document, stamps, new Date())
         )
@@ -629,9 +643,9 @@ export function mongozod(
     replaceOne(filter: Document, replacement: Document, replaceOptions: Document = {}) {
       const operationArgs = { filter, options: replaceOptions, replacement }
 
-      return operate('replaceOne', operationArgs, (args) => {
+      return operate('replaceOne', operationArgs, async (args) => {
         const { driverOptions, stamps } = writeOptions(args.options)
-        const document = parseReplacement(
+        const document = await parseReplacement(
           args.filter,
           args.replacement,
           driverOptions.upsert,
@@ -681,18 +695,30 @@ export function mongozod(
     },
 
     updateMany(filter: Document, update: Document, updateOptions: Document = {}) {
-      return operate('updateMany', { filter, options: updateOptions, update }, (args) => {
+      return operate('updateMany', { filter, options: updateOptions, update }, async (args) => {
         const { driverOptions, ...write } = writeOptions(args.options)
-        const parsed = parseModelUpdate(args.filter, args.update, driverOptions, write, new Date())
+        const parsed = await parseModelUpdate(
+          args.filter,
+          args.update,
+          driverOptions,
+          write,
+          new Date()
+        )
 
         return getCollection().updateMany(args.filter, parsed, driverOptions)
       })
     },
 
     updateOne(filter: Document, update: Document, updateOptions: Document = {}) {
-      return operate('updateOne', { filter, options: updateOptions, update }, (args) => {
+      return operate('updateOne', { filter, options: updateOptions, update }, async (args) => {
         const { driverOptions, ...write } = writeOptions(args.options)
-        const parsed = parseModelUpdate(args.filter, args.update, driverOptions, write, new Date())
+        const parsed = await parseModelUpdate(
+          args.filter,
+          args.update,
+          driverOptions,
+          write,
+          new Date()
+        )
 
         return getCollection().updateOne(args.filter, parsed, driverOptions)
       })

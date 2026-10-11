@@ -570,6 +570,45 @@ describe('schemas', () => {
     ).toThrow('timestamps needs the field "createdAt" in the schema')
   })
 
+  test('awaits async refinements in every write, such as one that checks the database', async () => {
+    const handleSchema = z.object({
+      handle: z
+        .string()
+        .refine(
+          async (handle) => (await db.collection('reserved').countDocuments({ handle })) === 0,
+          'is reserved'
+        ),
+      seenAt: z
+        .date()
+        .refine(async (date) => date.getTime() <= Date.now())
+        .optional()
+    })
+    const UsersModel = mongozod({ collection: 'users', db, schema: handleSchema })
+
+    await db.collection('reserved').insertOne({ handle: 'admin' })
+
+    const { document } = await UsersModel.insertOne({ handle: 'ana' })
+    const rejected = [
+      UsersModel.insertOne({ handle: 'admin' }),
+      UsersModel.insertMany([{ handle: 'luis' }, { handle: 'admin' }]),
+      UsersModel.updateOne({ _id: document._id }, { $set: { handle: 'admin' } }),
+      UsersModel.replaceOne({ _id: document._id }, { handle: 'admin' }),
+      UsersModel.bulkWrite([{ insertOne: { document: { handle: 'admin' } } }])
+    ]
+
+    for (const result of await Promise.allSettled(rejected)) {
+      expect(result).toMatchObject({
+        reason: { issues: [{ message: 'is reserved' }] },
+        status: 'rejected'
+      })
+    }
+
+    expect(await UsersModel.countDocuments({})).toBe(1)
+
+    // The checks of what a field stores, such as $currentDate's, take its async refinements too.
+    await UsersModel.updateOne({ _id: document._id }, { $currentDate: { seenAt: true } })
+  })
+
   test('takes Zod Mini schemas and still throws a ZodError', async () => {
     const TagsModel = mongozod({
       collection: 'tags',

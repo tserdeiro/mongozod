@@ -6,6 +6,7 @@ import { z } from 'zod'
 
 import { documentTypes } from '../schema/document-types'
 import { schemaAt } from '../schema/schema-at'
+import { takes } from '../schema/schema-kinds'
 import { isPlainObject } from '../utils/is-plain-object'
 
 /**
@@ -153,7 +154,7 @@ export function timestampsOf(
       throw new Error(`timestamps needs the field "${name}" in the schema`)
     }
 
-    if (!fields.every((field) => z.safeParse(field, new Date()).success)) {
+    if (!fields.every((field) => takes(field, new Date()))) {
       throw new Error(`timestamps writes a Date in "${name}": the field must take one`)
     }
   }
