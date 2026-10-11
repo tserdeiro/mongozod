@@ -21,7 +21,7 @@ jobs:
           TITLE: ${{ github.event.pull_request.title }}
         run: |
           set -euo pipefail
-          pattern='^[a-z]+\([a-z0-9-]+\): .+$'
+          pattern='^[a-z]+\([a-z0-9-]+\)!?: .+$'
           if ! printf '%s' "$TITLE" | grep -Eq "$pattern"; then
             echo "::error::PR title '$TITLE' must follow 'type(scope): subject' (e.g. 'docs(readme): the front door')"
             exit 1
@@ -33,7 +33,7 @@ jobs:
           REPO: ${{ github.repository }}
         run: |
           set -euo pipefail
-          pattern='^[a-z]+\([a-z0-9-]+\): .+$'
+          pattern='^[a-z]+\([a-z0-9-]+\)!?: .+$'
           bad=0
           while IFS= read -r subject; do
             # GitHub words its own merge commits; everything else is ours.
