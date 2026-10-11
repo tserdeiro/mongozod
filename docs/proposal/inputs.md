@@ -264,8 +264,16 @@ manda `{ createdAt, _id }` del último elemento de la página.
     pasa un `Decimal128`, el cliente manda el string, como `'10.50'`, y `z.encode` lo vuelve a
     string; sin eso, `JSON.stringify` da `{ $numberDecimal: '10.50' }`. Valida con
     `Decimal128.fromString`, la API de bson, que rechaza lo que no es un decimal y lo que
-    redondearía, con más de 34 dígitos. No toma números: JSON ya los redondea. Lo reconoce por su
-    `_bsontype`, y su metadata le da `bsonType: 'decimal'` en el `$jsonSchema`.
+    redondearía, con más de 34 dígitos. Lo reconoce por su `_bsontype`, y su metadata le da
+    `bsonType: 'decimal'` en el `$jsonSchema`.
+    - **Números**: toma uno si es el decimal que se escribió: un `double` conserva exactos 15
+      dígitos significativos, y un entero seguro, todos. `10.5` y `19.99 * 3`, `59.97`, pasan. Uno
+      con más dígitos, como el `0.30000000000000004` de `0.1 + 0.2`, o el que `JSON.parse` ya
+      redondeó, falla pidiendo el string: guardarlo cambiaría el monto sin avisar. Mongoose castea
+      cualquier número.
+    - **Un solo codec**: su entrada es la unión de un string, un número exacto y un `Decimal128`,
+      así el error de un número dice que mande el string; con la unión de un codec y la instancia,
+      como `objectId()`, el error de la unión de afuera lo tapaba.
 15. **Fechas**: se declaran con `date()`, de `mongozod/codecs/date`. Es la unión del codec
     `isoDatetimeToDate` de la documentación de Zod y una `Date`: el servidor pasa una `Date`, el
     cliente manda un ISO con `Z` o con zona horaria (`z.iso.datetime({ offset: true })`), y

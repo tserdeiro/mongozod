@@ -687,6 +687,11 @@
   toma el `Decimal128` de los dos builds de bson y rechaza un número; `z.encode` da el string; el
   `$jsonSchema` da `decimal`; y el modelo guarda un `Decimal128` desde un string, que `mz.filter`
   también convierte en un `$gte`.
+  - De número a `Decimal128` con `String(n)`: `10.5`, `0.1` y `19.99 * 3` (`59.97`) quedan
+    exactos; `0.1 + 0.2` da `0.30000000000000004`, y `JSON.parse('12345678901234567.89')` da
+    `12345678901234568`. Con hasta 15 dígitos significativos, o un entero seguro, el número es el
+    decimal que se escribió. En una unión de Zod que falla, la opción del mismo tipo devuelve su
+    propio issue, pero una unión de afuera lo reemplaza por el suyo.
   - Populate de Mongoose (su documentación): `match` deja en `null` una referencia que no cumple y
     saca las de un array; `limit` no es por documento, porque consulta con `numDocuments * limit`;
     `perDocumentLimit` hace una consulta por documento; `refPath` elige el modelo con otro campo del
