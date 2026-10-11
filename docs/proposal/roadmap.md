@@ -56,7 +56,7 @@ El orden de implementación. Al cerrar una fase, se marca acá en el mismo cambi
          `bson`: un string ↔ `Decimal128`, el tipo para dinero.
       3. `binary()`, en `mongozod/codecs/bson` (hecho): base64, un `Uint8Array` o un `Binary` ↔ un
          `Binary`, el tipo con el que el driver lee los binarios, así que también necesita `bson`.
-      4. GeoJSON, en `mongozod/geojson`: `point()`, `lineString()`, `polygon()` y sus `Multi*`,
+      4. GeoJSON, en `mongozod/geojson` (hecho): `point()`, `lineString()`, `polygon()` y sus `Multi*`,
          con las reglas de MongoDB para los índices `2dsphere` (`[longitud, latitud]`, sus rangos
          y los anillos cerrados). No son codecs: validan la forma, sin convertir valores.
 

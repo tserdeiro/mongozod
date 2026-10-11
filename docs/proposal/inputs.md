@@ -298,6 +298,18 @@ manda `{ createdAt, _id }` del último elemento de la página.
     - **Sin `bson`**: importa solo Zod. Los codecs viven en `mongozod/codecs`, un subpath por codec,
       así `date()` no pide `bson`.
 
+17. **GeoJSON**: `mongozod/geojson` da `point()`, `lineString()`, `polygon()`, `multiPoint()`,
+    `multiLineString()` y `multiPolygon()`, schemas de Zod del GeoJSON que MongoDB guarda y
+    consulta. No son codecs: no convierten valores, validan la forma.
+    - **Qué chequean**: lo que MongoDB rechaza con un índice `2dsphere`, que sin uno guarda tal cual:
+      `[longitud, latitud]`, en ese orden y en sus rangos, con una altitud opcional; una línea con
+      dos posiciones distintas; anillos cerrados, con cuatro posiciones al menos; y geometrías no
+      vacías. Que un anillo no se cruce consigo mismo, o que un hueco esté dentro del anillo
+      exterior, lo chequea el índice.
+    - **Altitud**: MongoDB acepta un tercer valor, y hasta un cuarto; el RFC 7946 permite la altitud
+      y desaconseja más, así que toman tres como máximo.
+    - **Sin `bson`**: importan solo Zod, así sirven en el cliente.
+
 ## Qué reemplaza
 
 - `parser.query` pasa a ser `mz.filter`.

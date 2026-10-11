@@ -702,6 +702,16 @@
     el `$jsonSchema` da `binData`; y un documento leído se reemplaza tal cual.
   - TypeScript 7 emitía `Uint8Array<ArrayBufferLike>` en el `.d.ts`, y TypeScript 5.5 lo rechaza
     (`Type 'Uint8Array' is not generic`); con el tipo de retorno escrito, emite `Uint8Array`.
+- **GeoJSON** (MongoDB 8.2.6, el manual de GeoJSON de MongoDB y el RFC 7946, 4 tests):
+  - Con un índice `2dsphere`, MongoDB acepta un `Point` con altitud y hasta con cuatro valores, una
+    línea de dos posiciones, un polígono con un hueco, un `MultiPoint`, un `MultiPolygon` y un
+    miembro de más, como `bbox`. Rechaza (código 16755) una longitud de 181, una latitud de 91, un
+    `Point` de un valor, una línea de una posición o de dos iguales, un anillo abierto o de tres
+    posiciones, un polígono que se cruza a sí mismo y un polígono o un `MultiPoint` vacíos. El
+    manual no dice el mínimo de una línea ni si se acepta la altitud.
+  - Los schemas toman cada tipo, con altitud opcional; rechazan con su mensaje los rangos, la línea
+    degenerada, el anillo abierto o corto y las geometrías vacías; el `$jsonSchema` los describe como
+    objetos y tuplas; y un modelo con índice `2dsphere` los guarda y los encuentra con `$near`.
   - Populate de Mongoose (su documentación): `match` deja en `null` una referencia que no cumple y
     saca las de un array; `limit` no es por documento, porque consulta con `numDocuments * limit`;
     `perDocumentLimit` hace una consulta por documento; `refPath` elige el modelo con otro campo del
