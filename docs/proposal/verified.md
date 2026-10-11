@@ -247,7 +247,9 @@
   - Si la función de `cursor.map()` lanza un error, el driver cierra el cursor y lo propaga, tanto
     al iterar como en `toArray()`.
   - Ningún modelo de los tres proyectos usa `replaceOne` ni `findOneAndReplace`, y ninguno valida
-    con refinements asíncronos.
+    con refinements asíncronos. Igual se soportan: con `z.safeParse`, un refinement asíncrono hace
+    lanzar un `$ZodAsyncError` en toda escritura (verificado en la evaluación de la v1), así que las
+    escrituras validan con `z.safeParseAsync`.
   - 20 tests del paquete contra MongoDB 8.2.6: los inserts guardan y devuelven el resultado del
     schema, sin keys en `undefined` y con el `ObjectId` del driver cuando el schema no declara
     `_id`; un documento inválido lanza un `ZodError` y no escribe nada, también en `insertMany` y
