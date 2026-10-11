@@ -1,15 +1,15 @@
-import type { PathSuggestions } from '../path-suggestions'
-import type { SchemaAt } from '../schema-at'
+import type { SchemaAt } from '../schema/schema-at'
+import type { PathSuggestions } from '../types/path-suggestions'
 import type { Side, ValueOf } from './filter'
-import type { OutsideArraysProblem } from './outside-arrays'
+import type { OutsideArraysProblem } from './internal/outside-arrays'
 import type * as core from 'zod/v4/core'
 
 import { z } from 'zod'
 
-import { isOptional } from '../schema-kinds'
+import { isOptional } from '../schema/schema-kinds'
 
-import { schemasOutsideArrays } from './outside-arrays'
-import { valueSchema } from './value-schema'
+import { schemasOutsideArrays } from './internal/outside-arrays'
+import { valueSchema } from './internal/value-schema'
 
 type IsRequired<T> =
   undefined extends core.output<T> ? false : null extends core.output<T> ? false : true

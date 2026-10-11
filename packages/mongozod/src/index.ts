@@ -10,7 +10,7 @@ export type {
   SyncResult,
   UpdateOf,
   UpdateOptionsArg
-} from './model'
+} from './model/model'
 export type { MongozodOptions } from './mongozod'
 export type {
   AnyModel,
@@ -23,9 +23,9 @@ export type {
   OperationHooks,
   OperationResults,
   Plugin
-} from './plugin'
+} from './plugins/plugin'
 
-export { ModelCursor } from './model-cursor'
-export { ModelFindCursor } from './model-find-cursor'
+export { ModelCursor } from './model/model-cursor'
+export { ModelFindCursor } from './model/model-find-cursor'
 export { mongozod } from './mongozod'
-export { definePlugin } from './plugin'
+export { definePlugin } from './plugins/plugin'

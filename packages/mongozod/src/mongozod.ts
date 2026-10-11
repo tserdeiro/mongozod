@@ -1,14 +1,19 @@
-import type { IndexFunction } from './indexes'
-import type { JsonSchemaOption } from './json-schema'
-import type { Model, ModelSchema, None, SyncResult } from './model'
-import type { FindArgs } from './model-find-cursor'
-import type { AnyPlugin, Operation, PluginMethods } from './plugin'
-import type { BatchSource } from './plugin-pipeline'
-import type { PluginsCheck } from './plugins-check'
-import type { ReadContext, ReadPlan } from './read-plan'
-import type { ReferenceTarget, References, UnknownReferences } from './references'
-import type { Timestamps, TimestampNamesOf, TimestampsCheck, TimestampsOption } from './timestamps'
-import type { Virtuals, VirtualsCheck } from './virtuals'
+import type { IndexFunction } from './model/indexes'
+import type { JsonSchemaOption } from './model/json-schema'
+import type { Model, ModelSchema, None, SyncResult } from './model/model'
+import type { FindArgs } from './model/model-find-cursor'
+import type { ReadContext, ReadPlan } from './model/read-plan'
+import type {
+  Timestamps,
+  TimestampNamesOf,
+  TimestampsCheck,
+  TimestampsOption
+} from './model/timestamps'
+import type { PluginsCheck } from './plugins/check'
+import type { BatchSource } from './plugins/pipeline'
+import type { AnyPlugin, Operation, PluginMethods } from './plugins/plugin'
+import type { ReferenceTarget, References, UnknownReferences } from './references/references'
+import type { Virtuals, VirtualsCheck } from './references/virtuals'
 import type {
   Abortable,
   AggregateOptions,
@@ -25,20 +30,20 @@ import type * as core from 'zod/v4/core'
 import { MongoServerError } from 'mongodb'
 import { z } from 'zod'
 
-import { checkFieldNames } from './check-field-names'
-import { indexesOf } from './indexes'
-import { toJsonSchema } from './json-schema'
-import { batchSource, ModelCursor } from './model-cursor'
-import { ModelFindCursor } from './model-find-cursor'
-import { parseDocument } from './parse-document'
-import { parseUpdate } from './parse-update'
-import { checkPlugins, runCursor, runOperation } from './plugin-pipeline'
-import { planRead } from './read-plan'
-import { checkReferences, registerFind } from './references'
-import { schemaAt } from './schema-at'
-import { stampDocument, stampPipeline, stampUpdate, timestampsOf } from './timestamps'
-import { filterEqualities } from './upsert'
-import { virtualsOf } from './virtuals'
+import { checkFieldNames } from './model/check-field-names'
+import { indexesOf } from './model/indexes'
+import { toJsonSchema } from './model/json-schema'
+import { batchSource, ModelCursor } from './model/model-cursor'
+import { ModelFindCursor } from './model/model-find-cursor'
+import { parseDocument } from './model/parse-document'
+import { planRead } from './model/read-plan'
+import { stampDocument, stampPipeline, stampUpdate, timestampsOf } from './model/timestamps'
+import { checkPlugins, runCursor, runOperation } from './plugins/pipeline'
+import { checkReferences, registerFind } from './references/references'
+import { virtualsOf } from './references/virtuals'
+import { schemaAt } from './schema/schema-at'
+import { parseUpdate } from './updates/parse-update'
+import { filterEqualities } from './updates/upsert'
 
 /** The options of `mongozod()`. */
 export interface MongozodOptions<

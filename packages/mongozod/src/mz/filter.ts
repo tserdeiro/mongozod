@@ -1,17 +1,17 @@
-import type { Comparable, Element, ElementSchema, Has, IsArray } from '../filter'
-import type { Leaf } from '../loose'
-import type { PathSuggestions } from '../path-suggestions'
-import type { NotAPath, SchemaAt } from '../schema-at'
+import type { NotAPath, SchemaAt } from '../schema/schema-at'
+import type { Comparable, Element, ElementSchema, Has, IsArray } from '../types/filter'
+import type { Leaf } from '../types/loose'
+import type { PathSuggestions } from '../types/path-suggestions'
 import type * as core from 'zod/v4/core'
 
 import { z } from 'zod'
 
-import { schemaAt } from '../schema-at'
-import { elementsOf } from '../schema-kinds'
+import { schemaAt } from '../schema/schema-at'
+import { elementsOf } from '../schema/schema-kinds'
 
-import { nonEmptyObject } from './non-empty-object'
-import { valueSchema } from './value-schema'
-import { withoutUndefined } from './without-undefined'
+import { nonEmptyObject } from './internal/non-empty-object'
+import { valueSchema } from './internal/value-schema'
+import { withoutUndefined } from './internal/without-undefined'
 
 /** The operators a field of a client filter can declare. */
 export type FilterOperator =

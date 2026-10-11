@@ -3,8 +3,8 @@ import { afterAll, beforeAll, beforeEach, describe, expect, inject, test } from 
 import { z } from 'zod'
 
 import { mongozod } from '../mongozod'
-import { definePlugin } from '../plugin'
 
+import { definePlugin } from './plugin'
 import { softDelete } from './soft-delete'
 
 const client = new MongoClient(inject('mongoUri'))

@@ -3,8 +3,8 @@ import type * as core from 'zod/v4/core'
 
 import { z } from 'zod'
 
-import { nonEmptyObject } from './non-empty-object'
-import { withoutUndefined } from './without-undefined'
+import { nonEmptyObject } from './internal/non-empty-object'
+import { withoutUndefined } from './internal/without-undefined'
 
 type FieldsOf<W> = W extends { _zod: { def: { shape: infer Shape } } }
   ? keyof Shape & string

@@ -12,7 +12,7 @@ import {
 } from 'vitest'
 import { z } from 'zod'
 
-import { toJsonSchema } from '../json-schema'
+import { toJsonSchema } from '../model/json-schema'
 import { mongozod } from '../mongozod'
 import { filter } from '../mz/filter'
 import { update } from '../mz/update'

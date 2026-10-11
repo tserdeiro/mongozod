@@ -1,17 +1,17 @@
-import type { PathSuggestions } from '../path-suggestions'
-import type { SchemaAt } from '../schema-at'
+import type { SchemaAt } from '../schema/schema-at'
+import type { PathSuggestions } from '../types/path-suggestions'
 import type { Side, ValueOf } from './filter'
-import type { OutsideArraysProblem } from './outside-arrays'
+import type { OutsideArraysProblem } from './internal/outside-arrays'
 import type * as core from 'zod/v4/core'
 
 import { z } from 'zod'
 
-import { isInteger, isNumber, isOptional } from '../schema-kinds'
+import { isInteger, isNumber, isOptional } from '../schema/schema-kinds'
 
-import { nonEmptyObject } from './non-empty-object'
-import { schemasOutsideArrays } from './outside-arrays'
-import { valueSchema } from './value-schema'
-import { withoutUndefined } from './without-undefined'
+import { nonEmptyObject } from './internal/non-empty-object'
+import { schemasOutsideArrays } from './internal/outside-arrays'
+import { valueSchema } from './internal/value-schema'
+import { withoutUndefined } from './internal/without-undefined'
 
 /** The operators `mz.update` takes. */
 export type UpdateOperator = '$inc' | '$set' | '$unset'

@@ -1,11 +1,11 @@
-import type { MaskCheck, SuggestedMask } from './mask-check'
+import type { MaskCheck, SuggestedMask } from './internal/mask-check'
 import type * as core from 'zod/v4/core'
 
 import { z } from 'zod'
 
-import { schemaAt } from '../schema-at'
+import { schemaAt } from '../schema/schema-at'
 
-import { withoutUndefined } from './without-undefined'
+import { withoutUndefined } from './internal/without-undefined'
 
 /**
  * The sort a client can send: MongoDB syntax over the declared paths, with `1` or `-1`. It keeps

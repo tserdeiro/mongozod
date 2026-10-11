@@ -1,7 +1,7 @@
 import { ObjectId } from 'bson'
 import { z } from 'zod'
 
-import { bsonTypes } from '../bson-types'
+import { bsonTypes } from '../schema/bson-types'
 
 /**
  * An `ObjectId`, recognized by its `_bsontype` as the driver's serializer does. `instanceof` would

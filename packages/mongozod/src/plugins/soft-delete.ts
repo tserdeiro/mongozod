@@ -2,7 +2,7 @@ import type { Document } from 'mongodb'
 
 import { z } from 'zod'
 
-import { definePlugin } from '../plugin'
+import { definePlugin } from './plugin'
 
 const LOGICAL_OPERATORS = new Set(['$and', '$nor', '$or'])
 
