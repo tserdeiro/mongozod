@@ -13,7 +13,7 @@ export const NotesModel = mongozod({
 })
 ```
 
-- **`schema`**: un `z.object`, o una `z.discriminatedUnion` de objetos, de Zod o de Zod Mini, que
+- **`schema`**: un `z.object`, o una `z.discriminatedUnion` de objetos o de otras uniones, de Zod o de Zod Mini, que
   describe el documento tal como se guarda. Con una unión, la colección guarda varios tipos de
   documento. El `_id` se genera con su `.default()`, como
   `z.uuidv4().default(() => crypto.randomUUID())`, que conviene definir una vez y reusar. Si el
@@ -329,6 +329,28 @@ await EventsModel.updateOne({ kind: 'click' }, { $set: { url } })
 // error: "url" is not in every type the filter allows: fix "kind" in the filter
 await EventsModel.updateOne({}, { $set: { url } })
 ```
+
+- **Subtipos**: una opción puede ser otra `z.discriminatedUnion`, con su propia key, para los
+  discriminators de varios niveles que Mongoose no tiene
+  ([Automattic/mongoose#2851](https://github.com/Automattic/mongoose/issues/2851)):
+
+  ```ts
+  const vehicleSchema = z.discriminatedUnion('kind', [
+    z.discriminatedUnion('fuel', [
+      car.extend({ fuel: z.literal('electric'), kwh: z.number() }),
+      car.extend({ fuel: z.literal('gas'), liters: z.number() })
+    ]),
+    z.object({ gears: z.number().int(), kind: z.literal('bike') })
+  ])
+
+  await VehiclesModel.updateOne({ kind: 'car' }, { $set: { wheels: 3 } })
+  await VehiclesModel.updateOne({ fuel: 'electric', kind: 'car' }, { $set: { kwh: 70 } })
+  ```
+
+  Cada nivel sigue las reglas de abajo con su key: un update fija en el filtro las de los tipos
+  que escribe, y `timestamps` y los plugins necesitan sus campos en cada tipo final. Se aceptan
+  hasta tres niveles de uniones, porque un tipo recursivo es demasiado profundo para TypeScript
+  (TS2589).
 
 - **Key**: es la que se le pasa a `z.discriminatedUnion`, como el `discriminatorKey` de Mongoose;
   `kind` es solo el ejemplo. A diferencia de Mongoose, que agrega su propio campo `__t`, es un campo

@@ -64,8 +64,9 @@ El orden de implementación. Al cerrar una fase, se marca acá en el mismo cambi
       1. `exactOptionalPropertyTypes` (hecho): lo que devuelve un schema de `mz` se pasa al modelo
          con esa opción, el problema de
          [Automattic/mongoose#16273](https://github.com/Automattic/mongoose/issues/16273).
-      2. Los discriminators de varios niveles: una `z.discriminatedUnion` dentro de otra. En runtime
-         ya funcionan; falta que los tipos del modelo la acepten. Es el issue abierto más votado,
+      2. Los discriminators de varios niveles (hecho): una `z.discriminatedUnion` dentro de otra,
+         hasta tres niveles. Ver [Varios tipos de documento](./model.md#varios-tipos-de-documento).
+         Es el issue abierto más votado,
          [Automattic/mongoose#2851](https://github.com/Automattic/mongoose/issues/2851), con
          [#8361](https://github.com/Automattic/mongoose/issues/8361) y
          [#9756](https://github.com/Automattic/mongoose/issues/9756).
