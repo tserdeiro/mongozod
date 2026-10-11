@@ -93,7 +93,8 @@ export async function list(input: z.output<typeof listBrandsSchema>) {
 ```
 
 El cliente manda, por ejemplo,
-`{ filter: { name: { $exists: true } }, populate: { organization: { name: 1 } } }`. Como `cursor`,
+`{ filter: { name: { $exists: true } }, populate: { organization: { name: 1 } } }`, y el router
+recibe `populate: { organization: { projection: { name: 1 } } }`. Como `cursor`,
 manda `{ createdAt, _id }` del último elemento de la página.
 
 ## Decisiones de los inputs
@@ -133,14 +134,15 @@ manda `{ createdAt, _id }` del último elemento de la página.
    - **Destinos**: otro modelo, con un thunk como `() => BrandsModel`, para que se apliquen sus
      plugins. O una colección con su schema, para las que no tienen modelo, como `organizations`,
      que maneja Better Auth.
-   - **`populate`**: usa la sintaxis de proyección de Mongo por referencia,
-     `{ organization: { name: 1 } }`, o `true` para el documento entero. Ver
+   - **`populate`**: toma `true` para el documento entero, o las opciones de la consulta con los
+     nombres del driver, `{ organization: { projection: { name: 1 } } }`. Ver
      [Referencias](./model.md#referencias).
    - **Para clientes**: `mz.populate` recibe la lista blanca como un schema recortado con `pick`,
      como hoy. El cliente manda `true` para toda la lista blanca, nunca el documento entero, como
      el `populate` del modelo, o una proyección con `1` o `true` para algunos de sus campos. Un
      `{}`, una exclusión, un campo de afuera o una referencia no declarada fallan. El router recibe
-     una proyección con `1`.
+     el `populate` del modelo, con una `projection` de `1`. El cliente no manda `filter` ni `sort`:
+     son decisiones del endpoint.
    - **Tipos**: un `populate` escrito en el código da el tipo exacto. El que manda un cliente deja
      el campo como unión con el id, igual que hoy `WithPopulate`, pero calculada sola: desaparecen
      `WithPopulate` y los tipos `BrandRecord`. Como el modelo no sabe si una proyección que llega

@@ -182,13 +182,19 @@ await TransactionsModel.find(
   primer nivel. Todas las referencias de los tres proyectos guardan un id; el único array es
   `advertisers`, en las cuentas de wortise-dashboard-monorepo.
 - **Valores**: `true` trae el documento entero, como el `include: { author: true }` de Prisma y el
-  `with` de Drizzle. Un objeto lo acota con los nombres de `FindOptions` del driver (fase 5; hasta
-  entonces, el valor es la proyección):
+  `with` de Drizzle. Un objeto lo acota con los nombres de `FindOptions` del driver, cada opción
+  chequeada contra el schema del destino, con las sugerencias del editor:
   - `projection` trae esos campos y se chequea como la del modelo referenciado, con sus virtuals;
   - `filter` deja en `null`, o fuera del array, los documentos que no cumplen, como el `match` de
-    Mongoose;
-  - `sort` ordena los arrays;
-  - `populate` puebla las referencias del destino, en varios niveles, a través de su modelo.
+    Mongoose. Va en un `$and` con el `$in` de los ids, así un `filter` sobre el `_id` acota las
+    referencias en vez de reemplazarlas, y pasa por los plugins del destino;
+  - `sort` ordena los arrays con el orden de la consulta; sin `sort`, un array conserva el orden en
+    que guarda los ids;
+  - `populate` puebla las referencias del destino, en varios niveles, a través de su modelo (fase
+    5).
+
+  Una opción desconocida no compila y lanza un `ZodError`, con el issue en
+  `['populate', key, option]`.
 
   `limit`, `skip` y `perDocumentLimit` quedan afuera: con una consulta `$in` por lote, `limit` no
   es por documento, la trampa que documenta Mongoose, y `perDocumentLimit` hace una consulta por

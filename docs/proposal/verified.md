@@ -612,6 +612,14 @@
     `createdAt` y el insertado recibe uno igual a su `updatedAt`; `softDelete` deja afuera los
     borrados (`modifiedCount` 1 de 2); y funcionan en `findOneAndUpdate` y `bulkWrite`. Los
     mensajes de los tipos nombran la opción o las etapas que se aceptan.
+  - Opciones de `populate` (MongoDB 8.2.6, TypeScript 5.5.4 y 7.0.2, 3 tests nuevos): `filter` deja
+    en `null` una referencia simple y saca de un array las que no cumplen, también con una colección
+    sin modelo; `sort` ordena un array, que sin `sort` conserva el orden guardado; una opción
+    desconocida o que no es un objeto lanza un `ZodError` con su path. El editor sugiere las
+    referencias, las opciones y los paths del destino en `filter`, `projection` y `sort`, y un path
+    que no existe da `"nickname" is not a path of the document`. Con `ReadOf` dentro de un argumento,
+    la unión `true | { projection }` de un `populate` que llega en runtime mezclaba las dos
+    proyecciones; distribuida en el nivel de arriba, da una unión de las dos lecturas.
   - Populate de Mongoose (su documentación): `match` deja en `null` una referencia que no cumple y
     saca las de un array; `limit` no es por documento, porque consulta con `numDocuments * limit`;
     `perDocumentLimit` hace una consulta por documento; `refPath` elige el modelo con otro campo del
