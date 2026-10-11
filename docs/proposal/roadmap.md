@@ -28,7 +28,7 @@ El orden de implementación. Al cerrar una fase, se marca acá en el mismo cambi
       métodos (hecho).
    2. [`softDelete`](./plugins/soft-delete.md), en `mongozod/plugins/soft-delete` (hecho).
 4. **Inputs** (hecho): `mz`, en `mongozod/mz`. Ver [Inputs de los endpoints](./inputs.md).
-5. **Reemplazo de Mongoose**: lo que falta para que mongozod reemplace a Mongoose en sus funciones
+5. **Reemplazo de Mongoose** (hecho): lo que falta para que mongozod reemplace a Mongoose en sus funciones
    principales, que es el [criterio de la v1](./README.md#objetivo). Sale de la
    [auditoría de las fases 1 a 4](../audits/phases-1-4.md#decidir), con los puntos ya decididos, en
    este orden:
@@ -38,7 +38,7 @@ El orden de implementación. Al cerrar una fase, se marca acá en el mismo cambi
    3. `timestamps` sin `.default()` (hecho). Ver [Timestamps](./model.md#timestamps).
    4. Los updates con pipeline, con `updatePipeline: true` (hecho). Ver [Updates](./types.md#updates).
    5. `populate`, en este orden: el valor como objeto, con `filter` y `sort` (hecho); las referencias en
-      subdocumentos y arrays (hecho); el `populate` anidado (hecho); y el uno a muchos con `foreignField`. Ver
+      subdocumentos y arrays (hecho); el `populate` anidado (hecho); y el uno a muchos con `foreignField` (hecho). Ver
       [Referencias](./model.md#referencias).
 
    El casting de los filtros no se implementa: se documenta como diferencia con Mongoose (ver

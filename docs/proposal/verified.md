@@ -640,6 +640,17 @@
     `ZodError`. El editor sugiere las referencias y las opciones del destino en cada nivel, también
     entre dos modelos que se referencian. El costo de tipos del consumidor no cambia (308.448
     instanciaciones).
+  - Uno a muchos (MongoDB 8.2.6, TypeScript 5.5.4 y 7.0.2, 5 tests nuevos): los posts de cada autor
+    por `author`, los de un array `coauthors` y los comentarios por un `localField` propio
+    (`handle`), en arrays vacíos cuando no hay; `filter`, `sort`, `projection` y un `populate`
+    anidado funcionan como en las demás referencias, y la proyección del destino que deja afuera
+    el `foreignField` no lo devuelve; una lectura con `{ _id: 0, name: 1 }` pide el `_id`, puebla y
+    lo quita, y su tipo tampoco lo tiene; una key que es un campo, un `localField` que no existe y
+    un `foreignField` que no es un path del destino no compilan y lanzan; poblar el `foreignField`
+    en un `populate` anidado no compila y lanza un `ZodError`. Para aceptar una key que no es un
+    path, `references` toma cualquier key, y `UnknownReferences` da el error de las que no
+    corresponden: `"ownr" is not a path of the schema`. El editor sugiere la key y las opciones. El
+    costo de tipos del consumidor queda en 308.862 instanciaciones.
   - Populate de Mongoose (su documentación): `match` deja en `null` una referencia que no cumple y
     saca las de un array; `limit` no es por documento, porque consulta con `numDocuments * limit`;
     `perDocumentLimit` hace una consulta por documento; `refPath` elige el modelo con otro campo del

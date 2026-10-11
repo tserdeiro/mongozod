@@ -204,13 +204,25 @@ await TransactionsModel.find(
   es por documento, la trampa que documenta Mongoose, y `perDocumentLimit` hace una consulta por
   documento.
 
-- **Uno a muchos** (fase 5): una referencia con `foreignField` trae los documentos del destino que
-  apuntan a este, sin guardar sus ids, como el virtual populate de Mongoose:
+- **Uno a muchos**: una referencia con `foreignField` trae los documentos del destino que apuntan
+  a este, sin guardar sus ids, como el virtual populate de Mongoose:
   `posts: { model: () => PostsModel, foreignField: 'author' }`. `localField` es `_id` si no se
-  pasa; son los nombres del `$lookup` de MongoDB. Devuelve un array, y su key no es un campo del
-  schema, porque no se guarda. Va en `references` y no en `virtuals` porque se pide por lectura y
-  va a la base, como el resto de `populate`. La opción `count` de Mongoose y las referencias
-  dinámicas con `refPath` quedan para después de la v1.
+  pasa; son los nombres del `$lookup` de MongoDB. Va en `references` y no en `virtuals` porque se
+  pide por lectura y va a la base, como el resto de `populate`.
+  - **La key** no es un campo ni un path del schema, porque no se guarda; el `localField` sí es un
+    path del schema. Si no, no compila y lanza un `Error` al definir el modelo. El `foreignField`
+    se chequea al pedir el `populate`, cuando el destino ya existe: tiene que ser un path del
+    destino que guarde lo mismo que el `localField`, o un array de eso.
+  - **El valor** es un array, en el orden de la consulta, vacío si ninguno apunta al documento.
+    Toma las mismas opciones que las demás referencias. Una consulta `$in` por lote busca los
+    documentos cuyo `foreignField` guarda algún valor del `localField`, también en arrays, como
+    unos `coauthors`.
+  - **Proyecciones**: si la de la lectura deja afuera el `localField`, incluido un `_id: 0`, se pide
+    igual y se quita después; una exclusión que lo deja afuera no compila y lanza un `ZodError`.
+    Con el `foreignField` del destino pasa lo mismo, para ubicar cada documento.
+  - **`populate` anidado**: no toma el `foreignField`, que apunta de vuelta al mismo documento, y
+    poblarlo reemplazaría los valores que ubican cada documento.
+  - **Después de la v1**: la opción `count` de Mongoose y las referencias dinámicas con `refPath`.
 - **Faltantes**: un documento que no existe, o que un plugin del destino filtra, queda en `null`,
   como en Mongoose, y un array guarda los que encuentra. El tipo es `Ref | null`, así que el código
   lo maneja con `?.` sin chequear `typeof`. MongoModel dejaba el id.
