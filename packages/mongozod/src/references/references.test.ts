@@ -946,6 +946,21 @@ describe('a one-to-many reference', () => {
     ])
     expect(authors[1]?.comments).toEqual([{ _id: 'c1', byHandle: 'luis', text: 'Nice' }])
     expectTypeOf<keyof (typeof authors)[number]>().toEqualTypeOf<'comments' | 'name' | 'posts'>()
+
+    // An inclusion that does not name the _id gets it from the server, which keeps it.
+    const ana = await AuthorsModel.findOne(
+      { _id: 'u1' },
+      { populate: { posts: { projection: { title: 1 } } }, projection: { name: 1 } }
+    )
+
+    expect(ana).toEqual({
+      _id: 'u1',
+      name: 'Ana',
+      posts: [
+        { _id: 'p1', title: 'Alpha' },
+        { _id: 'p2', title: 'Beta' }
+      ]
+    })
   })
 
   test('is a key that is not a field, with a localField of the schema', () => {

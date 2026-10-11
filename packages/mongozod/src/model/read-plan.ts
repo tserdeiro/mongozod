@@ -122,7 +122,7 @@ export function planRead(
         // An inclusion returns the `_id` unless it leaves it out.
         delete fields._id
         stripAfter.add(field)
-      } else if (!entries.some(([path]) => covers(path, field))) {
+      } else if (field !== '_id' && !entries.some(([path]) => covers(path, field))) {
         fields[field] = 1
 
         if (foreign) stripAfter.add(field)
