@@ -680,6 +680,13 @@
   - Costo de tipos, con el mismo consumidor de los `.d.ts`: 309.763 instanciaciones sin la
     augmentation, 315.543 con `string`, 335.622 con los alias y 360.024 con alias o arrays de alias.
     Se eligió el alias. El editor sugiere los alias dentro de `.meta({ bsonType })`.
+- **`decimal128()`** (bson 7.3.3 y 6.10.0, MongoDB 8.2.6, 4 tests): `Decimal128.fromString` toma
+  `'10.50'`, `'-1E+3'`, `'NaN'` e `'Infinity'`, y lanza un `BSONError` con `'abc'`, `'1.2.3'`,
+  `' 10'`, `''`, un overflow y un string de más de 34 dígitos, que redondearía; `BSONError.isBSONError`
+  lo reconoce, en bson 7 y 6. `JSON.stringify` de un `Decimal128` da `{ $numberDecimal }`. El codec
+  toma el `Decimal128` de los dos builds de bson y rechaza un número; `z.encode` da el string; el
+  `$jsonSchema` da `decimal`; y el modelo guarda un `Decimal128` desde un string, que `mz.filter`
+  también convierte en un `$gte`.
   - Populate de Mongoose (su documentación): `match` deja en `null` una referencia que no cumple y
     saca las de un array; `limit` no es por documento, porque consulta con `numDocuments * limit`;
     `perDocumentLimit` hace una consulta por documento; `refPath` elige el modelo con otro campo del

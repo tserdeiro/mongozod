@@ -259,7 +259,14 @@ manda `{ createdAt, _id }` del último elemento de la página.
     - **Frente a las otras formas**: `z.instanceof(ObjectId)` rechaza el hex de un cliente, y un
       regex con `.transform()` rechaza el `ObjectId` del servidor y tipa el insert como `string`.
       Zod no trae un codec de `ObjectId` entre sus ejemplos.
-14. **Fechas**: se declaran con `date()`, de `mongozod/codecs/date`. Es la unión del codec
+14. **`Decimal128`**: se declara con `decimal128()`, de `mongozod/codecs/bson`, el tipo para
+    dinero. Es la unión de un codec de su string y un `Decimal128`, como `objectId()`: el servidor
+    pasa un `Decimal128`, el cliente manda el string, como `'10.50'`, y `z.encode` lo vuelve a
+    string; sin eso, `JSON.stringify` da `{ $numberDecimal: '10.50' }`. Valida con
+    `Decimal128.fromString`, la API de bson, que rechaza lo que no es un decimal y lo que
+    redondearía, con más de 34 dígitos. No toma números: JSON ya los redondea. Lo reconoce por su
+    `_bsontype`, y su metadata le da `bsonType: 'decimal'` en el `$jsonSchema`.
+15. **Fechas**: se declaran con `date()`, de `mongozod/codecs/date`. Es la unión del codec
     `isoDatetimeToDate` de la documentación de Zod y una `Date`: el servidor pasa una `Date`, el
     cliente manda un ISO con `Z` o con zona horaria (`z.iso.datetime({ offset: true })`), y
     `z.encode` lo vuelve a ISO en UTC. Un ISO sin `Z` ni zona horaria se rechaza, porque no dice qué

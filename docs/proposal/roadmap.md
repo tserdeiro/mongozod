@@ -52,7 +52,7 @@ El orden de implementación. Al cerrar una fase, se marca acá en el mismo cambi
       1. `.meta({ bsonType })`, la API de metadata de Zod, en el `$jsonSchema` (hecho): un campo sin codec,
          como `z.instanceof(Decimal128).meta({ bsonType: 'decimal' })`, declara su tipo BSON. Los
          codecs usan el mismo mecanismo, y desaparece el registro propio de `objectId()`.
-      2. `decimal128()`, en `mongozod/codecs/bson` junto a `objectId()`, porque también necesita
+      2. `decimal128()`, en `mongozod/codecs/bson` junto a `objectId()` (hecho), porque también necesita
          `bson`: un string ↔ `Decimal128`, el tipo para dinero.
       3. `binary()`, en `mongozod/codecs/binary`: base64 ↔ `Uint8Array`, que el driver guarda como
          `Binary`. No necesita `bson`.
