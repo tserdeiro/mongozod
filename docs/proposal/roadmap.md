@@ -76,12 +76,13 @@ El orden de implementación. Al cerrar una fase, se marca acá en el mismo cambi
          ([Automattic/mongoose#10349](https://github.com/Automattic/mongoose/issues/10349)).
       4. `mz.uuid()` (hecho): el string de un UUID ↔ un `UUID`, el `Binary` de subtipo 4 con el que
          lee el driver. Ver [Inputs](./inputs.md#decisiones-de-los-inputs).
-      5. `mz.set(item)`: un array sin repetidos ↔ un `Set`, cuyos updates solo aceptan
-         `$addToSet`, ni `$push` ni un `$set` por índice, así la unicidad queda garantizada dentro
-         del documento sin un índice
+      5. `mz.set(item)` (hecho): un array sin repetidos, con la igualdad del `uniqueItems` de
+         MongoDB, que solo agrega con `$addToSet` y que `sync()` marca con `uniqueItems`
          ([Automattic/mongoose#3347](https://github.com/Automattic/mongoose/issues/3347),
          [#8082](https://github.com/Automattic/mongoose/issues/8082) y
-         [#12916](https://github.com/Automattic/mongoose/issues/12916)).
+         [#12916](https://github.com/Automattic/mongoose/issues/12916)). Devuelve un array y no un
+         `Set`, porque las lecturas no se parsean. Ver
+         [Inputs](./inputs.md#decisiones-de-los-inputs).
       6. El `limit` de `populate` por documento, no para todos juntos como en Mongoose
          ([Automattic/mongoose#15863](https://github.com/Automattic/mongoose/issues/15863)). Se
          verifica si sale en una consulta con `$setWindowFields`, particionando por el

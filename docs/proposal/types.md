@@ -129,7 +129,9 @@ runtime o código sin tipos. Cada problema se junta en un solo `ZodError`, con e
 - **Por operador**: `$unset` y el origen de `$rename` solo en campos opcionales (`.default()` no
   lo es); `$inc`, `$mul` y `$bit` en números, y un `$inc` o un `$mul` con decimales no va a un campo
   entero; `$currentDate` en campos que aceptan una `Date`; los operadores de array en arrays, y
-  `$push` y `$addToSet` parsean cada elemento, también en `$each`. Que el destino de `$rename` tenga
+  `$push` y `$addToSet` parsean cada elemento, también en `$each`. Un set de `mz.set()` solo
+  agrega con `$addToSet`: `$push` y los paths que escriben uno de sus elementos no se aceptan (ver
+  [Inputs](./inputs.md#decisiones-de-los-inputs)). Que el destino de `$rename` tenga
   el mismo tipo solo lo chequean los tipos: en runtime no se conoce el valor sin leer el documento.
 - **Enteros**: Zod clásico expone si un campo es entero, con el `format` de `z.number()`, pero Zod
   Mini no, y el `aggregateChecks` que lo calcula no se exporta desde `zod/v4/core`. Así que se prueba

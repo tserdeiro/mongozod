@@ -103,7 +103,7 @@ manda `{ createdAt, _id }` del último elemento de la página.
    namespace, que se importa como el `import * as z` de Zod: `import * as mz from 'mongozod/mzod'`.
    - **Dos grupos**: los constructores de inputs, `mz.filter`, `mz.update`, `mz.sort`,
      `mz.projection`, `mz.after` y `mz.populate`, que reciben un schema; y los tipos de campo,
-     `mz.objectId()`, `mz.decimal128()`, `mz.binary()`, `mz.uuid()`, `mz.date()` y los de GeoJSON, que van en el
+     `mz.objectId()`, `mz.decimal128()`, `mz.binary()`, `mz.uuid()`, `mz.date()`, `mz.set()` y los de GeoJSON, que van en el
      schema del documento. Los nombres los separan: los primeros son los de las opciones del driver
      (`find(filter)`, `updateOne(filter, update)`, `sort`, `projection`), y los segundos, tipos BSON.
      Están planos, como `z.string()` y `z.object()` en Zod: un sub-namespace como `mz.query` no
@@ -342,6 +342,28 @@ manda `{ createdAt, _id }` del último elemento de la página.
       rechaza, aunque bson lo acepta, porque no es la forma que manda un cliente.
     - **Filtros**: el modelo no castea, así que un filtro escrito a mano pide un `UUID`; el string
       que manda un cliente lo convierte `mz.filter`.
+
+19. **Sets**: se declaran con `mz.set(item)`, el array de `$addToSet`: guarda cada valor una vez
+    ([Automattic/mongoose#3347](https://github.com/Automattic/mongoose/issues/3347) y
+    [#8082](https://github.com/Automattic/mongoose/issues/8082)). Un valor repetido lanza un
+    `ZodError` con el índice del repetido; no se sacan en silencio.
+    - **Devuelve un array**, no el `Set` de `z.set()`: las lecturas no se parsean y el driver
+      devuelve arrays. Tampoco toma un `Set`: un codec de un `Set` al array no tipa cuando el
+      elemento es un codec, como `mz.objectId()`, porque decodifica la salida de cada elemento y la
+      vuelve a pasar por su entrada.
+    - **La igualdad**: la del `uniqueItems` del `$jsonSchema` de MongoDB (verificado): los números
+      por su valor (`1` y `1.0`), los valores BSON por el suyo (dos copias de un `ObjectId`), las
+      fechas por su instante y los objetos por sus campos en cualquier orden. Los elementos se
+      parsean antes, así que un hex y el `ObjectId` que decodifica son el mismo.
+    - **Updates**: solo `$addToSet` agrega. `$push`, y escribir un elemento por su índice o un
+      operador posicional (`tags.0`, `tags.$`, `tags.$[]`), no compilan y lanzan un `ZodError`. Un
+      `$set` del array entero se parsea, y `$pull`, `$pullAll` y `$pop` sacan.
+    - **El servidor**: `sync()` le pone `uniqueItems: true` en el `$jsonSchema`, así que, con
+      `jsonSchema`, MongoDB rechaza también un repetido que llega por otro lado, como un `$push` del
+      driver o un update con pipeline. Sin él, queda un caso que mongozod no ve: `$addToSet` compara
+      los objetos con el orden de sus campos, y agrega uno igual en otro orden.
+    - **Cómo lo reconoce el modelo**: por su chequeo, una sola instancia que conservan los clones
+      de `.min()` y los wrappers como `.optional()`; los tipos, por una marca en el tipo del schema.
 
 ## Qué reemplaza
 
