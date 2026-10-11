@@ -54,8 +54,8 @@ El orden de implementación. Al cerrar una fase, se marca acá en el mismo cambi
          codecs usan el mismo mecanismo, y desaparece el registro propio de `objectId()`.
       2. `decimal128()`, en `mongozod/codecs/bson` junto a `objectId()` (hecho), porque también necesita
          `bson`: un string ↔ `Decimal128`, el tipo para dinero.
-      3. `binary()`, en `mongozod/codecs/binary`: base64 ↔ `Uint8Array`, que el driver guarda como
-         `Binary`. No necesita `bson`.
+      3. `binary()`, en `mongozod/codecs/bson` (hecho): base64, un `Uint8Array` o un `Binary` ↔ un
+         `Binary`, el tipo con el que el driver lee los binarios, así que también necesita `bson`.
       4. GeoJSON, en `mongozod/geojson`: `point()`, `lineString()`, `polygon()` y sus `Multi*`,
          con las reglas de MongoDB para los índices `2dsphere` (`[longitud, latitud]`, sus rangos
          y los anillos cerrados). No son codecs: validan la forma, sin convertir valores.

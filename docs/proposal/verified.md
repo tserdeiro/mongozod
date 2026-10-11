@@ -692,6 +692,16 @@
     `12345678901234568`. Con hasta 15 dígitos significativos, o un entero seguro, el número es el
     decimal que se escribió. En una unión de Zod que falla, la opción del mismo tipo devuelve su
     propio issue, pero una unión de afuera lo reemplaza por el suyo.
+- **`binary()`** (MongoDB 8.2.6, bson 7.3.3 y 6.10.0, TypeScript 5.5.4 y 7.0.2, 4 tests):
+  - El driver guarda un `Uint8Array` y un `Buffer` como `binData` subtipo 0 y los lee como `Binary`,
+    no como `Uint8Array`. Con `promoteBuffers: true`, en la consulta o en el cliente, lee como
+    `Buffer` todos los binarios: el genérico, un MD5 (subtipo 5) y un UUID.
+  - `Binary` expone `value()`, `sub_type`, `toString('base64')` y `createFromBase64`, en bson 7 y 6.
+  - El codec toma base64, un `Uint8Array`, un `Buffer` y el `Binary` de los dos builds de bson; un
+    MD5 y un UUID pasan tal cual; rechaza un base64 inválido con su mensaje; `z.encode` da base64;
+    el `$jsonSchema` da `binData`; y un documento leído se reemplaza tal cual.
+  - TypeScript 7 emitía `Uint8Array<ArrayBufferLike>` en el `.d.ts`, y TypeScript 5.5 lo rechaza
+    (`Type 'Uint8Array' is not generic`); con el tipo de retorno escrito, emite `Uint8Array`.
   - Populate de Mongoose (su documentación): `match` deja en `null` una referencia que no cumple y
     saca las de un array; `limit` no es por documento, porque consulta con `numDocuments * limit`;
     `perDocumentLimit` hace una consulta por documento; `refPath` elige el modelo con otro campo del

@@ -274,7 +274,19 @@ manda `{ createdAt, _id }` del último elemento de la página.
     - **Un solo codec**: su entrada es la unión de un string, un número exacto y un `Decimal128`,
       así el error de un número dice que mande el string; con la unión de un codec y la instancia,
       como `objectId()`, el error de la unión de afuera lo tapaba.
-15. **Fechas**: se declaran con `date()`, de `mongozod/codecs/date`. Es la unión del codec
+15. **Binarios**: se declaran con `binary()`, de `mongozod/codecs/bson`. Toma el base64 de los
+    bytes, que manda un cliente JSON, un `Uint8Array` o un `Buffer`, que pasa el servidor, o un
+    `Binary`, y devuelve un `Binary`. `z.encode` lo vuelve a base64.
+    - **Devuelve un `Binary`, no un `Uint8Array`**: el driver guarda un `Uint8Array` como un
+      `Binary` genérico, subtipo 0, y lo lee como `Binary`. Con un `Uint8Array`, el tipo de las
+      lecturas mentiría, y un documento leído no podría volver a escribirse. La opción
+      `promoteBuffers: true` del driver los lee como `Buffer`, pero a todos los binarios, también a
+      los UUID. Por eso necesita `bson`, como `objectId()` y `decimal128()`.
+    - **Subtipos**: un `Binary` pasa tal cual, con su subtipo, y un UUID sigue siendo un UUID; los
+      bytes y el base64 pasan a ser uno genérico, como los guarda el driver.
+    - **TypeScript 5.5**: su tipo de retorno está escrito, porque TypeScript 7 emitiría
+      `Uint8Array<ArrayBufferLike>`, que TypeScript 5.5 no acepta.
+16. **Fechas**: se declaran con `date()`, de `mongozod/codecs/date`. Es la unión del codec
     `isoDatetimeToDate` de la documentación de Zod y una `Date`: el servidor pasa una `Date`, el
     cliente manda un ISO con `Z` o con zona horaria (`z.iso.datetime({ offset: true })`), y
     `z.encode` lo vuelve a ISO en UTC. Un ISO sin `Z` ni zona horaria se rechaza, porque no dice qué
