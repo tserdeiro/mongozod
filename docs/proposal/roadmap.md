@@ -60,7 +60,8 @@ El orden de implementación. Al cerrar una fase, se marca acá en el mismo cambi
          `mz.geometryCollection()`,
          con las reglas de MongoDB para los índices `2dsphere` (`[longitud, latitud]`, sus rangos
          y los anillos cerrados). No son codecs: validan la forma, sin convertir valores.
-   2. Lo que Mongoose no resolvió, de un repaso de sus issues abiertos y de los más votados:
+   2. Lo que Mongoose no resolvió, de un repaso de sus issues abiertos y de los más votados (hecho;
+      el detalle y el beneficio de cada punto, en [Los issues de Mongoose](../audits/mongoose-issues.md)):
       1. `exactOptionalPropertyTypes` (hecho): lo que devuelve un schema de `mz` se pasa al modelo
          con esa opción, el problema de
          [Automattic/mongoose#16273](https://github.com/Automattic/mongoose/issues/16273).
@@ -105,15 +106,14 @@ El orden de implementación. Al cerrar una fase, se marca acá en el mismo cambi
          llegaría a las escrituras; además, no lo tienen Node 22, el mínimo (viene sin flag desde
          Node 26), TypeScript 5.5 ni Safari, y `mongozod/mzod` corre en los clientes. Una fecha sin
          hora ya se valida con `z.iso.date()`, y la guía «Desde Mongoose» lo explica.
-      10. Generar el schema de Zod de una colección, desde su `$jsonSchema` o una muestra de
-          documentos, como `prisma db pull`, y desde un schema de Mongoose para migrar
-          ([Automattic/mongoose#14570](https://github.com/Automattic/mongoose/issues/14570)).
-      11. El cifrado de campos (CSFLE y Queryable Encryption): `sync()` arma los `encryptedFields`
-          desde `.meta({ encrypt })`, como `bsonType`
-          ([Automattic/mongoose#13412](https://github.com/Automattic/mongoose/issues/13412)).
-      12. Un plugin de integridad de las `references`: el borrado en cascada y la validación de que
-          el documento referenciado existe
-          ([Automattic/mongoose#15417](https://github.com/Automattic/mongoose/issues/15417) y
+      10. Generar el schema de Zod de una colección (descartado,
+          [Automattic/mongoose#14570](https://github.com/Automattic/mongoose/issues/14570)): un
+          agente traduce mejor que un conversor, y nuestros proyectos ya están en Zod. Queda como
+          paso del «Copy prompt».
+      11. El cifrado de campos, CSFLE y Queryable Encryption (pasa a la fase 7,
+          [Automattic/mongoose#13412](https://github.com/Automattic/mongoose/issues/13412)).
+      12. Un plugin de integridad de las `references`, con el borrado en cascada (pasa a la fase 7,
+          [Automattic/mongoose#15417](https://github.com/Automattic/mongoose/issues/15417) y
           [#8163](https://github.com/Automattic/mongoose/issues/8163)).
 
    Con ella van:
@@ -124,7 +124,8 @@ El orden de implementación. Al cerrar una fase, se marca acá en el mismo cambi
       filtros) y las recetas, como el virtual `id` y `__v`. Deja claro que Mongoose y mongozod
       conviven sobre la misma conexión mientras se migra, modelo por modelo, con el driver 6 de
       Mongoose 8 o el 7 de Mongoose 9. Trae un «Copy prompt» para que cada equipo le pase la
-      migración a su agente. También lista los issues de Mongoose que mongozod resuelve:
+      migración a su agente; sin un schema de Mongoose, el agente parte del `$jsonSchema` que arman
+      Compass o `mongodb-schema`. También lista los issues de Mongoose que mongozod resuelve:
       - **Validar los updates:**
         - un upsert sin los campos obligatorios
           ([#7037](https://github.com/Automattic/mongoose/issues/7037));
@@ -171,6 +172,6 @@ El orden de implementación. Al cerrar una fase, se marca acá en el mismo cambi
    resultados; un plugin de versión, el control de concurrencia optimista
    que Mongoose hace con `__v` y `optimisticConcurrency`: un campo que el filtro chequea y un `$inc`
    aumenta en cada escritura, con el nombre configurable, así sirve `__v` en los documentos que
-   vienen de Mongoose (el nombre por defecto se decide al diseñarlo, quizás `_v`); los codecs de Temporal, cuando los mínimos de Node y TypeScript lo traigan y se decida si las lecturas se parsean (lo que también le daría a `mz.set()` un `Set`); la documentación para usuarios; el sitio, con un playground
+   vienen de Mongoose (el nombre por defecto se decide al diseñarlo, quizás `_v`); el cifrado de campos, con los `encryptedFields` desde `.meta({ encrypt })` y verificando que el `$jsonSchema` no rechace los campos cifrados; un plugin de integridad de las `references`, con el borrado en cascada y la validación de que el referenciado existe; los codecs de Temporal, cuando los mínimos de Node y TypeScript lo traigan y se decida si las lecturas se parsean (lo que también le daría a `mz.set()` un `Set`); la documentación para usuarios; el sitio, con un playground
    que muestre, para un schema, sus tipos, su `$jsonSchema` y lo que acepta cada constructor de
    `mongozod/mzod`; los ejemplos; los demás módulos de adsgpt, uno por uno; y la v1.
