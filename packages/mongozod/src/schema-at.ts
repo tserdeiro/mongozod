@@ -141,15 +141,21 @@ export type FieldAt<S, P extends string, M extends PathMode> = P extends '_id'
     : SchemaAt<S, P, M>
   : SchemaAt<S, P, M>
 
-/** An `arrayFilters` identifier, as the MongoDB manual defines it. */
-const IDENTIFIER = /^\$\[[a-z][a-zA-Z0-9]*\]$/
+/** An `arrayFilters` identifier, as the MongoDB manual defines it, with the id in its group. */
+export const IDENTIFIER = /^\$\[([a-z][a-zA-Z0-9]*)\]$/
 
 const INDEX = /^\d+$/
 
-function step(schema: core.$ZodType, segment: string, mode: PathMode): core.$ZodType[] {
+/** A schema one segment leads to, and whether the segment names an element of an array. */
+export type Next = [schema: core.$ZodType, element: boolean]
+
+/** The schemas one segment leads to: several through a union, none when it does not exist. */
+export function step(schema: core.$ZodType, segment: string, mode: PathMode): Next[] {
   const unwrapped = unwrapSchema(schema)
 
-  if (unwrapped instanceof core.$ZodAny || unwrapped instanceof core.$ZodUnknown) return [unwrapped]
+  if (unwrapped instanceof core.$ZodAny || unwrapped instanceof core.$ZodUnknown) {
+    return [[unwrapped, false]]
+  }
 
   if (unwrapped instanceof core.$ZodUnion) {
     return unwrapped._zod.def.options.flatMap((option) => step(option, segment, mode))
@@ -159,13 +165,13 @@ function step(schema: core.$ZodType, segment: string, mode: PathMode): core.$Zod
     const { catchall, shape } = unwrapped._zod.def
     const field = Object.hasOwn(shape, segment) ? shape[segment] : catchall
 
-    return field && !(field instanceof core.$ZodNever) ? [field] : []
+    return field && !(field instanceof core.$ZodNever) ? [[field, false]] : []
   }
 
   if (unwrapped instanceof core.$ZodRecord) {
     const { keyType, valueType } = unwrapped._zod.def
 
-    return z.safeParse(keyType, segment).success ? [valueType] : []
+    return z.safeParse(keyType, segment).success ? [[valueType, false]] : []
   }
 
   if (!(unwrapped instanceof core.$ZodArray)) return []
@@ -176,10 +182,10 @@ function step(schema: core.$ZodType, segment: string, mode: PathMode): core.$Zod
     return INDEX.test(segment) || segment.startsWith('$') ? [] : step(element, segment, mode)
   }
 
-  if (INDEX.test(segment)) return [element]
+  if (INDEX.test(segment)) return [[element, true]]
   if (mode === 'filter') return step(element, segment, mode)
 
-  return segment === '$' || segment === '$[]' || IDENTIFIER.test(segment) ? [element] : []
+  return segment === '$' || segment === '$[]' || IDENTIFIER.test(segment) ? [[element, true]] : []
 }
 
 /**
@@ -190,7 +196,8 @@ export function schemaAt(schema: core.$ZodType, path: string, mode: PathMode): c
   return path
     .split('.')
     .reduce<core.$ZodType[]>(
-      (schemas, segment) => schemas.flatMap((current) => step(current, segment, mode)),
+      (schemas, segment) =>
+        schemas.flatMap((current) => step(current, segment, mode).map(([next]) => next)),
       [schema]
     )
 }

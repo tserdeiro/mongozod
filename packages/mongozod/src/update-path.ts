@@ -1,10 +1,9 @@
 import type { Document } from 'mongodb'
 
-import { z } from 'zod'
 import * as core from 'zod/v4/core'
 
 import { isPlainObject } from './is-plain-object'
-import { schemaAt } from './schema-at'
+import { IDENTIFIER, step } from './schema-at'
 import { unwrapSchema } from './unwrap-schema'
 
 /** What selects the documents and the array elements an update writes. */
@@ -25,15 +24,12 @@ type Scope =
   | { id: string; kind: 'arrayFilter'; prefix: string }
   | { kind: 'none'; path: string; prefix: string }
 
-type Step =
+/** Where a path ends, and whether the context allows the types of document it goes through. */
+type Step = { allowed: boolean } & (
   | { kind: 'discriminator' }
   | { kind: 'missing'; why: string }
   | { kind: 'ok'; schema: core.$ZodType }
-
-/** An `arrayFilters` identifier, as the MongoDB manual defines it. */
-const IDENTIFIER = /^\$\[([a-z][a-zA-Z0-9]*)\]$/
-
-const INDEX = /^\d+$/
+)
 
 /** The values an equality, `$eq` or `$in` fixes, or `undefined` for any other condition. */
 function fixes(condition: unknown): readonly unknown[] | undefined {
@@ -70,10 +66,6 @@ function fixAt(scope: Scope, key: string) {
   return `reach "${scope.path}" with $[id] and fix "id.${scope.prefix}${key}" in arrayFilters`
 }
 
-function extend(scope: Scope, segment: string): Scope {
-  return { ...scope, prefix: `${scope.prefix}${segment}.` }
-}
-
 /** One segment: the sub-schemas it leads to, with the scope after it. */
 function next(
   schema: core.$ZodType,
@@ -81,40 +73,13 @@ function next(
   scope: Scope,
   path: string
 ): Array<[core.$ZodType, Scope]> {
-  const unwrapped = unwrapSchema(schema)
+  return step(schema, segment, 'update').map(([sub, element]): [core.$ZodType, Scope] => {
+    if (!element) return [sub, { ...scope, prefix: `${scope.prefix}${segment}.` }]
 
-  if (unwrapped instanceof core.$ZodAny || unwrapped instanceof core.$ZodUnknown) {
-    return [[unwrapped, extend(scope, segment)]]
-  }
+    const id = IDENTIFIER.exec(segment)?.[1]
 
-  if (unwrapped instanceof core.$ZodUnion) {
-    return unwrapped._zod.def.options.flatMap((option) => next(option, segment, scope, path))
-  }
-
-  if (unwrapped instanceof core.$ZodObject) {
-    const { catchall, shape } = unwrapped._zod.def
-    const field = Object.hasOwn(shape, segment) ? shape[segment] : catchall
-
-    return field && !(field instanceof core.$ZodNever) ? [[field, extend(scope, segment)]] : []
-  }
-
-  if (unwrapped instanceof core.$ZodRecord) {
-    const { keyType, valueType } = unwrapped._zod.def
-
-    return z.safeParse(keyType, segment).success ? [[valueType, extend(scope, segment)]] : []
-  }
-
-  if (!(unwrapped instanceof core.$ZodArray)) return []
-
-  const { element } = unwrapped._zod.def
-  const id = IDENTIFIER.exec(segment)?.[1]
-
-  if (id) return [[element, { id, kind: 'arrayFilter', prefix: '' }]]
-  if (segment === '$' || segment === '$[]' || INDEX.test(segment)) {
-    return [[element, { kind: 'none', path, prefix: '' }]]
-  }
-
-  return []
+    return [sub, id ? { id, kind: 'arrayFilter', prefix: '' } : { kind: 'none', path, prefix: '' }]
+  })
 }
 
 function walkStep(
@@ -122,56 +87,63 @@ function walkStep(
   segments: string[],
   scope: Scope,
   context: UpdateContext,
-  path: string
+  path: string,
+  allowed: boolean
 ): Step[] {
   const [segment = '', ...rest] = segments
   const found = next(schema, segment, scope, path)
 
-  if (found.length === 0) return [{ kind: 'missing', why: 'not a path' }]
-  if (rest.length === 0) return found.map(([sub]) => ({ kind: 'ok', schema: sub }))
+  if (found.length === 0) return [{ allowed, kind: 'missing', why: 'not a path' }]
+  if (rest.length === 0) return found.map(([sub]) => ({ allowed, kind: 'ok', schema: sub }))
 
   return found.flatMap(([sub, nextScope]) =>
-    walk(sub, rest, nextScope, context, path ? `${path}.${segment}` : segment)
+    walk(sub, rest, nextScope, context, path ? `${path}.${segment}` : segment, allowed)
   )
 }
 
-/** Walks a path: at each discriminated union, only into the options its scope allows. */
+/**
+ * Walks a path through every type of document, marking as not allowed the options of each
+ * discriminated union that its scope rules out: they only tell whether the path exists.
+ */
 function walk(
   schema: core.$ZodType,
   segments: string[],
   scope: Scope,
   context: UpdateContext,
-  path: string
+  path: string,
+  allowed: boolean
 ): Step[] {
   const unwrapped = unwrapSchema(schema)
 
   if (!(unwrapped instanceof core.$ZodDiscriminatedUnion)) {
-    return walkStep(schema, segments, scope, context, path)
+    return walkStep(schema, segments, scope, context, path, allowed)
   }
 
   const key = unwrapped._zod.def.discriminator
 
-  if (segments[0] === key) return [{ kind: 'discriminator' }]
+  if (segments.length === 1 && segments[0] === key) return [{ allowed, kind: 'discriminator' }]
 
   const fixed = scopeConstraints(scope, context, key)
-  const allowed = unwrapped._zod.def.options.filter((option) => {
+  const options = unwrapped._zod.def.options.map((option) => {
     // The values Zod itself uses to tell the options apart.
     const values = [...(unwrapSchema(option)._zod.propValues?.[key] ?? [])]
-
-    return fixed.every((candidates) =>
+    const matches = fixed.every((candidates) =>
       candidates.some((value) => values.some((own) => own === value))
     )
+
+    return { matches, option }
   })
-
-  if (allowed.length === 0) return [{ kind: 'missing', why: 'no type matches the filter' }]
-
-  return allowed.flatMap((option) =>
-    walkStep(option, segments, scope, context, path).map((step) =>
-      step.kind === 'missing' && step.why === 'not a path'
-        ? { kind: 'missing', why: fixAt(scope, key) }
-        : step
-    )
+  const steps = options.flatMap(({ matches, option }) =>
+    walkStep(option, segments, scope, context, path, allowed && matches)
   )
+
+  for (const found of steps) {
+    if (found.kind === 'missing' && found.why === 'not a path') found.why = fixAt(scope, key)
+  }
+
+  return options.some(({ matches }) => matches)
+    ? steps
+    : [{ allowed, kind: 'missing', why: 'no type matches the filter' }, ...steps]
 }
 
 /**
@@ -184,20 +156,22 @@ export function resolveUpdatePath(
   path: string,
   context: UpdateContext
 ): UpdatePath {
-  if (schemaAt(schema, path, 'update').length === 0) {
+  const steps = walk(schema, path.split('.'), { kind: 'filter', prefix: '' }, context, '', true)
+
+  if (steps.every((found) => found.kind === 'missing')) {
     return { kind: 'error', message: `"${path}" is not a path of the document` }
   }
 
-  const steps = walk(schema, path.split('.'), { kind: 'filter', prefix: '' }, context, '')
+  const allowed = steps.filter((found) => found.allowed)
 
-  if (steps.some((step) => step.kind === 'discriminator')) return { kind: 'discriminator' }
+  if (allowed.some((found) => found.kind === 'discriminator')) return { kind: 'discriminator' }
 
   const schemas: core.$ZodType[] = []
 
-  for (const step of steps) {
-    if (step.kind === 'missing')
-      return { kind: 'error', message: `"${path}" is not in every type allowed: ${step.why}` }
-    if (step.kind === 'ok') schemas.push(step.schema)
+  for (const found of allowed) {
+    if (found.kind === 'missing')
+      return { kind: 'error', message: `"${path}" is not in every type allowed: ${found.why}` }
+    if (found.kind === 'ok') schemas.push(found.schema)
   }
 
   return { kind: 'ok', schemas }
