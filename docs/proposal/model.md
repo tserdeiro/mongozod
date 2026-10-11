@@ -142,7 +142,8 @@ const { extraIndexes } = await PluginsModel.sync()
   cada campo, los obligatorios, objetos y arrays anidados, enums y literales, `null` y las uniones
   con `anyOf`. Sigue la salida del schema, que es lo que se guarda: el final de un pipe o de un
   codec. Los refinements quedan en la app; los transforms, `z.custom`, `z.unknown` y los schemas
-  recursivos, sin regla, porque MongoDB no tiene `$ref`.
+  recursivos, sin regla, porque MongoDB no tiene `$ref`. La excepción es el
+  [`objectId()`](./inputs.md#decisiones-de-los-inputs) de `mongozod/bson`, que es un `objectId`.
 - **Campos de más**: un `z.object` común descarta las keys que no declara, pero los documentos
   viejos pueden tenerlas, así que `additionalProperties` queda abierto. Un `z.strictObject` lo
   cierra, y un catchall usa su schema.

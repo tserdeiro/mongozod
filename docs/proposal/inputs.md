@@ -226,18 +226,25 @@ manda `{ createdAt, _id }` del último elemento de la página.
 12. **Schemas**: los constructores aceptan schemas de Zod y de Zod Mini, y uniones discriminadas
     en la raíz, que buscan cada campo en sus tipos. Construyen schemas de Zod clásico. El `_id` se
     filtra si el schema lo declara: sin el driver no hay `ObjectId`.
-13. **`ObjectId`** (fase 5): se declara con `objectId()`, de `mongozod/bson`, como
-    `_id: objectId().default(() => new ObjectId())`. Es la unión de un `ObjectId` y un codec de su
-    hex, como la forma de las fechas: el servidor pasa un `ObjectId`, el cliente manda el hex de 24
-    caracteres (`z.hex().length(24)`), los constructores de `mz` lo convierten con
-    `ObjectId.createFromHexString` y `z.encode` lo vuelve a hex.
+13. **`ObjectId`**: se declara con `objectId()`, de `mongozod/bson`, como
+    `_id: objectId().default(() => new ObjectId())`. Es la unión de un codec de su hex y un
+    `ObjectId`, como la forma de las fechas: el servidor pasa un `ObjectId`, el cliente manda el hex
+    de 24 caracteres (`z.hex().length(24)`, en mayúsculas o minúsculas), el modelo y los
+    constructores de `mz` lo convierten con `ObjectId.createFromHexString`, y `z.encode` lo vuelve a
+    hex. El codec va primero: con el `ObjectId` primero, `z.encode` lo devuelve sin cambios.
+    Cualquier otro valor da un solo issue: `Invalid ObjectId: expected an ObjectId or its
+    24-character hex string`.
     - **Importa `bson`, nunca el driver**: `bson` no tiene dependencias y publica builds para browser
-      y React Native, así que sirve en un schema compartido con el cliente. Es un peer opcional, del
-      mismo major que el driver, porque su serializador rechaza los valores de otro major.
-    - **Sin `instanceof`**: reconoce un `ObjectId` por el símbolo público `bsonType` de bson, que es
-      global y vale entre dos copias de bson; `instanceof` falla entre copias.
-    - **Codec y no `.transform()`**: un transform no se puede encodear, y mongozod reconoce
-      `objectId()` para generar `bsonType: 'objectId'` en el `$jsonSchema`.
+      y React Native, así que sirve en un schema compartido con el cliente. Es un peer opcional
+      (`^6.10.0 || ^7.0.0`), del mismo major que el driver, porque su serializador rechaza los
+      valores de otro major. `mongozod/bson` es el único build que importa `bson`.
+    - **Sin `instanceof`**: reconoce un `ObjectId` por su `_bsontype`, como el serializador de
+      bson. `instanceof` falla entre dos copias de bson, y también con una sola: en Node, el driver
+      carga el build CommonJS de bson, y una app que importa `bson` como módulo ES recibe otra clase.
+      El símbolo `bsonType` serviría, pero bson 6 no lo tiene.
+    - **Codec y no `.transform()`**: un transform no se puede encodear. mongozod registra el
+      `ObjectId` de `objectId()` en un registro de Zod (`core.registry`), así el `$jsonSchema` le da
+      `bsonType: 'objectId'`.
     - **Frente a las otras formas**: `z.instanceof(ObjectId)` rechaza el hex de un cliente, y un
       regex con `.transform()` rechaza el `ObjectId` del servidor y tipa el insert como `string`.
       Zod no trae un codec de `ObjectId` entre sus ejemplos.

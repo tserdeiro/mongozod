@@ -579,8 +579,17 @@
     `Encountered unidirectional transform during encode`, y las tres generan `{}` en el
     `$jsonSchema`. La página de codecs de Zod no trae uno de `ObjectId`.
   - bson 7 rechaza un string de 12 caracteres en `new ObjectId()`, y `ObjectId.isValid` le da
-    `false`. Su símbolo público `bsonType` es `Symbol.for('@@mdb.bson.type')`, así que vale entre
-    copias de bson. `mongodb` reexporta el `ObjectId` de `bson`.
+    `false`. Su símbolo público `bsonType` es `Symbol.for('@@mdb.bson.type')`, pero bson 6.10 no lo
+    tiene; `_bsontype` es público en los dos. `mongodb` reexporta el `ObjectId` de `bson`.
+  - En Node, el `ObjectId` del build CommonJS de bson 7.3.3, el que carga el driver, no es la misma
+    clase que el del build ES: `instanceof` falla aunque la versión sea la misma.
+  - `objectId()` (bson 7.3.3 y 6.10.4, 7 tests): toma el hex, en mayúsculas o minúsculas, y un
+    `ObjectId` de cualquiera de los dos builds; rechaza lo demás con un solo issue; `z.encode` da el
+    hex solo con el codec primero en la unión (con el `ObjectId` primero lo devuelve sin cambios);
+    el `$jsonSchema` lo da como `objectId`; y el modelo guarda un `ObjectId` desde un hex, desde
+    `mz.filter` y desde `mz.update`. Con el driver 6.20 y bson 6.10.4 pasan los 203 tests, los
+    tipos, el build y el consumidor de los `.d.ts`. Lo mismo vale para las fechas:
+    `z.union([z.date(), isoToDate])` no encodea, y `z.union([isoToDate, z.date()])` sí.
   - Mongoose 9 rechaza por defecto los updates con pipeline y pide `updatePipeline: true`, por
     query o global (guía de migración a la 9). En un pipeline, su `applyTimestampsToUpdate` agrega
     `{ $set: { [updatedAt]: now } }` y no escribe `createdAt`.
