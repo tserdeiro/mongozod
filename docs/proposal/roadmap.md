@@ -47,7 +47,20 @@ El orden de implementación. Al cerrar una fase, se marca acá en el mismo cambi
 6. **Primera versión**: una 0.x en npm y un primer módulo de adsgpt migrado. Publicarla confirma el
    nombre, y su número no puede repetir ninguno de los que usó el autor anterior (ver
    [Qué se verificó](./verified.md)). Antes, adsgpt arregla wortise/adsgpt#230 y wortise/adsgpt#231,
-   que no dependen de mongozod. Con ella van:
+   que no dependen de mongozod. Antes de publicarla:
+   1. Los tipos BSON que todavía no tienen una forma cómoda:
+      1. `.meta({ bsonType })`, la API de metadata de Zod, en el `$jsonSchema`: un campo sin codec,
+         como `z.instanceof(Decimal128).meta({ bsonType: 'decimal' })`, declara su tipo BSON. Los
+         codecs usan el mismo mecanismo, y desaparece el registro propio de `objectId()`.
+      2. `decimal128()`, en `mongozod/codecs/bson` junto a `objectId()`, porque también necesita
+         `bson`: un string ↔ `Decimal128`, el tipo para dinero.
+      3. `binary()`, en `mongozod/codecs/binary`: base64 ↔ `Uint8Array`, que el driver guarda como
+         `Binary`. No necesita `bson`.
+      4. GeoJSON, en `mongozod/geojson`: `point()`, `lineString()`, `polygon()` y sus `Multi*`,
+         con las reglas de MongoDB para los índices `2dsphere` (`[longitud, latitud]`, sus rangos
+         y los anillos cerrados). No son codecs: validan la forma, sin convertir valores.
+
+   Con ella van:
    1. El README del paquete y de la raíz: qué es, cómo se instala, un ejemplo mínimo y que la API
       puede cambiar en la 0.x.
    2. La guía «Desde Mongoose», en `docs/`, para que se lea en GitHub y en el sitio: las
@@ -56,6 +69,7 @@ El orden de implementación. Al cerrar una fase, se marca acá en el mismo cambi
       conviven sobre la misma conexión mientras se migra, modelo por modelo, con el driver 6 de
       Mongoose 8 o el 7 de Mongoose 9. Trae un «Copy prompt» para que cada equipo le pase la
       migración a su agente.
+
 7. **Después**: [`audit`](./plugins/audit.md), [`logger`](./plugins/logger.md) y
    [`history`](./plugins/history.md); la documentación para usuarios; el sitio, con un playground
    que muestre, para un schema, sus tipos, su `$jsonSchema` y lo que acepta cada constructor de
