@@ -71,6 +71,9 @@ El orden de implementación. Al cerrar una fase, se marca acá en el mismo cambi
       migración a su agente.
 
 7. **Después**: [`audit`](./plugins/audit.md), [`logger`](./plugins/logger.md) y
-   [`history`](./plugins/history.md); la documentación para usuarios; el sitio, con un playground
+   [`history`](./plugins/history.md); un plugin de versión, el control de concurrencia optimista
+   que Mongoose hace con `__v` y `optimisticConcurrency`: un campo que el filtro chequea y un `$inc`
+   aumenta en cada escritura, con el nombre configurable, así sirve `__v` en los documentos que
+   vienen de Mongoose (el nombre por defecto se decide al diseñarlo, quizás `_v`); la documentación para usuarios; el sitio, con un playground
    que muestre, para un schema, sus tipos, su `$jsonSchema` y lo que acepta cada constructor de
    `mongozod/mzod`; los ejemplos; los demás módulos de adsgpt, uno por uno; y la v1.
