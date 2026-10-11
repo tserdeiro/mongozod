@@ -122,6 +122,10 @@ con un tarball nuevo:
 - **`select: false`, `immutable` y `alias`**: un campo `password` que no se lee por defecto es muy
   común. La auditoría de las fases 1 a 4 los nombra como plugins posibles, pero no están en el
   roadmap.
+- **Resueltos después de la evaluación**: las escrituras validan con `parseAsync`, así los
+  refinements asíncronos funcionan en inserts, reemplazos, updates y `bulkWrite` (`305244c`); y un
+  `z.bigint()` exige `useBigInt64: true` en el cliente o el `Db`, o la primera operación lanza un
+  `Error` con el path (`6d11466`).
 - **Menores, sin planificar**: `timestamps` en subdocumentos y `currentTime`, `populate` de Maps y su
   opción `transform`, `Model.populate()` sobre documentos ya leídos, la collation por defecto y los
   plugins globales.
