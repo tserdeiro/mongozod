@@ -38,7 +38,7 @@ El orden de implementación. Al cerrar una fase, se marca acá en el mismo cambi
    3. `timestamps` sin `.default()` (hecho). Ver [Timestamps](./model.md#timestamps).
    4. Los updates con pipeline, con `updatePipeline: true` (hecho). Ver [Updates](./types.md#updates).
    5. `populate`, en este orden: el valor como objeto, con `filter` y `sort` (hecho); las referencias en
-      subdocumentos y arrays (hecho); el `populate` anidado; y el uno a muchos con `foreignField`. Ver
+      subdocumentos y arrays (hecho); el `populate` anidado (hecho); y el uno a muchos con `foreignField`. Ver
       [Referencias](./model.md#referencias).
 
    El casting de los filtros no se implementa: se documenta como diferencia con Mongoose (ver

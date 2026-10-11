@@ -193,8 +193,9 @@ await TransactionsModel.find(
     referencias en vez de reemplazarlas, y pasa por los plugins del destino;
   - `sort` ordena los arrays con el orden de la consulta; sin `sort`, un array conserva el orden en
     que guarda los ids;
-  - `populate` puebla las referencias del destino, en varios niveles, a través de su modelo (fase
-    5).
+  - `populate` puebla las referencias del destino, en los niveles que se pidan: el `find` de su
+    modelo lo recibe y lo resuelve con sus plugins y sus virtuals, y lo valida contra sus
+    referencias. Una colección sin modelo no tiene referencias, así que no lo toma.
 
   Una opción desconocida no compila y lanza un `ZodError`, con el issue en
   `['populate', key, option]`.
@@ -228,8 +229,9 @@ await TransactionsModel.find(
 - **Dónde se chequea el destino**: al pedir el `populate`, no al declarar la referencia. Chequearlo
   al declararla hace circulares los tipos de dos modelos que se referencian, de un modelo que se
   referencia a sí mismo y de uno con dos referencias al mismo modelo (`TS7022`). Por eso el tipo de
-  un modelo referenciado solo pide su `schema` y sus `virtuals`, y `populate` lee con el `find` que
-  `mongozod()` registra para cada modelo. Un destino que no es una función ni
+  un modelo referenciado solo pide su `schema`, sus `virtuals` y sus `references`, que el modelo
+  expone para el `populate` anidado, y `populate` lee con el `find` que `mongozod()` registra para
+  cada modelo. Un destino que no es una función ni
   `{ collection, schema }` lanza un `Error` al definir el modelo.
 - **Para clientes**: un `populate` que llega en runtime, como el de `mz.populate`, deja cada
   referencia como unión con el id, porque puede no haberse pedido. Ver

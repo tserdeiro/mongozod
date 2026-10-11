@@ -633,6 +633,13 @@
   - Un modelo con un campo `z.json()` no compilaba en un `find` (`TS2589`, ya en la fase 4): las
     sugerencias de paths recorrían su unión recursiva sin sumar profundidad. Ahora cada unión suma
     un nivel, y las sugerencias de los arrays de objetos no cambian.
+  - `populate` anidado (MongoDB 8.2.6, TypeScript 5.5.4 y 7.0.2, 2 tests nuevos): tres niveles,
+    de un movimiento a su cuenta, a su último movimiento y a su organización, con modelos que se
+    referencian entre sí; el tipo de cada nivel sigue su `populate` y su proyección; un `populate`
+    en una colección sin modelo y una referencia que el destino no tiene no compilan y lanzan un
+    `ZodError`. El editor sugiere las referencias y las opciones del destino en cada nivel, también
+    entre dos modelos que se referencian. El costo de tipos del consumidor no cambia (308.448
+    instanciaciones).
   - Populate de Mongoose (su documentación): `match` deja en `null` una referencia que no cumple y
     saca las de un array; `limit` no es por documento, porque consulta con `numDocuments * limit`;
     `perDocumentLimit` hace una consulta por documento; `refPath` elige el modelo con otro campo del
