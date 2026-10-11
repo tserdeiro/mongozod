@@ -116,6 +116,12 @@ El orden de implementación. Al cerrar una fase, se marca acá en el mismo cambi
           [Automattic/mongoose#15417](https://github.com/Automattic/mongoose/issues/15417) y
           [#8163](https://github.com/Automattic/mongoose/issues/8163)).
 
+   3. El costo de los tipos: el proyecto típico de `pnpm check-type-cost` usa el 95 % de sus dos
+      límites (80.739 de 85.000 instanciaciones con TypeScript 7 y 90.434 de 95.000 con 5.5),
+      después de la fase 6.2 y las correcciones de la
+      [evaluación](../audits/evaluation.md). Antes de sumar más tipos, se mide qué los encarece y se
+      abaratan, o se decide subir el límite con un motivo.
+
    Con ella van:
    1. El README del paquete y de la raíz: qué es, cómo se instala, un ejemplo mínimo y que la API
       puede cambiar en la 0.x.
