@@ -212,6 +212,25 @@ Lo que falla:
 - **Líneas**: los mismos cinco modelos ocupan 120 líneas con mongozod y 83 con Mongoose. La
   diferencia es el `_id` con su `.default()` y los campos de `timestamps`, que se declaran.
 
+### Mejoras hechas
+
+- **Los strings de Mongoose** (`66bedc9`): un `sort`, una `projection` o un `populate` en string no
+  compilan, y el `sort` y la `projection` lanzan un `ZodError` en runtime.
+- **`$inc` y `$mul` en `Decimal128`** (`c50f726`): el valor se parsea con el schema del campo, así un
+  `'0.10'` llega exacto, también por `mz.update`.
+- **Los lotes** (`6b0c980`): `insertMany` y `bulkWrite` lanzan un solo `ZodError` con los issues de
+  todos los documentos u operaciones que fallan, cada uno bajo su índice.
+- **`ReadOf<M, O>`** (`ef4122e`): el documento que devuelve una lectura con su `projection` y su
+  `populate`, para tipar services y respuestas.
+- **El JSDoc** (`80d82f2`): sin el `;` de las cercas, con el ejemplo de `mz.objectId()` que compila,
+  el de `find` con su `projection`, el de `softDelete()` con `deletedAt` y uno de transacción.
+
+### Para después de la 0.x
+
+Las sugerencias de los operadores de query, los tipos legibles al pasar el mouse, los errores de
+configuración del modelo con el mensaje primero y las sugerencias de los updates filtradas por
+operador. Son más caras y hay que medir su costo de tipos; quedan en la fase 7 del roadmap.
+
 ## Lo que funciona
 
 - **Mongoose [#8505](https://github.com/Automattic/mongoose/issues/8505)**: los objetos y arrays

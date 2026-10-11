@@ -164,7 +164,7 @@ El orden de implementación. Al cerrar una fase, se marca acá en el mismo cambi
       ([#8505](https://github.com/Automattic/mongoose/issues/8505)) y que un upsert con
       `_id: null` falla ([#9201](https://github.com/Automattic/mongoose/issues/9201)).
 
-7. **Después**: [`audit`](./plugins/audit.md), [`logger`](./plugins/logger.md) y
+7. **Después**: lo que dejó la [evaluación antes de la primera versión](../audits/evaluation.md): las sugerencias de los operadores de query en el editor, los tipos legibles al pasar el mouse por una lectura proyectada o poblada, los errores de configuración del modelo con el mensaje primero, las sugerencias de los updates filtradas por operador, y `select: false`, `immutable` y `alias` como plugins o recetas; [`audit`](./plugins/audit.md), [`logger`](./plugins/logger.md) y
    [`history`](./plugins/history.md); `mz.from(schema)`, que ata los constructores de inputs a un
    schema para no repetirlo, `mz.from(brandSchema).filter({…})`, como la forma cómoda junto a los
    sueltos, que siguen siendo tree-shakeables (su objeto carga los seis); `mz.before`, la página anterior, como el
