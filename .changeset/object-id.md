@@ -2,7 +2,7 @@
 'mongozod': minor
 ---
 
-Add `objectId()`, from `mongozod/bson`: an `ObjectId` field that takes an `ObjectId` or its
+Add `objectId()`, from `mongozod/codecs/bson`: an `ObjectId` field that takes an `ObjectId` or its
 24-character hex string, as a JSON client sends it, and returns an `ObjectId`. `z.encode` turns it
 back into the hex string, and the `$jsonSchema` of `sync()` checks it as an `objectId`. It
 recognizes an `ObjectId` by its `_bsontype`, so it takes the driver's even when `instanceof` would

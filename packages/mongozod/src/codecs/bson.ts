@@ -35,7 +35,7 @@ const hexToObjectId = z.codec(z.hex().length(24), objectIdInstance, {
  * @example
  *   ;```ts
  *   import { ObjectId } from 'bson'
- *   import { objectId } from 'mongozod/bson'
+ *   import { objectId } from 'mongozod/codecs/bson'
  *
  *   const brandSchema = z.object({
  *     _id: objectId().default(() => new ObjectId()),

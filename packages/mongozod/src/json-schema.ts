@@ -140,7 +140,8 @@ function walk(schema: core.$ZodType, seen: ReadonlySet<core.$ZodType>): Document
  * The `$jsonSchema` of a model's schema, for the documents as stored: the BSON type of each field,
  * the required ones, nested objects and arrays, enums and literals, `null` and unions. Refinements
  * stay in the app, and transforms, customs and recursive schemas have no rules, except the
- * `objectId()` of `mongozod/bson`. Without an `_id` in the schema, the driver's `ObjectId` passes.
+ * `objectId()` of `mongozod/codecs/bson`. Without an `_id` in the schema, the driver's `ObjectId`
+ * passes.
  */
 export function toJsonSchema(schema: core.$ZodType): Document {
   const jsonSchema = walk(schema, new Set())

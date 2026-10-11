@@ -24,7 +24,7 @@
   "sideEffects": false,
   "exports": {
     ".": "./dist/index.mjs",
-    "./bson": "./dist/bson.mjs",
+    "./codecs/bson": "./dist/codecs/bson.mjs",
     "./mz": "./dist/mz.mjs",
     "./plugins/soft-delete": "./dist/plugins/soft-delete.mjs",
     "./package.json": "./package.json"

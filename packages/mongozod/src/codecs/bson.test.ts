@@ -17,10 +17,10 @@ import { mongozod } from '../mongozod'
 import { filter } from '../mz/filter'
 import { update } from '../mz/update'
 
-import { objectId } from './object-id'
+import { objectId } from './bson'
 
 const client = new MongoClient(inject('mongoUri'))
-const db = client.db('mongozod-object-id')
+const db = client.db('mongozod-codecs-bson')
 
 beforeAll(() => client.connect())
 afterAll(() => client.close())
