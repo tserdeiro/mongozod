@@ -91,6 +91,22 @@ Ordenados por impacto. Todos se reprodujeron aparte con el tarball.
 12. **`$currentDate` con `{ $type: 'timestamp' }` en un campo `Date` guarda un `Timestamp`** con
     input sin tipos. Los tipos lo rechazan.
 
+### Correcciones
+
+Los 12 se corrigieron, cada uno con su test, y los scripts de la evaluación se volvieron a correr
+con un tarball nuevo:
+
+| Bug   | Commit    | Cómo                                                                                                                                                                                                              |
+| ----- | --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1     | `cda2a1e` | Una inclusión que no nombra el `_id` lo recibe del servidor: no se pide ni se quita.                                                                                                                              |
+| 2–5   | `13d870b` | El upsert valida lo que copia el servidor: el `_id` del filtro en los reemplazos, sin `_id: null`, sin regex sueltas, `undefined` como `null`, y rechaza los valores del filtro que el schema guardaría distinto. |
+| 6     | `25e6040` | `$rename` compara lo que guarda el origen con lo que guarda el destino, y su destino respeta `timestamps`.                                                                                                        |
+| 7     | `4de4eb6` | El `$jsonSchema` declara el `_id` con un catchall y en cada tipo de una unión anidada.                                                                                                                            |
+| 8     | `4ac6cb9` | `UpdateOf` lee los `timestamps` de una propiedad `~timestamps` que solo existe en los tipos.                                                                                                                      |
+| 9     | `e299400` | Un plugin sin opciones no reserva todos los nombres.                                                                                                                                                              |
+| 10–11 | `b3f9907` | Una referencia que pasa por un record, o cuyo campo guarda uno, lanza un `Error` al definir el modelo.                                                                                                            |
+| 12    | `82c1bf8` | En runtime, `$currentDate` toma `true` o `{ $type: 'date' }`, como sus tipos.                                                                                                                                     |
+
 ## Huecos de paridad
 
 - **Validaciones asíncronas (importante)**: un `.refine(async …)` en el schema hace que toda
