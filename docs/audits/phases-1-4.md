@@ -367,7 +367,8 @@ En orden de prioridad. Los que dicen «decidir» cambian algo registrado en la p
 6. **El criterio de la v1**, reformulado para una librería. Decidido: reemplazar a Mongoose en sus
    funciones principales.
 7. **ObjectId**: un codec oficial, en un subpath que importe `bson`, o una receta (hueco 1).
-   Decidido: `objectId()`, un codec en `mongozod/bson`.
+   Decidido: `objectId()`, un codec en `mongozod/codecs/bson`, junto a `date()` en
+   `mongozod/codecs/date`.
 8. **El alcance de `populate`**: primero las referencias dentro de arrays de subdocumentos; después,
    opciones y varios niveles (hueco 2). Decidido: entran en la v1 los paths en subdocumentos y
    arrays, el anidado, `filter`, `sort` y el uno a muchos con `foreignField`; el valor pasa a ser

@@ -34,7 +34,7 @@ El orden de implementación. Al cerrar una fase, se marca acá en el mismo cambi
    este orden:
    1. El driver 6.20 en el peer (`^6.20.0 || ^7.0.0`), con un job de CI (hecho). Ver
       [Decisiones acordadas](./README.md#decisiones-acordadas).
-   2. `objectId()`, en `mongozod/bson` (hecho). Ver [Inputs](./inputs.md#decisiones-de-los-inputs).
+   2. `objectId()` y `date()`, en `mongozod/codecs/bson` y `mongozod/codecs/date` (hecho). Ver [Inputs](./inputs.md#decisiones-de-los-inputs).
    3. `timestamps` sin `.default()`. Ver [Timestamps](./model.md#timestamps).
    4. Los updates con pipeline, con `updatePipeline: true`. Ver [Updates](./types.md#updates).
    5. `populate`, en este orden: el valor como objeto, con `filter` y `sort`; las referencias en

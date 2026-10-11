@@ -590,6 +590,12 @@
     `mz.filter` y desde `mz.update`. Con el driver 6.20 y bson 6.10.4 pasan los 203 tests, los
     tipos, el build y el consumidor de los `.d.ts`. Lo mismo vale para las fechas:
     `z.union([z.date(), isoToDate])` no encodea, y `z.union([isoToDate, z.date()])` sí.
+  - `date()` (Zod 4.6.5, 5 tests): toma una `Date` y un ISO con `Z` o con zona horaria, que llegan
+    al mismo instante; rechaza con un solo issue un ISO sin zona horaria, una fecha sin hora, una
+    `Date` inválida y lo demás; `z.encode` da el ISO en UTC; el `$jsonSchema` lo da como `date`; y
+    el modelo guarda una `Date` desde un ISO con zona horaria, que `mz.filter` también convierte en
+    un `$lt`. `dist/codecs/date.mjs` no importa `bson`. La documentación de Zod dice que sus codecs
+    no son API, sino implementaciones para copiar y adaptar.
   - Mongoose 9 rechaza por defecto los updates con pipeline y pide `updatePipeline: true`, por
     query o global (guía de migración a la 9). En un pipeline, su `applyTimestampsToUpdate` agrega
     `{ $set: { [updatedAt]: now } }` y no escribe `createdAt`.

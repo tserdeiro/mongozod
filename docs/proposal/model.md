@@ -53,24 +53,17 @@ objeto por campo. Está apagada por defecto.
 - **Sin `.default()`** (fase 5; hasta entonces lo necesitan, o ser opcionales): el schema declara
   lo que se guarda, y mientras `timestamps` está activo el tipo del insert y del reemplazo los deja
   opcionales, porque el núcleo los completa antes de validar. Así funciona la opción de Mongoose,
-  que agrega los campos sola. Un `.default()` sigue funcionando. La forma documentada acepta
-  una `Date` o un ISO, para los inputs que llegan en JSON, y un codec convierte el ISO en `Date`:
+  que agrega los campos sola. Un `.default()` sigue funcionando. La forma documentada es
+  [`date()`](./inputs.md#decisiones-de-los-inputs), de `mongozod/codecs/date`, que acepta una
+  `Date` o un ISO, para los inputs que llegan en JSON, y devuelve una `Date`:
 
   ```ts
-  const isoToDate = z.codec(z.iso.datetime(), z.date(), {
-    decode: (iso) => new Date(iso),
-    encode: (date) => date.toISOString()
-  })
+  import { date } from 'mongozod/codecs/date'
 
-  const timestampSchema = z.union([isoToDate, z.date()])
+  const noteSchema = z.object({ title: z.string(), createdAt: date(), updatedAt: date() })
   ```
 
-  Es el ejemplo `isoDatetimeToDate` de la documentación de Zod, que tiene codecs desde la 4.1. Un
-  codec declara su salida, así que el [`$jsonSchema`](#sincronización) sabe que el campo es una
-  fecha; con `.transform()` no lo sabe, porque un transform puede devolver cualquier cosa. Además,
-  `z.encode` la vuelve a ISO, y un transform no se puede encodear. El codec va primero en la unión:
-  con la `Date` primero, `z.encode` la devuelve sin cambios. La misma forma sirve para las
-  demás fechas, como `deletedAt` o `scheduledFor`.
+  Sirve para las demás fechas, como `deletedAt` o `scheduledFor`.
 
 - **Inserts y reemplazos**: como Mongoose, `createdAt` es el que viene o «ahora»; adsgpt guarda en
   `brands` la fecha de la fuente. `updatedAt` es el que viene o el valor de `createdAt`, así un
@@ -143,7 +136,8 @@ const { extraIndexes } = await PluginsModel.sync()
   con `anyOf`. Sigue la salida del schema, que es lo que se guarda: el final de un pipe o de un
   codec. Los refinements quedan en la app; los transforms, `z.custom`, `z.unknown` y los schemas
   recursivos, sin regla, porque MongoDB no tiene `$ref`. La excepción es el
-  [`objectId()`](./inputs.md#decisiones-de-los-inputs) de `mongozod/bson`, que es un `objectId`.
+  [`objectId()`](./inputs.md#decisiones-de-los-inputs) de `mongozod/codecs/bson`, que es un
+  `objectId`.
 - **Campos de más**: un `z.object` común descarta las keys que no declara, pero los documentos
   viejos pueden tenerlas, así que `additionalProperties` queda abierto. Un `z.strictObject` lo
   cierra, y un catchall usa su schema.

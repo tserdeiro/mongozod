@@ -226,9 +226,9 @@ manda `{ createdAt, _id }` del último elemento de la página.
 12. **Schemas**: los constructores aceptan schemas de Zod y de Zod Mini, y uniones discriminadas
     en la raíz, que buscan cada campo en sus tipos. Construyen schemas de Zod clásico. El `_id` se
     filtra si el schema lo declara: sin el driver no hay `ObjectId`.
-13. **`ObjectId`**: se declara con `objectId()`, de `mongozod/bson`, como
+13. **`ObjectId`**: se declara con `objectId()`, de `mongozod/codecs/bson`, como
     `_id: objectId().default(() => new ObjectId())`. Es la unión de un codec de su hex y un
-    `ObjectId`, como la forma de las fechas: el servidor pasa un `ObjectId`, el cliente manda el hex
+    `ObjectId`, como `date()` con las fechas: el servidor pasa un `ObjectId`, el cliente manda el hex
     de 24 caracteres (`z.hex().length(24)`, en mayúsculas o minúsculas), el modelo y los
     constructores de `mz` lo convierten con `ObjectId.createFromHexString`, y `z.encode` lo vuelve a
     hex. El codec va primero: con el `ObjectId` primero, `z.encode` lo devuelve sin cambios.
@@ -237,7 +237,7 @@ manda `{ createdAt, _id }` del último elemento de la página.
     - **Importa `bson`, nunca el driver**: `bson` no tiene dependencias y publica builds para browser
       y React Native, así que sirve en un schema compartido con el cliente. Es un peer opcional
       (`^6.10.0 || ^7.0.0`), del mismo major que el driver, porque su serializador rechaza los
-      valores de otro major. `mongozod/bson` es el único build que importa `bson`.
+      valores de otro major. `mongozod/codecs/bson` es el único build que importa `bson`.
     - **Sin `instanceof`**: reconoce un `ObjectId` por su `_bsontype`, como el serializador de
       bson. `instanceof` falla entre dos copias de bson, y también con una sola: en Node, el driver
       carga el build CommonJS de bson, y una app que importa `bson` como módulo ES recibe otra clase.
@@ -248,6 +248,17 @@ manda `{ createdAt, _id }` del último elemento de la página.
     - **Frente a las otras formas**: `z.instanceof(ObjectId)` rechaza el hex de un cliente, y un
       regex con `.transform()` rechaza el `ObjectId` del servidor y tipa el insert como `string`.
       Zod no trae un codec de `ObjectId` entre sus ejemplos.
+14. **Fechas**: se declaran con `date()`, de `mongozod/codecs/date`. Es la unión del codec
+    `isoDatetimeToDate` de la documentación de Zod y una `Date`: el servidor pasa una `Date`, el
+    cliente manda un ISO con `Z` o con zona horaria (`z.iso.datetime({ offset: true })`), y
+    `z.encode` lo vuelve a ISO en UTC. Un ISO sin `Z` ni zona horaria se rechaza, porque no dice qué
+    instante es, y cualquier otro valor da un solo issue: `Invalid date: expected a Date or an ISO
+    datetime string with Z or an offset`.
+    - **Por qué un codec propio**: Zod no exporta sus codecs, sino que los propone para copiar y
+      adaptar. Copiado, el orden de la unión es fácil de equivocar: con la `Date` primero, `z.encode`
+      la devuelve sin cambios, y así estaba la forma que documentaba esta propuesta.
+    - **Sin `bson`**: importa solo Zod. Los codecs viven en `mongozod/codecs`, un subpath por codec,
+      así `date()` no pide `bson`.
 
 ## Qué reemplaza
 
