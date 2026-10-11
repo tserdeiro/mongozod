@@ -36,7 +36,7 @@ import { checkPlugins, runCursor, runOperation } from './plugin-pipeline'
 import { planRead } from './read-plan'
 import { checkReferences, registerFind } from './references'
 import { schemaAt } from './schema-at'
-import { stampDocument, stampUpdate, timestampsOf } from './timestamps'
+import { stampDocument, stampPipeline, stampUpdate, timestampsOf } from './timestamps'
 import { filterEqualities } from './upsert'
 import { virtualsOf } from './virtuals'
 
@@ -222,11 +222,18 @@ export function mongozod(
     return { driverOptions, plan, populate }
   }
 
-  /** The options for the driver, without `timestamps`, and the fields the operation stamps. */
+  /**
+   * The options for the driver, without mongozod's: the fields the operation stamps, and whether an
+   * update may be a pipeline.
+   */
   function writeOptions(operationOptions: Document = {}) {
-    const { timestamps: stamp, ...driverOptions } = operationOptions
+    const { timestamps: stamp, updatePipeline, ...driverOptions } = operationOptions
 
-    return { driverOptions, stamps: stamp === false ? {} : timestamps }
+    return {
+      driverOptions,
+      pipeline: updatePipeline === true,
+      stamps: stamp === false ? {} : timestamps
+    }
   }
 
   /** Validates a replacement like an insert, keeping the `_id` only when it is given. */
@@ -264,15 +271,32 @@ export function mongozod(
     return document
   }
 
-  /** Stamps an update and validates it with the schema, given its filter and its options. */
+  /**
+   * Stamps an update and validates it with the schema, given its filter and its options. A pipeline
+   * passes with `updatePipeline: true`, stamped but without validating its values: they are
+   * expressions the server computes.
+   */
   function parseModelUpdate(
     filter: Document,
     update: unknown,
     updateOptions: Document,
-    stamps: Timestamps,
+    { pipeline, stamps }: { pipeline: boolean; stamps: Timestamps },
     now: Date
   ) {
     const { arrayFilters, upsert } = updateOptions
+
+    if (Array.isArray(update)) {
+      if (pipeline) return stampPipeline(update, stamps, now, upsert)
+
+      throw new z.ZodRealError([
+        {
+          code: 'custom',
+          input: update,
+          message: 'an update with a pipeline needs updatePipeline: true',
+          path: []
+        }
+      ])
+    }
 
     return parseUpdate(options.schema, filter, stampUpdate(update, stamps, now, upsert), {
       arrayFilters,
@@ -414,9 +438,9 @@ export function mongozod(
     updateOptions: Document = {}
   ): Promise<ModifyResult | WithId<Document> | null> {
     return operate('findOneAndUpdate', { filter, options: updateOptions, update }, (args) => {
-      const { driverOptions: writeDriverOptions, stamps } = writeOptions(args.options)
+      const { driverOptions: writeDriverOptions, ...write } = writeOptions(args.options)
       const { driverOptions, plan } = readOptions(writeDriverOptions)
-      const parsed = parseModelUpdate(args.filter, args.update, driverOptions, stamps, new Date())
+      const parsed = parseModelUpdate(args.filter, args.update, driverOptions, write, new Date())
 
       return findOneAnd(plan, driverOptions, (metadataOptions) =>
         getCollection().findOneAndUpdate(args.filter, parsed, metadataOptions)
@@ -425,7 +449,13 @@ export function mongozod(
   }
 
   /** Validates the operations of a `bulkWrite` like the operations of the same name. */
-  function parseBulkWrite(operations: readonly Document[], stamps: Timestamps, now: Date) {
+  function parseBulkWrite(
+    operations: readonly Document[],
+    write: { pipeline: boolean; stamps: Timestamps },
+    now: Date
+  ) {
+    const { stamps } = write
+
     return operations.map((operation): AnyBulkWriteOperation => {
       if ('insertOne' in operation) {
         const document = stampDocument(operation.insertOne.document, stamps, now)
@@ -450,7 +480,7 @@ export function mongozod(
         return {
           updateOne: {
             ...operation.updateOne,
-            update: parseModelUpdate(filter, update, operation.updateOne, stamps, now)
+            update: parseModelUpdate(filter, update, operation.updateOne, write, now)
           }
         }
       }
@@ -461,7 +491,7 @@ export function mongozod(
         return {
           updateMany: {
             ...operation.updateMany,
-            update: parseModelUpdate(filter, update, operation.updateMany, stamps, now)
+            update: parseModelUpdate(filter, update, operation.updateMany, write, now)
           }
         }
       }
@@ -487,10 +517,10 @@ export function mongozod(
 
     bulkWrite(operations: readonly Document[], bulkOptions: Document = {}) {
       return operate('bulkWrite', { operations: [...operations], options: bulkOptions }, (args) => {
-        const { driverOptions, stamps } = writeOptions(args.options)
+        const { driverOptions, ...write } = writeOptions(args.options)
 
         return getCollection().bulkWrite(
-          parseBulkWrite(args.operations, stamps, new Date()),
+          parseBulkWrite(args.operations, write, new Date()),
           driverOptions
         )
       })
@@ -624,8 +654,8 @@ export function mongozod(
 
     updateMany(filter: Document, update: Document, updateOptions: Document = {}) {
       return operate('updateMany', { filter, options: updateOptions, update }, (args) => {
-        const { driverOptions, stamps } = writeOptions(args.options)
-        const parsed = parseModelUpdate(args.filter, args.update, driverOptions, stamps, new Date())
+        const { driverOptions, ...write } = writeOptions(args.options)
+        const parsed = parseModelUpdate(args.filter, args.update, driverOptions, write, new Date())
 
         return getCollection().updateMany(args.filter, parsed, driverOptions)
       })
@@ -633,8 +663,8 @@ export function mongozod(
 
     updateOne(filter: Document, update: Document, updateOptions: Document = {}) {
       return operate('updateOne', { filter, options: updateOptions, update }, (args) => {
-        const { driverOptions, stamps } = writeOptions(args.options)
-        const parsed = parseModelUpdate(args.filter, args.update, driverOptions, stamps, new Date())
+        const { driverOptions, ...write } = writeOptions(args.options)
+        const parsed = parseModelUpdate(args.filter, args.update, driverOptions, write, new Date())
 
         return getCollection().updateOne(args.filter, parsed, driverOptions)
       })

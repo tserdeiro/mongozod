@@ -43,12 +43,12 @@ export interface OperationArgs {
   findOne: { filter: Document; options: Document }
   findOneAndDelete: { filter: Document; options: Document }
   findOneAndReplace: { filter: Document; options: Document; replacement: Document }
-  findOneAndUpdate: { filter: Document; options: Document; update: Document }
+  findOneAndUpdate: { filter: Document; options: Document; update: Document | Document[] }
   insertMany: { documents: Document[]; options: Document }
   insertOne: { document: Document; options: Document }
   replaceOne: { filter: Document; options: Document; replacement: Document }
-  updateMany: { filter: Document; options: Document; update: Document }
-  updateOne: { filter: Document; options: Document; update: Document }
+  updateMany: { filter: Document; options: Document; update: Document | Document[] }
+  updateOne: { filter: Document; options: Document; update: Document | Document[] }
 }
 
 /** An operation of the model that plugins see. `watch` goes to the driver's collection. */

@@ -17,7 +17,7 @@ export interface Pipeline {
 }
 
 /** The options mongozod takes besides the driver's, which no plugin option can shadow. */
-const OWN_OPTIONS = new Set(['context', 'populate', 'schema', 'timestamps'])
+const OWN_OPTIONS = new Set(['context', 'populate', 'schema', 'timestamps', 'updatePipeline'])
 
 /** The group of an operation: `aggregate` and `estimatedDocumentCount` have none. */
 export function groupOf(operation: Operation): Group | undefined {

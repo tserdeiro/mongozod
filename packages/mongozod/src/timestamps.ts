@@ -176,6 +176,25 @@ export function stampDocument(document: Document, timestamps: Timestamps, now: D
 }
 
 /**
+ * Stamps an update pipeline with a last `$set` stage: `updatedAt`, as Mongoose does, and in an
+ * upsert `createdAt` when the document has none, so an existing document keeps its own.
+ */
+export function stampPipeline(
+  pipeline: readonly Document[],
+  timestamps: Timestamps,
+  now: Date,
+  upsert: unknown
+): Document[] {
+  const { createdAt, updatedAt } = timestamps
+  const stage: Document = {}
+
+  if (updatedAt) stage[updatedAt] = now
+  if (upsert && createdAt) stage[createdAt] = { $ifNull: [`$${createdAt}`, now] }
+
+  return Object.keys(stage).length > 0 ? [...pipeline, { $set: stage }] : [...pipeline]
+}
+
+/**
  * Stamps an update: `updatedAt` in `$set` and, in an upsert, `createdAt` in `$setOnInsert`, unless
  * it gives its own. Throws a `ZodError` when the update writes a field that `timestamps` sets.
  */

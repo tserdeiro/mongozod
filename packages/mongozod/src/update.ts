@@ -356,13 +356,24 @@ type OperatorCheck<S, Op, Fields, F, AF, Locked> = {
     : never
 }
 
+/** The stages MongoDB takes in an update pipeline. */
+type PipelineStage = '$addFields' | '$project' | '$replaceRoot' | '$replaceWith' | '$set' | '$unset'
+
+/** One stage of an update pipeline: its values are expressions the server computes, unchecked. */
+type StageCheck<T> = keyof T extends PipelineStage
+  ? T
+  : 'an update pipeline takes $set, $addFields, $unset, $project, $replaceWith or $replaceRoot'
+
 /**
  * Checks an update operator by operator and path by path: each path must exist in every type of
- * document the filter allows, and each value must fit its operator and its field.
+ * document the filter allows, and each value must fit its operator and its field. A pipeline
+ * compiles with `updatePipeline: true`, stage by stage.
  */
 export type UpdateCheck<S, U, F, O, N extends TimestampNames = NoTimestamps> = {
   [Op in keyof U]: U extends ReadonlyArray<unknown>
-    ? 'an update with a pipeline does not compile: use .collection'
+    ? O extends { updatePipeline: true }
+      ? StageCheck<U[Op]>
+      : 'an update with a pipeline needs updatePipeline: true'
     : Op extends FieldOperator
       ? OperatorCheck<S, Op, U[Op], F, ArrayFiltersOf<O>, LockedFields<N, Op, O>>
       : `"${Op & string}" is not an update operator`

@@ -222,12 +222,18 @@ describe('with the rest of the model', () => {
           context: { delete: actor, insert: actor, update: actor },
           hooks: {
             updateOne: {
-              before: ({ args, context }) => ({
-                args: {
-                  ...args,
-                  update: { ...args.update, $set: { ...args.update.$set, title: context.actor } }
-                }
-              })
+              before: ({ args, context }) =>
+                Array.isArray(args.update)
+                  ? undefined
+                  : {
+                      args: {
+                        ...args,
+                        update: {
+                          ...args.update,
+                          $set: { ...args.update.$set, title: context.actor }
+                        }
+                      }
+                    }
             }
           },
           id: 'audit'

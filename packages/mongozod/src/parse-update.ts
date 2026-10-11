@@ -197,7 +197,7 @@ export function parseUpdate(
       {
         code: 'custom',
         input: update,
-        message: 'an update is an object of operators: use .collection for a pipeline',
+        message: 'an update is an object of operators, or a pipeline with updatePipeline: true',
         path: []
       }
     ])

@@ -135,6 +135,8 @@ type UpdateOptionsBase<O> = Omit<O, 'arrayFilters' | 'projection' | 'sort'> & {
   populate?: Document
   projection?: Document
   sort?: Document
+  /** Takes an update pipeline, whose values are not validated: they are expressions. */
+  updatePipeline?: true
 }
 
 /**
@@ -303,7 +305,8 @@ export interface Model<
   bulkWrite<
     const Operations extends ReadonlyArray<Document> &
       BulkWriteCheck<S, Operations, N, BulkOptions>,
-    const BulkOptions extends BulkWriteOptions & TimestampsOperationOption<N> = BulkWriteOptions
+    const BulkOptions extends BulkWriteOptions &
+      TimestampsOperationOption<N> & { updatePipeline?: true } = BulkWriteOptions
   >(
     operations: Operations,
     ...options: OptionsArg<PL, 'bulk', BulkOptions>

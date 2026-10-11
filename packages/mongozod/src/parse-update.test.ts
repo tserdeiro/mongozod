@@ -171,9 +171,9 @@ describe('operators', () => {
     ])
   })
 
-  test('reject a pipeline', () => {
+  test('reject a pipeline, which the model takes before with updatePipeline: true', () => {
     expect(issuesOf(() => parseUpdate(pluginSchema, {}, [{ $set: { title: 'x' } }]))).toEqual([
-      ['', 'an update is an object of operators: use .collection for a pipeline']
+      ['', 'an update is an object of operators, or a pipeline with updatePipeline: true']
     ])
   })
 })

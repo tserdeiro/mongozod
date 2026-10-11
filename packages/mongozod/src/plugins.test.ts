@@ -266,9 +266,12 @@ describe('context and options', () => {
         before({ args, context }) {
           if (!('update' in args)) return undefined
 
-          const $set = { ...args.update.$set, updatedBy: context.actor }
+          // A pipeline, which `updatePipeline: true` allows, takes one more `$set` stage.
+          const update = Array.isArray(args.update)
+            ? [...args.update, { $set: { updatedBy: context.actor } }]
+            : { ...args.update, $set: { ...args.update.$set, updatedBy: context.actor } }
 
-          return { args: { ...args, update: { ...args.update, $set } } }
+          return { args: { ...args, update } }
         }
       }
     },
