@@ -1,18 +1,15 @@
-import { cursor } from './mz/cursor'
-import { filter } from './mz/filter'
-import { populate } from './mz/populate'
-import { projection } from './mz/projection'
-import { sort } from './mz/sort'
-import { update } from './mz/update'
-
 /**
  * The builders of endpoint inputs: Zod schemas whose values are MongoDB syntax, restricted to what
  * each endpoint declares. They nest in `z.object` like any other schema, and they never import the
  * driver, so the validation schemas that use them also run in web and native clients.
  *
+ * Import them as a namespace, like Zod: a bundler keeps only the builders a client uses.
+ *
+ * @module
+ *
  * @example
  *   ;```ts
- *   import { mz } from 'mongozod/mz'
+ *   import * as mz from 'mongozod/mz'
  *   import { z } from 'zod'
  *
  *   export const listBrandsSchema = z.object({
@@ -24,4 +21,9 @@ import { update } from './mz/update'
  *   })
  *   ```
  */
-export const mz = { cursor, filter, populate, projection, sort, update }
+export { cursor } from './mz/cursor'
+export { filter } from './mz/filter'
+export { populate } from './mz/populate'
+export { projection } from './mz/projection'
+export { sort } from './mz/sort'
+export { update } from './mz/update'
