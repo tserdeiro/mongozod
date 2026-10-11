@@ -94,7 +94,12 @@ describe('populate', () => {
   test("goes through the referenced model, with its virtuals: wortise's billing table", async () => {
     const transactions = await TransactionsModel.find(
       {},
-      { populate: { createdBy: { fullName: 1 }, organization: { name: 1 } } }
+      {
+        populate: {
+          createdBy: { projection: { fullName: 1 } },
+          organization: { projection: { name: 1 } }
+        }
+      }
     ).sort({ _id: 1 })
 
     expect(transactions[0]).toMatchObject({
@@ -131,7 +136,7 @@ describe('populate', () => {
   test('leaves null for a missing document, and keeps the ones found in an array', async () => {
     const [t1, t2] = await TransactionsModel.find(
       {},
-      { populate: { approvers: { email: 1 }, createdBy: true, reviewer: true } }
+      { populate: { approvers: { projection: { email: 1 } }, createdBy: true, reviewer: true } }
     ).sort({ _id: 1 })
 
     expect(t1).toMatchObject({ approvers: [{ _id: 'a2', email: 'luis@example.com' }] })
@@ -143,10 +148,76 @@ describe('populate', () => {
     expectTypeOf<NonNullable<typeof t1>['reviewer']>().toEqualTypeOf<Account | null | undefined>()
   })
 
+  test('a filter leaves out the documents that do not match, as null or out of the array', async () => {
+    await TransactionsModel.updateOne({ _id: 't1' }, { $set: { approvers: ['a1', 'a2'] } })
+
+    const transaction = await TransactionsModel.findOne(
+      { _id: 't1' },
+      {
+        populate: {
+          approvers: { filter: { firstName: 'Luis' } },
+          createdBy: { filter: { firstName: 'Luis' } },
+          organization: { filter: { _id: 'o1' }, projection: { name: 1 } }
+        }
+      }
+    )
+
+    expect(transaction).toMatchObject({
+      approvers: [{ _id: 'a2' }],
+      createdBy: null,
+      organization: { _id: 'o1', name: 'Wortise' }
+    })
+  })
+
+  test('a sort orders an array of references, which keeps its stored order otherwise', async () => {
+    await TransactionsModel.updateOne({ _id: 't1' }, { $set: { approvers: ['a1', 'a2'] } })
+
+    const stored = await TransactionsModel.findOne({ _id: 't1' }, { populate: { approvers: true } })
+    const sorted = await TransactionsModel.findOne(
+      { _id: 't1' },
+      { populate: { approvers: { projection: { email: 1 }, sort: { firstName: -1 } } } }
+    )
+
+    expect(stored?.approvers.map((account) => account._id)).toEqual(['a1', 'a2'])
+    expect(sorted?.approvers.map((account) => account._id)).toEqual(['a2', 'a1'])
+  })
+
+  test('checks the options against the referenced schema, and rejects others', async () => {
+    expectTypeOf(() =>
+      TransactionsModel.find(
+        {},
+        {
+          populate: {
+            // @ts-expect-error "nickname" is not a path of the account
+            createdBy: { filter: { nickname: 'x' }, sort: { firstName: 1 } }
+          }
+        }
+      )
+    ).toBeFunction()
+    await expect(
+      TransactionsModel.findOne(
+        { _id: 't1' },
+        // @ts-expect-error limit is not an option of populate
+        { populate: { approvers: { limit: 1 }, createdBy: { projection: 1 } } }
+      )
+    ).rejects.toMatchObject({
+      issues: [
+        {
+          message: '"limit" is not an option of populate: use projection, filter or sort',
+          path: ['populate', 'approvers', 'limit']
+        },
+        {
+          message: 'the projection of populate is an object',
+          path: ['populate', 'createdBy', 'projection']
+        }
+      ]
+    })
+  })
+
   test('asks for the _id of each document and removes it when the projection leaves it out', async () => {
     const transaction = await TransactionsModel.findOne(
       { _id: 't1' },
-      { populate: { createdBy: { _id: 0, email: 1 } } }
+      { populate: { createdBy: { projection: { _id: 0, email: 1 } } } }
     )
 
     expect(transaction?.createdBy).toEqual({ email: 'ana@example.com' })
@@ -159,11 +230,11 @@ describe('populate', () => {
     const transaction = await TransactionsModel.findOneAndUpdate(
       { _id: 't1' },
       { $inc: { amount: 5 } },
-      { populate: { createdBy: { email: 1 } }, returnDocument: 'after' }
+      { populate: { createdBy: { projection: { email: 1 } } }, returnDocument: 'after' }
     )
     const result = await TransactionsModel.findOneAndDelete(
       { _id: 't1' },
-      { includeResultMetadata: true, populate: { organization: { slug: 1 } } }
+      { includeResultMetadata: true, populate: { organization: { projection: { slug: 1 } } } }
     )
 
     expect(transaction).toMatchObject({ amount: 15, createdBy: { email: 'ana@example.com' } })
@@ -179,7 +250,7 @@ describe('populate', () => {
 
     const account = await AccountsModel.findOne(
       { _id: 'a1' },
-      { populate: { lastTransaction: { amount: 1 } }, projection: { fullName: 1 } }
+      { populate: { lastTransaction: { projection: { amount: 1 } } }, projection: { fullName: 1 } }
     )
 
     expect(account).toEqual({
@@ -199,7 +270,7 @@ describe('with a projection', () => {
   test('an inclusion still returns the references to populate', async () => {
     const transaction = await TransactionsModel.findOne(
       { _id: 't1' },
-      { populate: { createdBy: { email: 1 } }, projection: { amount: 1 } }
+      { populate: { createdBy: { projection: { email: 1 } } }, projection: { amount: 1 } }
     )
 
     expect(transaction).toEqual({
@@ -242,7 +313,7 @@ describe('batches', () => {
     try {
       const transactions = await TransactionsModel.find(
         {},
-        { batchSize: 1, populate: { createdBy: { email: 1 } } }
+        { batchSize: 1, populate: { createdBy: { projection: { email: 1 } } } }
       )
 
       expect(transactions).toHaveLength(2)
@@ -293,7 +364,7 @@ describe('batches', () => {
 
         const transaction = await TransactionsModel.findOne(
           { _id: 't3' },
-          { populate: { createdBy: { fullName: 1 } }, session }
+          { populate: { createdBy: { projection: { fullName: 1 } } }, session }
         )
 
         expect(transaction?.createdBy).toEqual({ _id: 'a3', fullName: 'Eva Ruiz' })
@@ -306,7 +377,9 @@ describe('batches', () => {
 
 describe('a populate that arrives at runtime', () => {
   test('may still have each reference as its id', async () => {
-    const input: { createdBy?: { email?: 1 } | true } = { createdBy: { email: 1 } }
+    const input: { createdBy?: { projection: { email?: 1 } } | true } = {
+      createdBy: { projection: { email: 1 } }
+    }
     const transaction = await TransactionsModel.findOne({ _id: 't1' }, { populate: input })
 
     expect(transaction?.createdBy).toEqual({ _id: 'a1', email: 'ana@example.com' })
@@ -397,7 +470,10 @@ describe('the option', () => {
       { _id: 'e2', kind: 'view' }
     ])
 
-    const events = await EventsModel.find({}, { populate: { by: { email: 1 } } }).sort({ _id: 1 })
+    const events = await EventsModel.find(
+      {},
+      { populate: { by: { projection: { email: 1 } } } }
+    ).sort({ _id: 1 })
 
     expect(events).toEqual([
       { _id: 'e1', by: { _id: 'a1', email: 'ana@example.com' }, kind: 'click' },

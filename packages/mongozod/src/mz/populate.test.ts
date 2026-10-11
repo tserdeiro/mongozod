@@ -28,10 +28,10 @@ const brandsPopulate = populate({
 
 test('true asks for the whole whitelist, and a projection for some of its fields', () => {
   expect(brandsPopulate.parse({ organization: true })).toEqual({
-    organization: { _id: 1, name: 1, slug: 1 }
+    organization: { projection: { _id: 1, name: 1, slug: 1 } }
   })
   expect(brandsPopulate.parse({ organization: { name: true, slug: 1 } })).toEqual({
-    organization: { name: 1, slug: 1 }
+    organization: { projection: { name: 1, slug: 1 } }
   })
   expect(brandsPopulate.parse({ organization: undefined })).toEqual({})
 })

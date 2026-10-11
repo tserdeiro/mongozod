@@ -1,6 +1,8 @@
 import type { FieldsOf } from './document-types'
+import type { FilterCheck, SuggestedFilter } from './filter'
 import type { ModelSchema, None, Output } from './model'
 import type { Entries, IsLiteral, Mode, ProjectionCheck, SuggestedProjection } from './projection'
+import type { SortCheck, SuggestedSort } from './sort'
 import type { Simplify } from './type-helpers'
 import type { Read, Virtuals } from './virtuals'
 import type { ClientSession, Db, Document, FindOptions, Flatten, WithId } from 'mongodb'
@@ -73,16 +75,28 @@ type FieldIds<O, K> = O extends unknown
     : never
   : never
 
+/** The options of a populated reference, named like the driver's, checked like the target's. */
+type PopulateOptionsCheck<T, X> = {
+  [K in keyof X]: K extends 'projection'
+    ? ProjectionCheck<TargetSchema<T>, X[K], TargetVirtuals<T>>
+    : K extends 'filter'
+      ? FilterCheck<TargetSchema<T>, X[K]>
+      : K extends 'sort'
+        ? SortCheck<TargetSchema<T>, X[K]>
+        : `"${K & string}" is not an option of populate: use projection, filter or sort`
+}
+
 type PopulateValueCheck<T, X> = X extends true
   ? true
   : X extends object
-    ? ProjectionCheck<TargetSchema<T>, X, TargetVirtuals<T>>
-    : 'populate takes true, or a projection of the referenced document'
+    ? PopulateOptionsCheck<T, X>
+    : 'populate takes true, or { projection, filter, sort }'
 
 /**
  * Checks a `populate`: each key is a reference of the model, whose field stores the `_id` of its
  * target, and the projection of the read does not exclude it. Each value is `true`, for the whole
- * document, or a projection of it, checked like the target's.
+ * document, or the options of its query, named like the driver's: a `projection`, a `filter` that
+ * leaves out the documents that do not match, and a `sort` for the arrays of references.
  */
 export type PopulateCheck<S extends ModelSchema, R, Pop, P> = {
   [K in keyof Pop]: K extends keyof R
@@ -98,9 +112,15 @@ export type PopulateCheck<S extends ModelSchema, R, Pop, P> = {
     : `"${K & string}" is not a reference of the model`
 }
 
-/** The keys and projections the editor suggests in a `populate`. */
+/** The keys and options the editor suggests in a `populate`. */
 export type SuggestedPopulate<R> = {
-  [K in keyof R]?: true | SuggestedProjection<TargetSchema<R[K]>, TargetVirtuals<R[K]>>
+  [K in keyof R]?:
+    | true
+    | {
+        filter?: SuggestedFilter<TargetSchema<R[K]>>
+        projection?: SuggestedProjection<TargetSchema<R[K]>, TargetVirtuals<R[K]>>
+        sort?: SuggestedSort<TargetSchema<R[K]>>
+      }
 }
 
 /** The `populate` option, on the models that have references. */
@@ -117,9 +137,9 @@ export type PopulatedProjection<P, Pop> = [keyof Pop] extends [never]
       : P
     : P
 
-type ReadOf<T, X> = X extends true
-  ? Read<TargetDocument<T>, TargetVirtuals<T>, None>
-  : Read<TargetDocument<T>, TargetVirtuals<T>, X>
+type ReadOf<T, X> = X extends { projection: infer P }
+  ? Read<TargetDocument<T>, TargetVirtuals<T>, P>
+  : Read<TargetDocument<T>, TargetVirtuals<T>, None>
 
 /** A populated field: the document, or `null` when it is missing; an array keeps the ones found. */
 type PopulatedValue<F, T, X> =
@@ -178,12 +198,21 @@ export function checkReferences(schema: core.$ZodType, references: object = {}):
   }
 }
 
-/** A reference to populate: its field, its target and the projection of the target, if any. */
-export type PopulateEntry = [field: string, target: ReferenceTarget, projection?: Document]
+/** The options of a populated reference, named like the driver's. */
+export interface PopulateOptions {
+  filter?: Document
+  projection?: Document
+  sort?: Document
+}
+
+/** A reference to populate: its field, its target and the options of its query. */
+export type PopulateEntry = [field: string, target: ReferenceTarget, options: PopulateOptions]
+
+const POPULATE_OPTIONS = new Set(['filter', 'projection', 'sort'])
 
 /**
  * Validates a `populate` at runtime, like its types: each key is a reference of the model, and each
- * value is `true` or a projection. Throws a `ZodError` otherwise.
+ * value is `true` or an object of options, each one an object. Throws a `ZodError` otherwise.
  */
 export function populateEntries(
   populate: unknown,
@@ -213,14 +242,40 @@ export function populateEntries(
         path: ['populate', field]
       })
     } else if (value === true) {
-      entries.push([field, target])
+      entries.push([field, target, {}])
     } else if (isPlainObject(value)) {
-      entries.push([field, target, value])
+      const options: PopulateOptions = {}
+
+      for (const [name, option] of Object.entries(value)) {
+        if (option === undefined) continue
+
+        if (!POPULATE_OPTIONS.has(name)) {
+          issues.push({
+            code: 'custom',
+            input: option,
+            message: `"${name}" is not an option of populate: use projection, filter or sort`,
+            path: ['populate', field, name]
+          })
+        } else if (isPlainObject(option)) {
+          if (name === 'filter') options.filter = option
+          if (name === 'projection') options.projection = option
+          if (name === 'sort') options.sort = option
+        } else {
+          issues.push({
+            code: 'custom',
+            input: option,
+            message: `the ${name} of populate is an object`,
+            path: ['populate', field, name]
+          })
+        }
+      }
+
+      entries.push([field, target, options])
     } else {
       issues.push({
         code: 'custom',
         input: value,
-        message: 'populate takes true, or a projection of the referenced document',
+        message: 'populate takes true, or { projection, filter, sort }',
         path: ['populate', field]
       })
     }
@@ -238,8 +293,9 @@ function idKey(id: unknown) {
 
 /**
  * Replaces each reference of the documents with the document it points to, in place, with one `$in`
- * query per reference. A missing document becomes `null`, and an array keeps the ones found. The
- * queries share the session of the read, so they see the writes of its transaction.
+ * query per reference. A missing document, or one the `filter` leaves out, becomes `null`, and an
+ * array keeps the ones found, in its order or in the one of `sort`. The queries share the session
+ * of the read, so they see the writes of its transaction.
  */
 export async function populateDocuments(
   documents: readonly Document[],
@@ -248,7 +304,7 @@ export async function populateDocuments(
   session: ClientSession | undefined
 ): Promise<void> {
   await Promise.all(
-    entries.map(async ([key, target, projection]) => {
+    entries.map(async ([key, target, { filter, projection, sort }]) => {
       // Each id once, by its key: many documents of a batch may point to the same one.
       const ids = [
         ...new Map(
@@ -265,8 +321,10 @@ export async function populateDocuments(
       const options: FindOptions = { projection: withoutId ? rest : projection }
 
       if (session) options.session = session
+      if (sort) options.sort = sort
 
-      const filter = { _id: { $in: ids } }
+      // In `$and`, so that a `filter` on the `_id` narrows the references instead of replacing them.
+      const query = filter ? { $and: [{ _id: { $in: ids } }, filter] } : { _id: { $in: ids } }
       let found: Document[]
 
       if (typeof target === 'function') {
@@ -274,20 +332,27 @@ export async function populateDocuments(
 
         if (!find) throw new Error(`references: "${key}" does not return a model of mongozod`)
 
-        found = await find(filter, options)
+        found = await find(query, options)
       } else {
-        found = await db().collection(target.collection).find(filter, options).toArray()
+        found = await db().collection(target.collection).find(query, options).toArray()
       }
 
       const byId = new Map(found.map((document) => [idKey(document._id), document]))
 
       if (withoutId) for (const document of found) delete document._id
 
+      // With a `sort`, an array follows the order of the query, the one the server sorted.
+      const position = new Map(found.map((document, index) => [document, index]))
+
       for (const document of documents) {
         const value = document[key]
 
         if (Array.isArray(value)) {
-          document[key] = value.flatMap((id) => byId.get(idKey(id)) ?? [])
+          const populated = value.flatMap((id) => byId.get(idKey(id)) ?? [])
+
+          if (sort) populated.sort((a, b) => (position.get(a) ?? 0) - (position.get(b) ?? 0))
+
+          document[key] = populated
         } else if (value !== null && value !== undefined) {
           document[key] = byId.get(idKey(value)) ?? null
         }

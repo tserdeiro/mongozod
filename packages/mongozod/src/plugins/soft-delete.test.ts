@@ -204,7 +204,9 @@ describe('with the rest of the model', () => {
     ])
 
     expect(
-      await LinksModel.find({}, { populate: { note: { title: 1 } } }).sort({ _id: 1 })
+      await LinksModel.find({}, { populate: { note: { projection: { title: 1 } } } }).sort({
+        _id: 1
+      })
     ).toEqual([
       { _id: 'l1', note: { _id: 'n1', title: 'One' } },
       { _id: 'l3', note: null }

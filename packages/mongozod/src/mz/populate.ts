@@ -12,20 +12,21 @@ type FieldsOf<W> = W extends { _zod: { def: { shape: infer Shape } } }
 
 /**
  * A `populate` with the declared references, on one side. The client sends `true` or the fields
- * it wants, and the router gets a projection with those fields.
+ * it wants, and the router gets the `projection` of the model's `populate` with those fields.
  */
 export type PopulateShape<W, D extends Side> = {
   -readonly [K in keyof W]?: D extends 'input'
     ? true | { [F in FieldsOf<W[K]>]?: 1 | true }
-    : { [F in FieldsOf<W[K]>]?: 1 }
+    : { projection: { [F in FieldsOf<W[K]>]?: 1 } }
 }
 
 /**
  * The `populate` a client can send: the references it can expand, each with a whitelist of the
  * fields it can see, as a schema such as `organizationSchema.pick({ _id: true, name: true })`.
  * The client sends `true` for the whole whitelist, or a projection with `1` or `true` for some of
- * its fields; anything else fails, so a client never sees more than the whitelist. `undefined`
- * keys are dropped. A virtual is declared as a field, with a schema that adds it.
+ * its fields; anything else fails, so a client never sees more than the whitelist. The router gets
+ * the model's `populate`, with a `projection` of those fields. `undefined` keys are dropped. A
+ * virtual is declared as a field, with a schema that adds it.
  *
  * @example
  *   ;```ts
@@ -47,12 +48,12 @@ export function populate(whitelists: Readonly<Record<string, core.$ZodObject>>):
           const some = nonEmptyObject(
             Object.fromEntries(fields.map((field) => [field, z.literal([1, true])])),
             'takes true, or at least one field'
-          ).transform((projection) =>
-            Object.fromEntries(Object.keys(projection).map((field) => [field, 1]))
-          )
-          const all = z
-            .literal(true)
-            .transform(() => Object.fromEntries(fields.map((field) => [field, 1])))
+          ).transform((asked) => ({
+            projection: Object.fromEntries(Object.keys(asked).map((field) => [field, 1]))
+          }))
+          const all = z.literal(true).transform(() => ({
+            projection: Object.fromEntries(fields.map((field) => [field, 1]))
+          }))
 
           return [reference, z.optional(z.union([all, some]))]
         })

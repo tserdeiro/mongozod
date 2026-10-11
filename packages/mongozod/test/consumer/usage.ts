@@ -222,7 +222,13 @@ export async function usage() {
 
   const [transaction] = await TransactionsModel.find(
     {},
-    { populate: { approvedBy: { fullName: 1 }, createdBy: true, organization: { name: 1 } } }
+    {
+      populate: {
+        approvedBy: { projection: { fullName: 1 } },
+        createdBy: true,
+        organization: { projection: { name: 1 } }
+      }
+    }
   )
   const approvers: Array<{ _id: string; fullName: string }> | undefined = transaction?.approvedBy
   const creator: string | null | undefined = transaction?.createdBy?.fullName
