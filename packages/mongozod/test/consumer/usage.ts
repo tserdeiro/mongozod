@@ -5,6 +5,7 @@ import { ObjectId } from 'bson'
 import { MongoClient } from 'mongodb'
 import { definePlugin, mongozod } from 'mongozod'
 import { objectId } from 'mongozod/codecs/bson'
+import { date } from 'mongozod/codecs/date'
 import { mz } from 'mongozod/mz'
 import { softDelete } from 'mongozod/plugins/soft-delete'
 import { z } from 'zod'
@@ -43,15 +44,7 @@ const EventsModel = mongozod({
   ])
 })
 
-const timestampSchema = z
-  .union([
-    z.date(),
-    z.codec(z.iso.datetime(), z.date(), {
-      decode: (iso) => new Date(iso),
-      encode: (date) => date.toISOString()
-    })
-  ])
-  .default(() => new Date())
+const timestampSchema = date().default(() => new Date())
 
 const PostsModel = mongozod({
   collection: 'posts',
@@ -303,6 +296,7 @@ export async function usage() {
 
 const brandSchema = z.object({
   _id: objectId().default(() => new ObjectId()),
+  launchedAt: date().optional(),
   owner: objectId().optional()
 })
 
@@ -310,10 +304,16 @@ export async function brands() {
   const BrandsModel = mongozod({ collection: 'brands', db, schema: brandSchema })
   const { document } = await BrandsModel.insertOne({ owner: '65c3b9b4f1d2a34b5c6d7e8f' })
   const owner: ObjectId | undefined = document.owner
+  const launchedAt: Date | undefined = document.launchedAt
+
+  await BrandsModel.updateOne(
+    { _id: document._id },
+    { $set: { launchedAt: '2026-10-01T10:00:00Z' } }
+  )
   const byId = mz.filter(brandSchema, { _id: ['$eq', '$in'] })
 
   // @ts-expect-error a number is not an ObjectId
   await BrandsModel.insertOne({ owner: 42 })
 
-  return { found: await BrandsModel.findOne({ _id: document._id }), owner, byId }
+  return { found: await BrandsModel.findOne({ _id: document._id }), launchedAt, owner, byId }
 }

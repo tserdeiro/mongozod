@@ -104,11 +104,9 @@ export interface MongozodOptions<
    * them, taking a `Date` and with a `.default()`. Off by default.
    *
    * @example
-   *   const isoToDate = z.codec(z.iso.datetime(), z.date(), {
-   *     decode: (iso) => new Date(iso),
-   *     encode: (date) => date.toISOString()
-   *   })
-   *   const timestampSchema = z.union([isoToDate, z.date()]).default(() => new Date())
+   *   import { date } from 'mongozod/codecs/date'
+   *
+   *   const timestampSchema = date().default(() => new Date())
    */
   timestamps?: T
 

@@ -25,6 +25,7 @@
   "exports": {
     ".": "./dist/index.mjs",
     "./codecs/bson": "./dist/codecs/bson.mjs",
+    "./codecs/date": "./dist/codecs/date.mjs",
     "./mz": "./dist/mz.mjs",
     "./plugins/soft-delete": "./dist/plugins/soft-delete.mjs",
     "./package.json": "./package.json"

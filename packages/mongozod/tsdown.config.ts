@@ -1,7 +1,13 @@
 import { defineConfig } from 'tsdown'
 
 export default defineConfig({
-  entry: ['src/index.ts', 'src/codecs/bson.ts', 'src/mz.ts', 'src/plugins/soft-delete.ts'],
+  entry: [
+    'src/index.ts',
+    'src/codecs/bson.ts',
+    'src/codecs/date.ts',
+    'src/mz.ts',
+    'src/plugins/soft-delete.ts'
+  ],
   dts: true,
   // Writes the `exports` field of package.json from the entries.
   exports: true,
