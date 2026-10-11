@@ -66,7 +66,7 @@ tipo del campo y `E` el de sus elementos, si es un array:
 - **`distinct`**: la key es un path, y el resultado tiene el tipo de sus valores, aplanando los
   arrays como el driver.
 - **Services**: un service que reenvía un filtro lo recibe con un genérico, como
-  `<const F extends ModelFilter<typeof schema, F>>(filter: F)`, en vez del `Filter` del driver.
+  `<const F extends FilterOf<typeof NotesModel, F>>(filter: F)`, en vez del `Filter` del driver.
 
 ## Updates
 
@@ -161,12 +161,14 @@ runtime o código sin tipos. Cada problema se junta en un solo `ZodError`, con e
 
 ## Sugerencias del editor
 
-El editor sugiere los paths de filtros, `sort`, `distinct` y updates, y los operadores. Cada
+El editor sugiere los paths de filtros, `sort`, `distinct` y updates, y los operadores de update.
+Los operadores de query (`$gte`, `$in`…) todavía no: dentro de un campo de un filtro sugiere los
+miembros de su tipo, y queda para después de la 0.x, midiendo su costo de tipos. Cada
 operación chequea el argumento en su parámetro de tipo y toma las sugerencias en el tipo del
 parámetro, como `filter: F & SuggestedFilter<S>`. Juntarlos en la restricción costaba casi tres
 veces más en los updates, porque se intersectan con los paths sugeridos en cada llamada. Para un
-service que recibe un filtro o un update y lo pasa al modelo, mongozod exporta `ModelFilter`,
-`ModelSort` y `ModelUpdate`, que traen las dos cosas.
+service que recibe un filtro o un update y lo pasa al modelo, mongozod exporta `FilterOf`,
+`SortOf` y `UpdateOf`, que parten del modelo y traen las dos cosas.
 
 ## Paths con punto
 
