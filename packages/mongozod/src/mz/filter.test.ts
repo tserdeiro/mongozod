@@ -106,6 +106,19 @@ describe('a filter from a client', () => {
     ])
   })
 
+  test('$options goes with $regex, which MongoDB needs', async () => {
+    await expect(
+      db.collection('notes').findOne({ title: { $options: 'i' } })
+    ).rejects.toMatchObject({ code: 2, message: '$options needs a $regex' })
+    expect(issues(notesFilter, { title: { $options: 'i' } })).toEqual([
+      'title.$options: "$options" needs "$regex"'
+    ])
+    expect(issues(notesFilter, { title: { $options: 'i', $regex: undefined } })).toEqual([
+      'title.$options: "$options" needs "$regex"'
+    ])
+    expect(issues(notesFilter, { title: { $options: 1 } })).toHaveLength(1)
+  })
+
   test('on arrays, an element or the array, $all, $size and $elemMatch', () => {
     expect(notesFilter.parse({ tags: 'a' })).toEqual({ tags: 'a' })
     expect(notesFilter.parse({ tags: ['a', 'b'] })).toEqual({ tags: ['a', 'b'] })

@@ -155,6 +155,8 @@ manda `{ createdAt, _id }` del último elemento de la página.
      array, la igualdad toma un elemento o el array entero, y los rangos comparan elementos.
    - **Objeto de operadores**: tiene al menos uno, porque `{}` es en Mongo una igualdad con un
      objeto vacío.
+   - **`$options`**: solo va con `$regex`. Sin él, MongoDB rechaza el filtro con el código 2
+     (`$options needs a $regex`), así que `mz.filter` lo rechaza antes, con un `ZodError`.
 5. **`$elemMatch` toma lo declarado para el elemento.** En un array de objetos,
    `items: ['$elemMatch']` junto a `'items.status': ['$eq']` acepta, adentro, `status` con esos
    operadores, relativo al elemento como en MongoDB; `items.status` también vale en el primer nivel.

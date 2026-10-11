@@ -196,18 +196,19 @@ const ELEMENT_OPERATORS = new Set<string>([
   '$regex'
 ])
 
-const OPERATOR_NEEDED = 'takes at least one operator'
-
 type Declarations = ReadonlyArray<readonly [path: string, operators: readonly string[]]>
 
-/** The schemas of the declared operators, for a value and, in an array, its element. */
-function operatorsShape(
+/**
+ * The object of the declared operators, for a value and, in an array, its element. `{}` would be an
+ * equality with an empty object, so it takes at least one operator.
+ */
+function operatorsSchema(
   value: core.$ZodType,
   element: core.$ZodType | undefined,
   path: string,
   operators: readonly string[],
   under: Declarations
-): Record<string, core.$ZodType> {
+): core.$ZodType {
   const equal = element ? z.union([value, element]) : value
   const shape: Record<string, core.$ZodType> = {}
 
@@ -251,7 +252,11 @@ function operatorsShape(
     }
   }
 
-  return shape
+  // MongoDB rejects an `$options` without `$regex` with the code 2.
+  return nonEmptyObject(shape, 'takes at least one operator').refine(
+    (condition) => !('$options' in condition) || '$regex' in condition,
+    { message: '"$options" needs "$regex"', path: ['$options'] }
+  )
 }
 
 /**
@@ -276,10 +281,7 @@ function elemMatchSchema(
     )
   }
 
-  return nonEmptyObject(
-    operatorsShape(element, undefined, path, elementOperators, []),
-    OPERATOR_NEEDED
-  )
+  return operatorsSchema(element, undefined, path, elementOperators, [])
 }
 
 /** The condition on one path: an object of operators, or also a value when it declares `$eq`. */
@@ -299,11 +301,7 @@ function conditionSchema(
     ? valueSchema(elements.flatMap((each) => each ?? []))
     : undefined
   const equal = element ? z.union([value, element]) : value
-  // `{}` would be an equality with an empty object, so it takes at least one operator.
-  const object = nonEmptyObject(
-    operatorsShape(value, element, path, operators, under),
-    OPERATOR_NEEDED
-  )
+  const object = operatorsSchema(value, element, path, operators, under)
 
   if (!operators.includes('$eq')) return object
 
