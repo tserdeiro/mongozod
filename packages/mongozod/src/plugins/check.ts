@@ -56,6 +56,13 @@ type OptionNames<P> = P extends { options?: infer O }
     }[keyof O & keyof DriverOptions]
   : never
 
+/**
+ * The names of the options of a plugin. It distributes over them, so a plugin without options has
+ * none: an `infer` with no candidate would take its constraint, `string`.
+ */
+type OptionNamesOf<P> =
+  OptionNames<P> extends infer E ? (E extends [string, infer N extends string] ? N : never) : never
+
 type OptionProblems<P> = P extends { id: infer Id extends string }
   ? OptionNames<P> extends infer E
     ? E extends [infer G extends keyof DriverOptions, infer N extends string]
@@ -77,10 +84,8 @@ type SharedProblems<
   Methods = never
 > = PL extends readonly [infer P, ...infer Rest]
   ?
-      | (OptionNames<P> extends [string, infer N extends string]
-          ? N extends Options
-            ? `${PluginId<P>}: "${N}" is an option of another plugin`
-            : never
+      | (OptionNamesOf<P> & Options extends infer N extends string
+          ? `${PluginId<P>}: "${N}" is an option of another plugin`
           : never)
       | (MethodNames<P> & Methods extends infer N extends string
           ? `two plugins define "${N}"`
@@ -88,11 +93,7 @@ type SharedProblems<
       | (MethodNames<P> & keyof Model<ModelSchema> extends infer N extends string
           ? `${PluginId<P>}: "${N}" is a member of the model`
           : never)
-      | SharedProblems<
-          Rest,
-          Options | (OptionNames<P> extends [string, infer N] ? N : never),
-          Methods | MethodNames<P>
-        >
+      | SharedProblems<Rest, Options | OptionNamesOf<P>, Methods | MethodNames<P>>
   : never
 
 type Problems<S extends ModelSchema, PL extends readonly AnyPlugin[]> =

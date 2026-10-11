@@ -414,10 +414,16 @@ describe('the option', () => {
     const one = definePlugin({ id: 'one', options: { read: z.object({ verbose: z.boolean() }) } })
     const two = definePlugin({ id: 'two', options: { update: z.object({ verbose: z.boolean() }) } })
 
+    const plain = definePlugin({ id: 'plain' })
+
     expect(() =>
       // @ts-expect-error two: "verbose" is an option of another plugin
       mongozod({ collection: 'notes', db, plugins: [one, two], schema: noteSchema })
     ).toThrow('two: "verbose" is an option of one')
+    // A plugin without options leaves every name to the others.
+    expect(() =>
+      mongozod({ collection: 'notes', db, plugins: [plain, one], schema: noteSchema })
+    ).not.toThrow()
     expect(() =>
       // @ts-expect-error populate is an option of mongozod
       mongozod({
