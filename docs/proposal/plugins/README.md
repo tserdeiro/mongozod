@@ -251,9 +251,12 @@ plugins definen el mismo método, o uno se llama como un miembro del modelo, com
   modificadores del cursor (`sort`, `limit`, `skip`, `project`). Después, un modificador lanza un
   `Error`, como en el driver. Una proyección o un `populate` inválidos fallan al leer el cursor, no
   al llamar `find`.
-- **Tipos auxiliares**: se exportan `AnyModel`, `DocOf<M>`, `FilterOf<M, F>`, `SortOf<M, Sort>`,
-  `UpdateOf<M, U, F>`, `ReadOptionsArg<M>` y `UpdateOptionsArg<M>`, para quien escribe plugins y
-  para los services que le pasan un filtro o un update al modelo:
+- **Tipos auxiliares**: se exportan `AnyModel`, `DocOf<M>`, `ReadOf<M, O>`, `FilterOf<M, F>`,
+  `SortOf<M, Sort>`, `UpdateOf<M, U, F>`, `ReadOptionsArg<M>` y `UpdateOptionsArg<M>`, para quien
+  escribe plugins y para los services que le pasan un filtro o un update al modelo. `ReadOf` es el
+  documento que devuelve una lectura con la `projection` y el `populate` de sus opciones, como
+  `ReadOf<typeof OrdersModel, { populate: { customer: true } }>`, para tipar un service o una
+  respuesta sin `Awaited<ReturnType<…>>`:
   `countNotes<const F extends FilterOf<typeof NotesModel, F>>(filter: F)`. Parten del modelo, y
   reemplazan a `ModelFilter`, `ModelSort` y `ModelUpdate`, que partían del schema. `UpdateOf` lee
   los `timestamps` del modelo de una propiedad opcional, `~timestamps`, que solo existe en sus
