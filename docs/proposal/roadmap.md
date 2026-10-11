@@ -32,7 +32,7 @@ El orden de implementación. Al cerrar una fase, se marca acá en el mismo cambi
    principales, que es el [criterio de la v1](./README.md#objetivo). Sale de la
    [auditoría de las fases 1 a 4](../audits/phases-1-4.md#decidir), con los puntos ya decididos, en
    este orden:
-   1. El driver 6.20 en el peer (`^6.20.0 || ^7.0.0`), con un job de CI. Ver
+   1. El driver 6.20 en el peer (`^6.20.0 || ^7.0.0`), con un job de CI (hecho). Ver
       [Decisiones acordadas](./README.md#decisiones-acordadas).
    2. `objectId()`, en `mongozod/bson`. Ver [Inputs](./inputs.md#decisiones-de-los-inputs).
    3. `timestamps` sin `.default()`. Ver [Timestamps](./model.md#timestamps).

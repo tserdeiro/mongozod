@@ -42,7 +42,8 @@
   `package.json` del paquete. Los tests reciben su URI con `inject('mongoUri')`.
 - **lefthook** corre lint, formato, tipos y tests antes de cada commit.
 - **CI** (GitHub Actions, con `pnpm/setup`): lint, formato, tipos y build; los tests en Node 22.12
-  (el mínimo), 24 y 26, y en Bun con `bun --bun vitest run`. Después del build,
+  (el mínimo), 24 y 26, y en Bun con `bun --bun vitest run`. Un job instala el driver 6.20, el más
+  bajo del peer, y corre con él los tipos, los tests y el build. Después del build,
   `pnpm check-dist-types` compila con TS 5.5 y 7 un consumidor de los `.d.ts` publicados
   (`packages/mongozod/test/consumer/`), con `skipLibCheck: false`.
 - **Releases** con Changesets y el workflow de trusted publishing de su guía: cada push a `main`
