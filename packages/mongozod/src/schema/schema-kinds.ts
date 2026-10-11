@@ -29,6 +29,16 @@ export function isNumber(schema: core.$ZodType): boolean {
 }
 
 /**
+ * Whether every variant is a `Decimal128`, known by the `bsonType` of its metadata, as
+ * `mz.decimal128()` declares it: `$inc` and `$mul` apply to it, as to numbers.
+ */
+export function isDecimal(schema: core.$ZodType): boolean {
+  return variants(schema).every(
+    (variant) => core.globalRegistry.get(variant)?.bsonType === 'decimal'
+  )
+}
+
+/**
  * Zod rejects a fraction in an integer field with `expected: 'int'`. Zod Classic also tells it with
  * `format`, but Zod Mini does not, so the probe works for both.
  */

@@ -6,7 +6,15 @@ import { z } from 'zod'
 
 import { safeParseWritten } from '../model/parse-document'
 import { schemaAt } from '../schema/schema-at'
-import { elementsOf, isInteger, isNumber, isOptional, isSet, takes } from '../schema/schema-kinds'
+import {
+  elementsOf,
+  isDecimal,
+  isInteger,
+  isNumber,
+  isOptional,
+  isSet,
+  takes
+} from '../schema/schema-kinds'
 import { isPlainObject } from '../utils/is-plain-object'
 
 import { resolveUpdatePath } from './update-path'
@@ -171,6 +179,8 @@ async function parseField(
 
     case '$inc':
     case '$mul':
+      // A Decimal128 takes the value its schema parses, such as the string of an amount.
+      if (schemas.every(isDecimal)) return parseEvery(schemas, value, at)
       if (!schemas.every(isNumber)) return fail(at, `"${path}" is not a number`, value)
       if (typeof value !== 'number' && typeof value !== 'bigint') {
         return fail(at, `${operator} takes a number`, value)

@@ -6,7 +6,7 @@ import type * as core from 'zod/v4/core'
 
 import { z } from 'zod'
 
-import { isInteger, isNumber, isOptional } from '../schema/schema-kinds'
+import { isDecimal, isInteger, isNumber, isOptional } from '../schema/schema-kinds'
 
 import { nonEmptyObject } from './internal/non-empty-object'
 import { schemasOutsideArrays } from './internal/outside-arrays'
@@ -18,7 +18,11 @@ export type UpdateOperator = '$inc' | '$set' | '$unset'
 
 type IsOptional<T> = undefined extends core.output<T> ? true : false
 
-type IsNumber<T> = NonNullable<core.output<T>> extends bigint | number ? true : false
+/** A number, or a `Decimal128`, known by its `_bsontype`: `$inc` applies to both. */
+type IsNumber<T> =
+  NonNullable<core.output<T>> extends bigint | number | { _bsontype: 'Decimal128' } ? true : false
+
+type IsDecimal<T> = NonNullable<core.output<T>> extends { _bsontype: 'Decimal128' } ? true : false
 
 type UpdatePathCheck<S, Op, P> = P extends string
   ? [OutsideArraysProblem<S, P, 'mz.update'>] extends [never]
@@ -71,7 +75,9 @@ type UpdateValue<T, Op, D extends Side> = Op extends '$set'
   ? ValueOf<T, D>
   : Op extends '$unset'
     ? '' | 1 | true
-    : number
+    : IsDecimal<T> extends true
+      ? ValueOf<T, D>
+      : number
 
 type Paths<L> = L extends ReadonlyArray<infer P> ? P & string : never
 
@@ -97,6 +103,8 @@ function valueOf(schema: core.$ZodType, operator: string, path: string): core.$Z
       return z.literal(['', 1, true])
 
     case '$inc':
+      // A Decimal128 takes what its schema parses, such as the string of an amount.
+      if (targets.every(isDecimal)) return valueSchema(targets)
       if (!targets.every(isNumber)) throw new Error(`mz.update: "${path}" is not a number`)
 
       return targets.some(isInteger) ? z.number().int() : z.number()
@@ -112,7 +120,8 @@ function valueOf(schema: core.$ZodType, operator: string, path: string): core.$Z
  * The update a client can send: MongoDB syntax with `$set`, `$unset` and `$inc` on the paths each
  * one declares, outside arrays. Values are parsed with the schema of their field, refinements
  * included, and a default is never filled in: an update of one field does not reset the others.
- * `$unset` only takes optional fields, and `$inc` numbers. An update without operators fails, as
+ * `$unset` only takes optional fields, and `$inc` numbers or a `Decimal128`, which takes what its
+ * schema parses, such as the string of an amount. An update without operators fails, as
  * in the driver; `undefined` keys are dropped.
  *
  * @example

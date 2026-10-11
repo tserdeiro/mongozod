@@ -231,6 +231,10 @@ type IsOptional<Sub> = undefined extends core.output<Sub> ? true : false
 
 type IsDate<Sub> = NonNullable<core.output<Sub>> extends Date ? true : false
 
+/** A `Decimal128`, known by its `_bsontype`, as the copies of bson of the app and the driver. */
+type IsDecimal<Sub> =
+  NonNullable<core.output<Sub>> extends { _bsontype: 'Decimal128' } ? true : false
+
 type IsArray<Sub> = NonNullable<core.output<Sub>> extends ReadonlyArray<unknown> ? true : false
 
 /** Whether a schema is a set of `mz.set()`, under its wrappers. */
@@ -247,15 +251,17 @@ type SetAbove<
     : SetAbove<S, Rest, `${Prefix}${Seg}.`>
   : never
 
-type AllAre<T, Is extends 'array' | 'date' | 'number' | 'optional'> = false extends (
+type AllAre<T, Is extends 'array' | 'date' | 'decimal' | 'number' | 'optional'> = false extends (
   T extends [infer Sub]
     ? Is extends 'array'
       ? IsArray<Sub>
       : Is extends 'date'
         ? IsDate<Sub>
-        : Is extends 'number'
-          ? IsNumber<Sub>
-          : IsOptional<Sub>
+        : Is extends 'decimal'
+          ? IsDecimal<Sub>
+          : Is extends 'number'
+            ? IsNumber<Sub>
+            : IsOptional<Sub>
     : never
 )
   ? false
@@ -300,7 +306,9 @@ type FieldCheck<S, Op, K extends string, T, C> = [T] extends [string]
       : Op extends '$inc' | '$mul'
         ? AllAre<T, 'number'> extends true
           ? number | undefined
-          : `"${K}" is not a number`
+          : AllAre<T, 'decimal'> extends true
+            ? InputOf<T> | undefined
+            : `"${K}" is not a number`
         : Op extends '$bit'
           ? AllAre<T, 'number'> extends true
             ? { and: number } | { or: number } | { xor: number } | undefined

@@ -180,6 +180,22 @@ describe('decimal128()', () => {
       [{ _id: 'i2' }]
     )
   })
+
+  test('$inc and $mul take what the field parses, so an amount stays exact', async () => {
+    const InvoicesModel = mongozod({ collection: 'invoices', db, schema: invoiceSchema })
+    const invoiceUpdate = update(invoiceSchema, { $inc: ['total'] })
+
+    await InvoicesModel.insertOne({ _id: 'i1', total: '10.10' })
+    await InvoicesModel.updateOne({ _id: 'i1' }, { $inc: { total: '0.10' } })
+    await InvoicesModel.updateOne({ _id: 'i1' }, invoiceUpdate.parse({ $inc: { total: '0.05' } }))
+    await InvoicesModel.updateOne({ _id: 'i1' }, { $mul: { total: 2 } })
+
+    expect((await InvoicesModel.findOne({ _id: 'i1' }))?.total.toString()).toBe('20.50')
+    await expect(
+      InvoicesModel.updateOne({ _id: 'i1' }, { $inc: { total: 'ten' } })
+    ).rejects.toBeInstanceOf(z.ZodError)
+    expect(invoiceUpdate.safeParse({ $inc: { total: 0.1 + 0.2 } }).success).toBe(false)
+  })
 })
 
 describe('binary()', () => {
