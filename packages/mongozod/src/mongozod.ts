@@ -86,13 +86,18 @@ export interface MongozodOptions<
    * The fields that store the `_id` of another document, or an array of them, which `populate`
    * replaces with the documents, also inside objects and arrays of objects, such as
    * `items.product`. Each one points to a function that returns another model, so that its plugins
-   * and virtuals apply, or to a collection and its schema, for one without a model.
+   * and virtuals apply, or to a collection and its schema, for one without a model. A one-to-many
+   * reference is a key that is not a field, with the documents of another model whose
+   * `foreignField` stores this document's `localField`, `_id` by default, like MongoDB's `$lookup`.
    *
    * @example
+   *   ;```ts
    *   references: {
-   *   'items.product': () => ProductsModel,
-   *   'organization': { collection: 'organizations', schema }
+   *     'items.product': () => ProductsModel,
+   *     'organization': { collection: 'organizations', schema },
+   *     'posts': { model: () => PostsModel, foreignField: 'author' }
    *   }
+   *   ```
    */
   references?: R & UnknownReferences<S, R>
 

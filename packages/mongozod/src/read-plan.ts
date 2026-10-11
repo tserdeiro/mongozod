@@ -6,7 +6,7 @@ import type * as core from 'zod/v4/core'
 import { z } from 'zod'
 
 import { isPlainObject } from './is-plain-object'
-import { populateDocuments, populateEntries } from './references'
+import { populateDocuments, populateEntries, removePath, storedPath } from './references'
 import { computeVirtuals } from './virtuals'
 
 /** What a read asks the server for, and what it does with each batch the server returns. */
@@ -104,11 +104,24 @@ export function planRead(
   const inclusion = isInclusion(entries) || [...asked.values()].includes(true)
   const computed = new Map<string, Virtual>()
   const strip = new Set<string>()
+  // What a one-to-many reference matches, asked for it alone: removed once it is populated.
+  const stripAfter = new Set<string>()
 
   if (inclusion) {
     // Asking for a reference under a path already included would be a path collision.
-    for (const [field] of references) {
-      if (!entries.some(([path]) => covers(path, field))) fields[field] = 1
+    for (const entry of references) {
+      const field = storedPath(entry)
+      const foreign = field !== entry[0]
+
+      if (field === '_id' && (fields._id === 0 || fields._id === false)) {
+        // An inclusion returns the `_id` unless it leaves it out.
+        delete fields._id
+        stripAfter.add(field)
+      } else if (!entries.some(([path]) => covers(path, field))) {
+        fields[field] = 1
+
+        if (foreign) stripAfter.add(field)
+      }
     }
 
     for (const [name, virtual] of context.virtuals) {
@@ -141,13 +154,18 @@ export function planRead(
       computed.set(name, virtual)
     }
   } else {
-    for (const [field] of references) {
+    for (const entry of references) {
+      const field = storedPath(entry)
+
       if (entries.some(([path, kind]) => covers(path, field) && kind === 'exclude')) {
         issues.push({
           code: 'custom',
           input: projection,
-          message: `populate needs "${field}": the projection excludes it`,
-          path: ['populate', field]
+          message:
+            field === entry[0]
+              ? `populate needs "${field}": the projection excludes it`
+              : `populate needs "${field}" for "${entry[0]}": the projection excludes it`,
+          path: ['populate', entry[0]]
         })
       }
     }
@@ -173,6 +191,8 @@ export function planRead(
       for (const document of documents) for (const field of strip) delete document[field]
 
       await populateDocuments(documents, references, context.db, session)
+
+      for (const document of documents) for (const path of stripAfter) removePath(document, path)
 
       return documents
     }

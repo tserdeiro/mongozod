@@ -113,7 +113,7 @@ type PopulateOf<O> = O extends { populate: infer Pop } ? Pop : None
  * of its `populate` replaced.
  */
 export type ReadDocument<S extends ModelSchema, V, R, P, Pop> = Populated<
-  Read<WithId<Output<S>>, V, PopulatedProjection<P, Pop>>,
+  Read<WithId<Output<S>>, V, PopulatedProjection<P, Pop, R>>,
   R,
   Pop
 >

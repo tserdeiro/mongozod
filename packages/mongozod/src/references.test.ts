@@ -686,3 +686,156 @@ describe('a reference inside objects and arrays', () => {
     })
   })
 })
+
+describe('a one-to-many reference', () => {
+  const authorSchema = z.object({ _id: z.string(), handle: z.string(), name: z.string() })
+  const postSchema = z.object({
+    _id: z.string(),
+    author: z.string(),
+    coauthors: z.array(z.string()).default([]),
+    editor: z.string().optional(),
+    title: z.string()
+  })
+  const commentSchema = z.object({ _id: z.string(), byHandle: z.string(), text: z.string() })
+
+  const AuthorsModel = mongozod({
+    collection: 'authors',
+    db,
+    references: {
+      comments: { foreignField: 'byHandle', localField: 'handle', model: () => CommentsModel },
+      coPosts: { foreignField: 'coauthors', model: () => PostsModel },
+      posts: { foreignField: 'author', model: () => PostsModel }
+    },
+    schema: authorSchema
+  })
+  const PostsModel = mongozod({
+    collection: 'posts',
+    db,
+    references: { author: () => AuthorsModel, editor: () => AuthorsModel },
+    schema: postSchema
+  })
+  const CommentsModel = mongozod({ collection: 'comments', db, schema: commentSchema })
+
+  beforeEach(async () => {
+    await AuthorsModel.insertMany([
+      { _id: 'u1', handle: 'ana', name: 'Ana' },
+      { _id: 'u2', handle: 'luis', name: 'Luis' }
+    ])
+    await PostsModel.insertMany([
+      { _id: 'p1', author: 'u1', coauthors: ['u2'], editor: 'u2', title: 'Alpha' },
+      { _id: 'p2', author: 'u1', title: 'Beta' },
+      { _id: 'p3', author: 'u2', coauthors: ['u1', 'u2'], title: 'Gamma' }
+    ])
+    await CommentsModel.insertMany([{ _id: 'c1', byHandle: 'luis', text: 'Nice' }])
+  })
+
+  test('adds the documents that point to each one, matched by their foreignField', async () => {
+    const [ana, luis] = await AuthorsModel.find(
+      {},
+      { populate: { comments: true, coPosts: { projection: { title: 1 } }, posts: true } }
+    ).sort({ _id: 1 })
+
+    expect(ana).toMatchObject({
+      comments: [],
+      coPosts: [{ _id: 'p3', title: 'Gamma' }],
+      posts: [{ _id: 'p1' }, { _id: 'p2' }]
+    })
+    expect(luis).toMatchObject({
+      comments: [{ _id: 'c1', text: 'Nice' }],
+      coPosts: [{ _id: 'p1' }, { _id: 'p3' }],
+      posts: [{ _id: 'p3' }]
+    })
+    // The foreignField maps each post back, and the projection left it out.
+    expect(ana?.coPosts[0]).toEqual({ _id: 'p3', title: 'Gamma' })
+    expectTypeOf<NonNullable<typeof ana>['posts']>().toEqualTypeOf<
+      Array<WithId<z.output<typeof postSchema>>>
+    >()
+    expectTypeOf<NonNullable<typeof ana>['coPosts']>().toEqualTypeOf<
+      Array<{ _id: string; title: string }>
+    >()
+  })
+
+  test('takes the options of populate, a nested one too', async () => {
+    const ana = await AuthorsModel.findOne(
+      { _id: 'u1' },
+      {
+        populate: {
+          posts: {
+            filter: { title: { $ne: 'Gamma' } },
+            populate: { editor: { projection: { name: 1 } } },
+            projection: { editor: 1, title: 1 },
+            sort: { title: -1 }
+          }
+        }
+      }
+    )
+
+    expect(ana?.posts).toEqual([
+      { _id: 'p2', title: 'Beta' },
+      { _id: 'p1', editor: { _id: 'u2', name: 'Luis' }, title: 'Alpha' }
+    ])
+    await expect(
+      AuthorsModel.findOne(
+        { _id: 'u1' },
+        // @ts-expect-error author points back to the author
+        { populate: { posts: { populate: { author: true } } } }
+      )
+    ).rejects.toMatchObject({
+      issues: [{ path: ['populate', 'posts', 'populate', 'author'] }]
+    })
+  })
+
+  test('asks for the localField when the projection leaves it out, and removes it', async () => {
+    const authors = await AuthorsModel.find(
+      {},
+      { populate: { comments: true, posts: true }, projection: { _id: 0, name: 1 } }
+    ).sort({ name: 1 })
+
+    expect(authors.map((author) => Object.keys(author).toSorted())).toEqual([
+      ['comments', 'name', 'posts'],
+      ['comments', 'name', 'posts']
+    ])
+    expect(authors[1]?.comments).toEqual([{ _id: 'c1', byHandle: 'luis', text: 'Nice' }])
+    expectTypeOf<keyof (typeof authors)[number]>().toEqualTypeOf<'comments' | 'name' | 'posts'>()
+  })
+
+  test('is a key that is not a field, with a localField of the schema', () => {
+    expect(() =>
+      mongozod({
+        collection: 'authors',
+        db,
+        // @ts-expect-error name is a field of the schema
+        references: { name: { foreignField: 'author', model: () => PostsModel } },
+        schema: authorSchema
+      })
+    ).toThrow('references: "name" has a foreignField, so it is not stored')
+    expect(() =>
+      mongozod({
+        collection: 'authors',
+        db,
+        references: {
+          posts: { foreignField: 'author', localField: 'nickname', model: () => PostsModel }
+        },
+        schema: authorSchema
+      })
+    ).toThrow('references: "posts" needs its localField "nickname" in the schema')
+  })
+
+  test('needs a foreignField of the target that stores what the localField does', async () => {
+    const TypoModel = mongozod({
+      collection: 'authors',
+      db,
+      references: { posts: { foreignField: 'writer', model: () => PostsModel } },
+      schema: authorSchema
+    })
+
+    await expect(
+      // @ts-expect-error writer is not a path of the posts
+      TypoModel.find({}, { populate: { posts: true } })
+    ).rejects.toMatchObject({
+      issues: [
+        { message: '"posts": "writer" is not a path of its target', path: ['populate', 'posts'] }
+      ]
+    })
+  })
+})
