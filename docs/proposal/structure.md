@@ -54,8 +54,10 @@
 - **Turborepo** corre `build`, `check-types` y `test` en cada paquete. `check-types` y `test`
   dependen de un nodo `transit`, como recomienda su guía, para correr en paralelo sin perder los
   cambios de las dependencias.
-- **TypeScript 7** con la base de `packages/config/`. TypeScript 5.5.4, el mínimo, se instala con el
-  alias `typescript-5.5` para compilar el consumidor de los `.d.ts`.
+- **TypeScript 7** con la base de `packages/config/`, que activa `exactOptionalPropertyTypes` para
+  que los tests prueben los tipos con esa opción, y el consumidor de los `.d.ts` los prueba sin
+  ella. TypeScript 5.5.4, el mínimo, se instala con el alias `typescript-5.5` para compilar ese
+  consumidor.
 - **tsdown** compila el paquete a ESM con sus `.d.ts`, escribe el `exports` del `package.json` y
   corre [publint](https://publint.dev) (estricto) y
   [arethetypeswrong](https://arethetypeswrong.github.io) (perfil `esm-only`), que hacen fallar el
