@@ -152,7 +152,9 @@ const { extraIndexes } = await PluginsModel.sync()
     cualquier proyecto, y un alias, un 8 %. Un campo de varios tipos es una `z.union`.
 - **Campos de más**: un `z.object` común descarta las keys que no declara, pero los documentos
   viejos pueden tenerlas, así que `additionalProperties` queda abierto. Un `z.strictObject` lo
-  cierra, y un catchall usa su schema.
+  cierra, y un catchall usa su schema. En los dos, si el schema no declara `_id`, se declara como
+  `objectId`, también en cada tipo de una unión anidada: si no, la regla rechazaría el `ObjectId`
+  que genera el driver.
 - **Por qué no `z.toJSONSchema()`**: el `$jsonSchema` de MongoDB es el draft 4 sin `$ref`,
   `default`, `format`, el tipo `integer` ni keywords desconocidas, y usa `bsonType` para las fechas
   y los demás tipos de BSON. mongozod recorre el schema y escribe `bsonType` directamente.
