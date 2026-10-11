@@ -5,6 +5,7 @@ export default defineConfig({
     'src/index.ts',
     'src/codecs/bson.ts',
     'src/codecs/date.ts',
+    'src/geojson.ts',
     'src/mzod.ts',
     'src/plugins/soft-delete.ts'
   ],

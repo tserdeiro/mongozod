@@ -6,6 +6,7 @@ import { MongoClient } from 'mongodb'
 import { definePlugin, mongozod } from 'mongozod'
 import { binary, decimal128, objectId } from 'mongozod/codecs/bson'
 import { date } from 'mongozod/codecs/date'
+import { point } from 'mongozod/geojson'
 import * as mz from 'mongozod/mzod'
 import { softDelete } from 'mongozod/plugins/soft-delete'
 import { z } from 'zod'
@@ -305,6 +306,7 @@ const brandSchema = z.object({
   budget: z.instanceof(Decimal128).meta({ bsonType: 'decimal' }).optional(),
   fee: decimal128().optional(),
   logo: binary().optional(),
+  office: point().optional(),
   launchedAt: date().optional(),
   owner: objectId().optional()
 })
