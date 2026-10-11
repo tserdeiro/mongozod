@@ -381,7 +381,7 @@ En orden de prioridad. Los que dicen «decidir» cambian algo registrado en la p
 
 13. **Unificar el recorrido de paths** de `schema-at.ts` y `update-path.ts`, y recorrer cada path una
     sola vez (hallazgo 5). Hecho.
-14. **Juntar los helpers repetidos** en un solo lugar cada uno (hallazgo 6).
+14. **Juntar los helpers repetidos** en un solo lugar cada uno (hallazgo 6). Hecho.
 15. **Derivar `SortDirection`** del tipo del driver (hallazgo 10).
 16. **Propuesta**: precisar que es Zod Mini el que no expone los enteros; opcional, usar `format`
     cuando existe (hallazgo 8).

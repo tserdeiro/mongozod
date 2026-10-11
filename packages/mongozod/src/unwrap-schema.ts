@@ -1,4 +1,20 @@
+import type { Def, Wrapper } from './schema-at'
+
 import * as core from 'zod/v4/core'
+
+/**
+ * The schema under its wrappers and lazies, option by option: the types
+ * of `unwrapSchema`.
+ */
+export type Unwrap<S> = S extends unknown
+  ? Def<S> extends infer X
+    ? X extends { innerType: infer I; type: Wrapper }
+      ? Unwrap<I>
+      : X extends { getter: () => infer L; type: 'lazy' }
+        ? Unwrap<L>
+        : S
+    : never
+  : never
 
 /** The schema under its wrappers (`optional`, `nullable`, `default`…) and lazies. */
 export function unwrapSchema(schema: core.$ZodType): core.$ZodType {

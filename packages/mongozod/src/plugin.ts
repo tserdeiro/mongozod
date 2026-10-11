@@ -1,5 +1,6 @@
 import type { None } from './model'
 import type { ModelCursor } from './model-cursor'
+import type { UnionToIntersection } from './type-helpers'
 import type {
   BulkWriteResult,
   ClientSession,
@@ -257,12 +258,6 @@ export function definePlugin<
 }
 
 // How the plugins of a model change its types.
-
-type UnionToIntersection<U> = (U extends unknown ? (value: U) => void : never) extends (
-  value: infer I
-) => void
-  ? I
-  : never
 
 /**
  * Any plugin, whatever its generics. Its hooks are methods, so the hooks of every plugin fit, with

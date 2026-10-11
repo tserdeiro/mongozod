@@ -3,7 +3,7 @@ import type { JsonSchemaOption } from './json-schema'
 import type { Model, ModelSchema, None, SyncResult } from './model'
 import type { FindArgs } from './model-find-cursor'
 import type { AnyPlugin, Operation, PluginMethods } from './plugin'
-import type { BatchSource, RuntimePlugin } from './plugin-pipeline'
+import type { BatchSource } from './plugin-pipeline'
 import type { PluginsCheck } from './plugins-check'
 import type { ReadContext, ReadPlan } from './read-plan'
 import type { ReferenceTarget, References, UnknownReferences } from './references'
@@ -174,7 +174,7 @@ export function mongozod<
 export function mongozod(
   options: Omit<MongozodOptions<ModelSchema, TimestampsOption>, 'indexes' | 'plugins'> & {
     indexes?: Parameters<typeof indexesOf>[1]
-    plugins?: readonly RuntimePlugin[]
+    plugins?: readonly AnyPlugin[]
     references?: Record<string, ReferenceTarget>
     virtuals?: Virtuals
   }

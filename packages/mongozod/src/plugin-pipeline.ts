@@ -1,5 +1,5 @@
 // oxlint-disable eslint/no-await-in-loop -- hooks run one after the other, in the order of the plugins
-import type { AnyModel, Group, Operation } from './plugin'
+import type { AnyModel, AnyPlugin, Group, Operation } from './plugin'
 import type { ClientSession, Document } from 'mongodb'
 import type * as core from 'zod/v4/core'
 
@@ -10,37 +10,20 @@ import { isPlainObject } from './is-plain-object'
 import { GROUPS } from './plugin'
 import { schemaAt } from './schema-at'
 
-/** The hooks of an operation or a group, as the core runs them: with any operation's input. */
-interface RuntimeHooks {
-  after?(input: Document): unknown
-  before?(input: Document): unknown
-}
-
-/** A plugin as the core runs it. Every `Plugin` is one: its hooks are methods. */
-export interface RuntimePlugin {
-  context?: Partial<Record<Group, core.$ZodObject>>
-  fields?: core.$ZodShape
-  hooks?: Partial<Record<string, RuntimeHooks>>
-  id: string
-  methods?: object
-  middleware?(input: Document): Promise<unknown>
-  options?: Partial<Record<Group, core.$ZodObject>>
-}
-
 /** The plugins of a model, and the model their hooks receive. */
 export interface Pipeline {
   model: AnyModel
-  plugins: readonly RuntimePlugin[]
+  plugins: readonly AnyPlugin[]
 }
 
 /** The options mongozod takes besides the driver's, which no plugin option can shadow. */
 const OWN_OPTIONS = new Set(['context', 'populate', 'schema', 'timestamps'])
 
-const GROUP_NAMES: readonly Group[] = ['bulk', 'delete', 'insert', 'read', 'update']
-
 /** The group of an operation: `aggregate` and `estimatedDocumentCount` have none. */
 export function groupOf(operation: Operation): Group | undefined {
-  return GROUP_NAMES.find((group) => GROUPS[group].some((name: string) => name === operation))
+  return Object.keys(GROUPS)
+    .filter((name): name is Group => Object.hasOwn(GROUPS, name))
+    .find((group) => GROUPS[group].some((name: string) => name === operation))
 }
 
 /**
@@ -48,7 +31,7 @@ export function groupOf(operation: Operation): Group | undefined {
  * field the schema does not declare in every type of document, two of them define the same method,
  * or an option shadows one of mongozod's or another plugin's.
  */
-export function checkPlugins(schema: core.$ZodType, plugins: readonly RuntimePlugin[]): void {
+export function checkPlugins(schema: core.$ZodType, plugins: readonly AnyPlugin[]): void {
   const types = documentTypes(schema)
   const methods = new Set<string>()
   const options = new Map<string, string>()
@@ -93,11 +76,7 @@ interface Prepared {
  * The options keep the parsed values of the plugin options, and the context as it was written, so
  * that a hook can dispatch another operation with them. Throws a `ZodError` when one fails.
  */
-function prepare(
-  plugins: readonly RuntimePlugin[],
-  operation: Operation,
-  args: Document
-): Prepared {
+function prepare(plugins: readonly AnyPlugin[], operation: Operation, args: Document): Prepared {
   const group = groupOf(operation)
   const options: Document = { ...args.options }
   const issues: core.$ZodIssue[] = []
@@ -131,7 +110,7 @@ function prepare(
 }
 
 /** The arguments for the core: without the context and the options of the plugins. */
-function forCore(plugins: readonly RuntimePlugin[], operation: Operation, args: Document) {
+function forCore(plugins: readonly AnyPlugin[], operation: Operation, args: Document) {
   const group = groupOf(operation)
   const { context: _context, ...options } = args.options ?? {}
 
@@ -145,7 +124,7 @@ function forCore(plugins: readonly RuntimePlugin[], operation: Operation, args: 
 }
 
 /** The hooks of a plugin for an operation, from the general to the particular. */
-function hooksOf(plugin: RuntimePlugin, operation: Operation) {
+function hooksOf(plugin: AnyPlugin, operation: Operation) {
   const group = groupOf(operation)
 
   return [group && plugin.hooks?.[group], plugin.hooks?.[operation]].filter((hooks) => !!hooks)

@@ -1,5 +1,7 @@
+import type { FieldsOf } from './document-types'
 import type { ModelSchema, Output } from './model'
 import type { Entries, IsLiteral, Mode, Projected } from './projection'
+import type { Simplify } from './type-helpers'
 import type { Document, WithId } from 'mongodb'
 
 import { z } from 'zod'
@@ -7,8 +9,6 @@ import * as core from 'zod/v4/core'
 
 import { documentTypes } from './document-types'
 import { schemaAt } from './schema-at'
-
-type Simplify<T> = { [K in keyof T]: T[K] }
 
 /**
  * The `virtuals` option of `mongozod()`: fields computed from others, which are not stored. Each
@@ -22,9 +22,6 @@ export type VirtualValues<V> = { -readonly [K in keyof V]: core.output<V[K]> }
 
 /** The fields a virtual reads: the keys of its input. */
 type NeedsOf<X> = keyof core.input<X> & string
-
-/** The keys of every type of document. */
-type FieldsOf<O> = O extends unknown ? keyof O : never
 
 type MissingField<O, X> = O extends unknown ? Exclude<NeedsOf<X>, keyof O> : never
 

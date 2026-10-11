@@ -1,5 +1,7 @@
+import type { FieldsOf } from './document-types'
 import type { ModelSchema, None, Output } from './model'
 import type { Entries, IsLiteral, Mode, ProjectionCheck, SuggestedProjection } from './projection'
+import type { Simplify } from './type-helpers'
 import type { Read, Virtuals } from './virtuals'
 import type { ClientSession, Db, Document, FindOptions, Flatten, WithId } from 'mongodb'
 
@@ -10,8 +12,6 @@ import * as core from 'zod/v4/core'
 import { documentTypes } from './document-types'
 import { isPlainObject } from './is-plain-object'
 import { schemaAt } from './schema-at'
-
-type Simplify<T> = { [K in keyof T]: T[K] }
 
 /**
  * What the types of `populate` use of a referenced model: its schema and its virtuals. Its `find`
@@ -41,9 +41,6 @@ export function registerFind(
  * virtuals apply, or a collection and its schema, for one without a model.
  */
 export type ReferenceTarget = (() => ReferencedModel) | { collection: string; schema: ModelSchema }
-
-/** The keys of every type of document. */
-type FieldsOf<O> = O extends unknown ? keyof O : never
 
 /**
  * The `references` of a model: the fields that store the `_id` of another document, or an array of

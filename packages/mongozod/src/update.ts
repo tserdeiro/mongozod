@@ -4,26 +4,20 @@ import type { ModelSchema, None } from './model'
 import type { PathSuggestions } from './path-suggestions'
 import type { ProjectionCheck } from './projection'
 import type { PopulateCheck } from './references'
-import type { Def, ExtraKey, IsIdentifier, NotAPath, SchemaAt, Wrapper } from './schema-at'
+import type { Def, ExtraKey, IsIdentifier, NotAPath, SchemaAt } from './schema-at'
 import type { SortCheck } from './sort'
 import type { LockedFields, NoTimestamps, TimestampNames } from './timestamps'
+import type { Unwrap } from './unwrap-schema'
 import type * as core from 'zod/v4/core'
 
+/**
+ * The intersection of the members of a union of one-element tuples. The tuples keep each member
+ * whole, where `UnionToIntersection` would also split a member that is a union, such as `boolean`.
+ */
 type IntersectAll<T> = (T extends [infer V] ? (value: V) => void : never) extends (
   value: infer I
 ) => void
   ? I
-  : never
-
-/** The schema under its wrappers and lazies, option by option. */
-type Unwrap<S> = S extends unknown
-  ? Def<S> extends infer X
-    ? X extends { innerType: infer I; type: Wrapper }
-      ? Unwrap<I>
-      : X extends { getter: () => infer L; type: 'lazy' }
-        ? Unwrap<L>
-        : S
-    : never
   : never
 
 type DiscriminatorOf<S> =

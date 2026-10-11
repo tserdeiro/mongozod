@@ -2,29 +2,12 @@ import type { ElementConditionCheck, ElementSchema } from './filter'
 import type { Leaf } from './loose'
 import type { None } from './model'
 import type { PathSuggestions } from './path-suggestions'
-import type { Def, FieldAt, NotAPath, Wrapper } from './schema-at'
+import type { Def, FieldAt, NotAPath } from './schema-at'
+import type { Simplify, UnionToIntersection } from './type-helpers'
+import type { Unwrap } from './unwrap-schema'
 import type * as core from 'zod/v4/core'
 
-type Simplify<T> = { [K in keyof T]: T[K] }
-
-type UnionToIntersection<U> = (U extends unknown ? (x: U) => void : never) extends (
-  x: infer I
-) => void
-  ? I
-  : never
-
 type IsUnion<T> = [T] extends [UnionToIntersection<T>] ? false : true
-
-/** The schema under its wrappers and lazies, option by option. */
-type Unwrap<S> = S extends unknown
-  ? Def<S> extends infer X
-    ? X extends { innerType: infer I; type: Wrapper }
-      ? Unwrap<I>
-      : X extends { getter: () => infer L; type: 'lazy' }
-        ? Unwrap<L>
-        : S
-    : never
-  : never
 
 type IsArraySchema<S> = [S] extends [never]
   ? false
