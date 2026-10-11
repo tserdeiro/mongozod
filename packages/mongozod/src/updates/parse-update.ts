@@ -174,9 +174,14 @@ function parseField(
       return schemas.every(isNumber) ? { value } : fail(at, `"${path}" is not a number`, value)
 
     case '$currentDate':
-      return schemas.every((target) => z.safeParse(target, new Date()).success)
+      if (!schemas.every((target) => z.safeParse(target, new Date()).success)) {
+        return fail(at, `"${path}" is not a date`, value)
+      }
+
+      // `{ $type: 'timestamp' }` writes a BSON Timestamp, which a date field does not take.
+      return value === true || (isPlainObject(value) && value.$type === 'date')
         ? { value }
-        : fail(at, `"${path}" is not a date`, value)
+        : fail(at, "$currentDate takes true or { $type: 'date' }", value)
 
     case '$addToSet':
     case '$push':

@@ -151,7 +151,7 @@ describe('operators', () => {
           pluginSchema,
           {},
           {
-            $currentDate: { title: true },
+            $currentDate: { createdAt: { $type: 'timestamp' }, title: true },
             $foo: { title: 1 },
             $inc: { title: 1, views: 0.5 },
             $push: { scores: 'x', title: 'x' },
@@ -161,6 +161,7 @@ describe('operators', () => {
         )
       )
     ).toEqual([
+      ['$currentDate createdAt', "$currentDate takes true or { $type: 'date' }"],
       ['$currentDate title', '"title" is not a date'],
       ['$foo', '"$foo" is not an update operator'],
       ['$inc title', '"title" is not a number'],
