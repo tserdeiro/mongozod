@@ -609,6 +609,25 @@ describe('schemas', () => {
     await UsersModel.updateOne({ _id: document._id }, { $currentDate: { seenAt: true } })
   })
 
+  test('needs useBigInt64 for a z.bigint(), so that reads have the bigint of their type', async () => {
+    const ledgerSchema = z.object({ entries: z.array(z.object({ amount: z.bigint() })) })
+    const LedgersModel = mongozod({ collection: 'ledgers', db, schema: ledgerSchema })
+
+    await expect(LedgersModel.insertOne({ entries: [{ amount: 5n }] })).rejects.toThrow(
+      '"entries.amount" is a z.bigint(), which the driver reads as a number unless the client sets useBigInt64: true'
+    )
+
+    const BigIntLedgersModel = mongozod({
+      collection: 'ledgers',
+      db: client.db('mongozod', { useBigInt64: true }),
+      schema: ledgerSchema
+    })
+
+    await BigIntLedgersModel.insertOne({ entries: [{ amount: 2n ** 60n }] })
+
+    expect((await BigIntLedgersModel.findOne({}))?.entries).toEqual([{ amount: 2n ** 60n }])
+  })
+
   test('takes Zod Mini schemas and still throws a ZodError', async () => {
     const TagsModel = mongozod({
       collection: 'tags',
