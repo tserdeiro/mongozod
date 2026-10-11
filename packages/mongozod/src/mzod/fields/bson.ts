@@ -33,15 +33,13 @@ const hexToObjectId = z.codec(z.hex().length(24), objectIdInstance, {
  * `mongodb` 6.
  *
  * @example
- *   ;```ts
- *   import { Binary, BSONError, Decimal128, ObjectId, UUID } from 'bson'
+ *   import { ObjectId } from 'bson'
  *   import * as mz from 'mongozod/mzod'
  *
  *   const brandSchema = z.object({
  *     _id: mz.objectId().default(() => new ObjectId()),
- *     owner: objectId()
+ *     owner: mz.objectId()
  *   })
- *   ```
  */
 export function objectId() {
   // The codec goes first: with the `ObjectId` first, `z.encode` would return it unchanged.
@@ -101,11 +99,9 @@ const DECIMAL128_ERROR =
  * back into the string, and the `$jsonSchema` of `sync()` checks it as a `decimal`.
  *
  * @example
- *   ;```ts
  *   import * as mz from 'mongozod/mzod'
  *
  *   const invoiceSchema = z.object({ total: mz.decimal128() })
- *   ```
  */
 export function decimal128() {
   const input = z.union(
@@ -153,11 +149,9 @@ const BINARY_ERROR =
  * it back into base64, and the `$jsonSchema` of `sync()` checks it as `binData`.
  *
  * @example
- *   ;```ts
  *   import * as mz from 'mongozod/mzod'
  *
  *   const fileSchema = z.object({ name: z.string(), data: mz.binary() })
- *   ```
  */
 // The return type is written out: TypeScript 7 would emit `Uint8Array<ArrayBufferLike>`, which
 // TypeScript 5.5, the minimum, does not take.
@@ -211,12 +205,10 @@ const UUID_ERROR = 'Invalid UUID: expected a UUID or its string'
  * it back into the string, and the `$jsonSchema` of `sync()` checks it as `binData`.
  *
  * @example
- *   ;```ts
  *   import { UUID } from 'bson'
  *   import * as mz from 'mongozod/mzod'
  *
  *   const sessionSchema = z.object({ _id: mz.uuid().default(() => new UUID()), user: mz.uuid() })
- *   ```
  */
 export function uuid() {
   const input = z.union([z.uuid({ error: UUID_ERROR }), uuidInstance], { error: UUID_ERROR })

@@ -29,11 +29,9 @@ export type PopulateShape<W, D extends Side> = {
  * virtual is declared as a field, with a schema that adds it.
  *
  * @example
- *   ;```ts
  *   populate: mz.populate({
  *     organization: organizationSchema.pick({ _id: true, name: true })
  *   }).optional()
- *   ```
  */
 export function populate<const W extends Readonly<Record<string, core.$ZodObject>>>(
   whitelists: W

@@ -395,10 +395,12 @@ export interface Model<
    * Finds the documents that match the filter. The cursor can be awaited for the array, iterated
    * with `for await` and chained like the driver's. A projection adjusts the type of the documents,
    * and asks for virtuals like for fields. `populate` replaces each reference with its document,
-   * with one `$in` query per reference and per batch: `null` when it is missing.
+   * with one `$in` query per reference and per batch: `null` when it is missing. The filter is
+   * checked by its types only, as the driver's, without casting: one that arrives without types,
+   * such as a client's, goes through `mz.filter` first.
    *
    * @example
-   *   await TransactionsModel.find({}, { populate: { createdBy: { fullName: 1 } } })
+   *   await TransactionsModel.find({}, { populate: { createdBy: { projection: { fullName: 1 } } } })
    */
   'find'<
     const F extends FilterCheck<S, F>,

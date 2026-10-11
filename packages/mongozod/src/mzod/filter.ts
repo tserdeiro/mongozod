@@ -340,9 +340,7 @@ function shapeOf(schema: core.$ZodType, declarations: Declarations) {
  * `.refine()` for at least one field. `$and`, `$or` and `$nor` are added with `.extend()`.
  *
  * @example
- *   ;```ts
  *   filter: mz.filter(brandSchema, { _id: ['$eq', '$in'], name: ['$eq', '$exists'] }).default({})
- *   ```
  */
 export function filter<S extends core.$ZodType, const F extends FilterFieldsCheck<S, F>>(
   schema: S,

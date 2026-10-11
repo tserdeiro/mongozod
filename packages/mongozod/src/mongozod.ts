@@ -98,13 +98,11 @@ export interface MongozodOptions<
    * `foreignField` stores this document's `localField`, `_id` by default, like MongoDB's `$lookup`.
    *
    * @example
-   *   ;```ts
    *   references: {
-   *     'items.product': () => ProductsModel,
-   *     'organization': { collection: 'organizations', schema },
-   *     'posts': { model: () => PostsModel, foreignField: 'author' }
+   *   'items.product': () => ProductsModel,
+   *   'organization': { collection: 'organizations', schema },
+   *   'posts': { model: () => PostsModel, foreignField: 'author' }
    *   }
-   *   ```
    */
   references?: R & UnknownReferences<S, R>
 
@@ -183,6 +181,15 @@ const STRING_OPTIONS = { projection: '{ name: 1 }', sort: '{ createdAt: -1 }' }
  *   })
  *
  *   const { document } = await NotesModel.insertOne({ organization, title })
+ *
+ * @example
+ *   // A transaction is the driver's: each operation takes its session, or it runs outside of it.
+ *   await client.withSession((session) =>
+ *     session.withTransaction(async () => {
+ *       await AccountsModel.updateOne({ _id: from }, { $inc: { balance: -amount } }, { session })
+ *       await AccountsModel.updateOne({ _id: to }, { $inc: { balance: amount } }, { session })
+ *     })
+ *   )
  */
 export function mongozod<
   S extends ModelSchema,

@@ -18,11 +18,9 @@ const isoToDate = z.codec(z.iso.datetime({ offset: true }), z.date(), {
  * so the schemas that use it also run in web and native clients.
  *
  * @example
- *   ;```ts
  *   import * as mz from 'mongozod/mzod'
  *
  *   const noteSchema = z.object({ createdAt: mz.date(), scheduledFor: mz.date().optional() })
- *   ```
  */
 export function date() {
   // The codec goes first: with the `Date` first, `z.encode` would return it unchanged.

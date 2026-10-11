@@ -43,11 +43,9 @@ const marker: SetMarker = { '~set': true }
  * operator, does not compile and throws a `ZodError`.
  *
  * @example
- *   ;```ts
  *   import * as mz from 'mongozod/mzod'
  *
  *   const postSchema = z.object({ tags: mz.set(z.string()).default([]) })
- *   ```
  */
 export function set<T extends core.SomeType>(item: T): z.ZodArray<T> & SetMarker {
   return Object.assign(z.array(item).check(uniqueValues), marker)

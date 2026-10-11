@@ -14,9 +14,7 @@ import { withoutUndefined } from './internal/without-undefined'
  * `accountSchema.extend({ fullName: z.string() })`.
  *
  * @example
- *   ;```ts
  *   projection: mz.projection(noteSchema, { _id: true, content: true, title: true }).optional()
- *   ```
  */
 export function projection<S extends core.$ZodType, const K extends MaskCheck<S, K, 'projection'>>(
   schema: S,

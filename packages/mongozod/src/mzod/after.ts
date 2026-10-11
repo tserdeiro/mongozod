@@ -69,9 +69,7 @@ export interface AfterFilter<S, O> {
  * page gets, such as `.default({})`.
  *
  * @example
- *   ;```ts
  *   after: mz.after(brandSchema, { createdAt: -1, _id: -1 }).default({})
- *   ```
  */
 export function after<S extends core.$ZodType, const O extends AfterSortCheck<S, O>>(
   schema: S,

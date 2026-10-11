@@ -68,7 +68,15 @@ function bulkOperation(operation: Document): Document {
  * real. `aggregate` and `estimatedDocumentCount` see every document.
  *
  * @example
- *   export const NotesModel = mongozod({ collection: 'notes', db, plugins: [softDelete()], schema })
+ *   // The schema declares the field the plugin writes.
+ *   const noteSchema = z.object({ deletedAt: z.date().optional(), title: z.string() })
+ *
+ *   export const NotesModel = mongozod({
+ *     collection: 'notes',
+ *     db,
+ *     plugins: [softDelete()],
+ *     schema: noteSchema
+ *   })
  */
 export function softDelete() {
   return definePlugin({

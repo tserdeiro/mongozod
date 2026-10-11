@@ -14,7 +14,6 @@
  * @module
  *
  * @example
- *   ;```ts
  *   import * as mz from 'mongozod/mzod'
  *   import { z } from 'zod'
  *
@@ -27,7 +26,6 @@
  *       .default({}),
  *     limit: z.number().int().min(1).max(100).default(20)
  *   })
- *   ```
  */
 export { after } from './mzod/after'
 export { filter } from './mzod/filter'

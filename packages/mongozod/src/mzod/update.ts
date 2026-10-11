@@ -125,13 +125,11 @@ function valueOf(schema: core.$ZodType, operator: string, path: string): core.$Z
  * in the driver; `undefined` keys are dropped.
  *
  * @example
- *   ;```ts
  *   update: mz.update(noteSchema, {
  *     $set: ['title', 'content'],
  *     $unset: ['color'],
  *     $inc: ['views']
  *   })
- *   ```
  */
 export function update<S extends core.$ZodType, const U extends UpdateFieldsCheck<S, U>>(
   schema: S,
