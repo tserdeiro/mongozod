@@ -11,6 +11,7 @@ import {
 } from 'vitest'
 import { z } from 'zod'
 
+import { date } from './codecs/date'
 import { mongozod } from './mongozod'
 
 const client = new MongoClient(inject('mongoUri'))
@@ -20,16 +21,8 @@ beforeAll(() => client.connect())
 afterAll(() => client.close())
 beforeEach(() => db.dropDatabase())
 
-/** The documented form: a Date, or an ISO date that a codec decodes into one, with a default. */
-const timestampSchema = z
-  .union([
-    z.date(),
-    z.codec(z.iso.datetime(), z.date(), {
-      decode: (iso) => new Date(iso),
-      encode: (date) => date.toISOString()
-    })
-  ])
-  .default(() => new Date())
+/** The documented form: `date()`, a Date or an ISO string decoded into one, with no default. */
+const timestampSchema = date()
 
 const noteSchema = z.object({
   _id: z.uuidv4().default(() => crypto.randomUUID()),
@@ -73,14 +66,46 @@ describe('inserts', () => {
     expect(documents[0]?.createdAt).toEqual(documents[1]?.createdAt)
   })
 
-  test('skip the stamps with timestamps: false, leaving the defaults of the schema', async () => {
+  test('take the dates as optional, also in replacements', async () => {
+    const { insertedId } = await NotesModel.insertOne({ title: 'One' })
+
+    await NotesModel.replaceOne({ _id: insertedId }, { title: 'Two' })
+
+    expect(await NotesModel.findOne({ _id: insertedId })).toMatchObject({
+      createdAt: expect.any(Date),
+      title: 'Two',
+      updatedAt: expect.any(Date)
+    })
+  })
+
+  test('with timestamps: false, need the dates, which the schema validates', async () => {
     const { document } = await NotesModel.insertOne(
-      { createdAt: source, title: 'One' },
+      { createdAt: source, title: 'One', updatedAt: source },
       { timestamps: false }
     )
 
-    expect(document.createdAt).toEqual(source)
-    expect(document.updatedAt).not.toEqual(source)
+    expect(document).toMatchObject({ createdAt: source, updatedAt: source })
+    await expect(
+      // @ts-expect-error timestamps: false needs updatedAt
+      NotesModel.insertOne({ createdAt: source, title: 'One' }, { timestamps: false })
+    ).rejects.toMatchObject({ issues: [{ path: ['updatedAt'] }] })
+  })
+
+  test('with timestamps: false, a .default() of the schema still fills them', async () => {
+    const LogsModel = mongozod({
+      collection: 'logs',
+      db,
+      schema: z.object({
+        createdAt: date().default(() => source),
+        title: z.string(),
+        updatedAt: date().default(() => source)
+      }),
+      timestamps: true
+    })
+
+    const { document } = await LogsModel.insertOne({ title: 'One' }, { timestamps: false })
+
+    expect(document).toMatchObject({ createdAt: source, updatedAt: source })
   })
 })
 
@@ -138,6 +163,7 @@ describe('updates', () => {
   test('stamp the writes of bulkWrite, unless timestamps: false', async () => {
     await NotesModel.bulkWrite([
       { insertOne: { document: { createdAt: source, title: 'One' } } },
+      { insertOne: { document: { title: 'Two' } } },
       { updateOne: { filter: { title: 'One' }, update: { $set: { tags: ['a'] } } } }
     ])
 
@@ -150,6 +176,10 @@ describe('updates', () => {
 
     expect(stamped?.updatedAt.getTime()).toBeGreaterThan(source.getTime())
     expect(await NotesModel.findOne({ title: 'One' })).toMatchObject({ updatedAt: source })
+    await expect(
+      // @ts-expect-error timestamps: false needs the dates
+      NotesModel.bulkWrite([{ insertOne: { document: { title: 'Three' } } }], { timestamps: false })
+    ).rejects.toBeInstanceOf(z.ZodError)
   })
 })
 
@@ -168,7 +198,7 @@ describe('the option', () => {
     expect(document).not.toHaveProperty('updatedAt')
   })
 
-  test('needs the fields in the schema, taking a Date, with a default', () => {
+  test('needs the fields in the schema, taking a Date', () => {
     expect(() =>
       // @ts-expect-error the schema has no updatedAt
       mongozod({
@@ -180,13 +210,12 @@ describe('the option', () => {
     ).toThrow('timestamps needs the field "updatedAt" in the schema')
 
     expectTypeOf(() =>
-      // @ts-expect-error createdAt has no default
       mongozod({
         collection: 'notes',
         db,
-        schema: z.object({ createdAt: z.date(), updatedAt: timestampSchema }),
+        schema: z.object({ createdAt: z.date(), title: z.string(), updatedAt: z.date() }),
         timestamps: true
-      })
+      }).insertOne({ title: 'One' })
     ).toBeFunction()
     expect(() =>
       // @ts-expect-error createdAt does not take a Date

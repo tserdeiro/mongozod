@@ -44,7 +44,7 @@ const EventsModel = mongozod({
   ])
 })
 
-const timestampSchema = date().default(() => new Date())
+const timestampSchema = date()
 
 const PostsModel = mongozod({
   collection: 'posts',

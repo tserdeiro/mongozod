@@ -14,7 +14,12 @@ import type {
 } from './references'
 import type { FieldAt, NotAPath } from './schema-at'
 import type { SortCheck, SuggestedSort } from './sort'
-import type { NoTimestamps, TimestampNames, TimestampsOperationOption } from './timestamps'
+import type {
+  NoTimestamps,
+  TimestampedInput,
+  TimestampNames,
+  TimestampsOperationOption
+} from './timestamps'
 import type {
   ArrayFiltersEntriesCheck,
   ModelUpdate,
@@ -141,6 +146,9 @@ type DistinctKey<S, K extends string> =
   | '_id'
   | (string extends K ? never : [FieldAt<S, K, 'filter'>] extends [never] ? NotAPath<K> : K)
 
+/** `false` when the options of a `bulkWrite` turn the timestamps off. */
+type TimestampsOff<O> = O extends { timestamps: false } ? false : undefined
+
 /** An `updateOne` or `updateMany` of `bulkWrite`, checked like the operation of the same name. */
 type BulkUpdateCheck<
   S extends ModelSchema,
@@ -166,12 +174,12 @@ type BulkWriteOperationCheck<
   N extends TimestampNames,
   BulkOptions
 > = O extends { insertOne: unknown }
-  ? { insertOne: { document: Input<S> } }
+  ? { insertOne: { document: TimestampedInput<S, N, TimestampsOff<BulkOptions>> } }
   : O extends { replaceOne: { filter: infer F } }
     ? {
         replaceOne: Omit<ReplaceOneModel<Output<S>>, 'filter' | 'replacement'> & {
           filter: FilterCheck<S, F>
-          replacement: Input<S>
+          replacement: TimestampedInput<S, N, TimestampsOff<BulkOptions>>
         }
       }
     : O extends { updateOne: infer M extends { filter: unknown; update: unknown } }
@@ -397,15 +405,16 @@ export interface Model<
     const F extends FilterCheck<S, F>,
     const Sort extends SortCheck<S, Sort>,
     const P extends ProjectionCheck<S, P, V>,
-    const Pop extends PopulateCheck<S, R, Pop, P>
+    const Pop extends PopulateCheck<S, R, Pop, P>,
+    T extends false | undefined = false | undefined
   >(
     filter: F & SuggestedFilter<S>,
-    replacement: Input<S>,
+    replacement: TimestampedInput<S, N, T>,
     ...options: OptionsArg<
       PL,
       'update',
       ReadOptions<S, FindOneAndReplaceOptions, Sort, P, V, R, Pop> &
-        TimestampsOperationOption<N> & { includeResultMetadata: true },
+        TimestampsOperationOption<N, T> & { includeResultMetadata: true },
       true
     >
   ): Promise<ModifyResultOf<S, V, R, P, Pop>>
@@ -413,14 +422,15 @@ export interface Model<
     const F extends FilterCheck<S, F>,
     const Sort extends SortCheck<S, Sort>,
     const P extends ProjectionCheck<S, P, V>,
-    const Pop extends PopulateCheck<S, R, Pop, P>
+    const Pop extends PopulateCheck<S, R, Pop, P>,
+    T extends false | undefined = false | undefined
   >(
     filter: F & SuggestedFilter<S>,
-    replacement: Input<S>,
+    replacement: TimestampedInput<S, N, T>,
     ...options: OptionsArg<
       PL,
       'update',
-      ReadOptions<S, FindOneAndReplaceOptions, Sort, P, V, R, Pop> & TimestampsOperationOption<N>
+      ReadOptions<S, FindOneAndReplaceOptions, Sort, P, V, R, Pop> & TimestampsOperationOption<N, T>
     >
   ): Promise<ReadDocument<S, V, R, P, Pop> | null>
 
@@ -457,18 +467,18 @@ export interface Model<
    * Validates the documents with the schema and inserts them. Returns the driver's result plus the
    * stored `documents`, with their defaults and transforms applied.
    */
-  insertMany(
-    documents: ReadonlyArray<Input<S>>,
-    ...options: OptionsArg<PL, 'insert', BulkWriteOptions & TimestampsOperationOption<N>>
+  insertMany<T extends false | undefined = false | undefined>(
+    documents: ReadonlyArray<TimestampedInput<S, N, T>>,
+    ...options: OptionsArg<PL, 'insert', BulkWriteOptions & TimestampsOperationOption<N, T>>
   ): Promise<InsertManyResult<Output<S>> & { documents: Array<WithId<Output<S>>> }>
 
   /**
    * Validates the document with the schema and inserts it. Returns the driver's result plus the
    * stored `document`, with its defaults and transforms applied.
    */
-  insertOne(
-    document: Input<S>,
-    ...options: OptionsArg<PL, 'insert', InsertOneOptions & TimestampsOperationOption<N>>
+  insertOne<T extends false | undefined = false | undefined>(
+    document: TimestampedInput<S, N, T>,
+    ...options: OptionsArg<PL, 'insert', InsertOneOptions & TimestampsOperationOption<N, T>>
   ): Promise<InsertOneResult<Output<S>> & { document: WithId<Output<S>> }>
 
   /**
@@ -476,13 +486,17 @@ export interface Model<
    * insert, and its `_id` is written only when given: the one a `.default()` generates is dropped,
    * because the `_id` of a document cannot change.
    */
-  replaceOne<const F extends FilterCheck<S, F>, const Sort extends SortCheck<S, Sort>>(
+  replaceOne<
+    const F extends FilterCheck<S, F>,
+    const Sort extends SortCheck<S, Sort>,
+    T extends false | undefined = false | undefined
+  >(
     filter: F & SuggestedFilter<S>,
-    replacement: Input<S>,
+    replacement: TimestampedInput<S, N, T>,
     ...options: OptionsArg<
       PL,
       'update',
-      Sorted<S, ReplaceOptions, Sort> & TimestampsOperationOption<N>
+      Sorted<S, ReplaceOptions, Sort> & TimestampsOperationOption<N, T>
     >
   ): Promise<UpdateResult<Output<S>>>
 

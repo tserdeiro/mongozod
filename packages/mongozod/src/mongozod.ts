@@ -101,12 +101,13 @@ export interface MongozodOptions<
   /**
    * Writes `createdAt` when a document is created and `updatedAt` on every write, like Mongoose:
    * `true`, or an object that renames each field or turns it off with `false`. The schema declares
-   * them, taking a `Date` and with a `.default()`. Off by default.
+   * them, taking a `Date`, and inserts take them as optional: an operation with `timestamps: false`
+   * gives them. Off by default.
    *
    * @example
    *   import { date } from 'mongozod/codecs/date'
    *
-   *   const timestampSchema = date().default(() => new Date())
+   *   const noteSchema = z.object({ title: z.string(), createdAt: date(), updatedAt: date() })
    */
   timestamps?: T
 

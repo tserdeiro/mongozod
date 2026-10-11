@@ -1,3 +1,4 @@
+import type { Simplify } from './type-helpers'
 import type { Document } from 'mongodb'
 import type * as core from 'zod/v4/core'
 
@@ -59,9 +60,7 @@ type InputProblem<S, F extends string> =
     ? I extends unknown
       ? F extends keyof I
         ? Date extends I[F]
-          ? undefined extends I[F]
-            ? never
-            : `timestamps fills "${F}": give it a .default() or make it optional`
+          ? never
           : `timestamps writes a Date in "${F}": the field must take and return one`
         : never
       : never
@@ -75,8 +74,8 @@ type Problems<S, N extends TimestampNames> =
 
 /**
  * Checks that the schema declares the fields `timestamps` writes, in every type of document, taking
- * and returning a `Date` and with a `.default()` or optional. A problem becomes a property the
- * options lack, so the error shows it.
+ * and returning a `Date`. They need no `.default()`: inserts take them as optional. A problem
+ * becomes a property the options lack, so the error shows it.
  */
 export type TimestampsCheck<S, T> = [Problems<S, TimestampNamesOf<T>>] extends [never]
   ? unknown
@@ -87,12 +86,30 @@ export type LockedFields<N extends TimestampNames, Op, O> = O extends { timestam
   ? never
   : N['updatedAt'] | (Op extends '$setOnInsert' ? never : N['createdAt'])
 
-/** The per-operation `timestamps: false`, on the models that have timestamps. */
-export type TimestampsOperationOption<N extends TimestampNames> = [
+/**
+ * The per-operation `timestamps: false`, on the models that have timestamps. `T` infers whether an
+ * insert or a replacement passes it, which makes it give the fields.
+ */
+export type TimestampsOperationOption<N extends TimestampNames, T = false> = [
   N['createdAt'] | N['updatedAt']
 ] extends [never]
   ? unknown
-  : { timestamps?: false }
+  : { timestamps?: T }
+
+type OptionalFields<I, K extends PropertyKey> = [K] extends [never]
+  ? I
+  : I extends unknown
+    ? Simplify<Omit<I, K> & { [P in K & keyof I]?: I[P] }>
+    : never
+
+/**
+ * What an insert or a replacement takes: the input of the schema, with the fields `timestamps`
+ * fills optional, unless the operation passes `timestamps: false` (`T`). Then it gives them, or the
+ * schema fills them with a `.default()`.
+ */
+export type TimestampedInput<S, N extends TimestampNames, T> = [T] extends [false]
+  ? core.input<S>
+  : OptionalFields<core.input<S>, N['createdAt'] | N['updatedAt']>
 
 /** The fields of a `timestamps` option at runtime, `undefined` for one that is off. */
 export interface Timestamps {
