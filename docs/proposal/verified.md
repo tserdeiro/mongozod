@@ -712,6 +712,18 @@
   - Los schemas toman cada tipo, con altitud opcional; rechazan con su mensaje los rangos, la línea
     degenerada, el anillo abierto o corto y las geometrías vacías; el `$jsonSchema` los describe como
     objetos y tuplas; y un modelo con índice `2dsphere` los guarda y los encuentra con `$near`.
+  - MongoDB rechaza (16755) una `GeometryCollection` vacía, una anidada y una con una geometría
+    inválida, y acepta una de un `Point` y un `LineString`. `mz.geometryCollection()` hace lo mismo.
+- **Los tipos de campo en `mongozod/mzod`** (rolldown 1.2.13, la documentación de npm y pnpm):
+  - Con un sub-namespace (`export * as query`), un bundle que usa `mz.query.sort` pesa 3.611 bytes,
+    sin `filter`, lo mismo que plano.
+  - npm instala los peers obligatorios desde la 7 y no los opcionales; pnpm, con
+    `autoInstallPeers` (activo por defecto), instala los obligatorios que faltan.
+  - Con el build en un archivo por entry, un cliente que usa `mz.sort` y `mz.date` cargaba `bson`
+    (108.800 bytes): el codec de `mz.decimal128()` se arma al cargar el módulo, con un `.refine()`
+    que el bundler no puede quitar. Con `unbundle`, un archivo por módulo, pesa 4.698 bytes, sin
+    `bson` ni `filter`; `mz.sort` solo, 3.553; y `mz.objectId()` carga `bson` (104.338). El paquete
+    pasa de 12 archivos y 61,2 KB a 76 archivos y 65,7 KB. `bson` no declara `sideEffects`.
   - Populate de Mongoose (su documentación): `match` deja en `null` una referencia que no cumple y
     saca las de un array; `limit` no es por documento, porque consulta con `numDocuments * limit`;
     `perDocumentLimit` hace una consulta por documento; `refPath` elige el modelo con otro campo del

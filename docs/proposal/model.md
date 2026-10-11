@@ -56,13 +56,13 @@ objeto por campo. Está apagada por defecto.
   que agrega los campos sola. Un `.default()` sigue funcionando. El tipo infiere de las opciones si
   la operación pasa `timestamps: false`, en vez de usar un overload: así sigue rechazando una opción
   mal escrita. La forma documentada es
-  [`date()`](./inputs.md#decisiones-de-los-inputs), de `mongozod/codecs/date`, que acepta una
+  [`mz.date()`](./inputs.md#decisiones-de-los-inputs), de `mongozod/mzod`, que acepta una
   `Date` o un ISO, para los inputs que llegan en JSON, y devuelve una `Date`:
 
   ```ts
-  import { date } from 'mongozod/codecs/date'
+  import * as mz from 'mongozod/mzod'
 
-  const noteSchema = z.object({ title: z.string(), createdAt: date(), updatedAt: date() })
+  const noteSchema = z.object({ title: z.string(), createdAt: mz.date(), updatedAt: mz.date() })
   ```
 
   Sirve para las demás fechas, como `deletedAt` o `scheduledFor`.
@@ -145,7 +145,7 @@ const { extraIndexes } = await PluginsModel.sync()
   mongozod, así que también sirve para pedir un `int` en vez de `number`. En un `.nullable()` es el
   tipo del valor y `null` sigue pasando, así que da igual el orden de `.meta()` y `.nullable()`; un
   `.min()` o un `.refine()` posterior lo heredan, como hace Zod con su metadata. Los codecs usan lo
-  mismo: el `ObjectId` de [`objectId()`](./inputs.md#decisiones-de-los-inputs) es un `objectId`.
+  mismo: el `ObjectId` de [`mz.objectId()`](./inputs.md#decisiones-de-los-inputs) es un `objectId`.
   - **Tipado**: mongozod agrega `bsonType` al `GlobalMeta` de Zod, así el editor sugiere los alias
     de MongoDB y uno mal escrito no compila. Toma un alias y no un array, porque el tipo de
     `.meta()` de cada schema de Zod lo incluye: un array subía un 16 % las instanciaciones de

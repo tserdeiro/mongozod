@@ -34,7 +34,7 @@ El orden de implementación. Al cerrar una fase, se marca acá en el mismo cambi
    este orden:
    1. El driver 6.20 en el peer (`^6.20.0 || ^7.0.0`), con un job de CI (hecho). Ver
       [Decisiones acordadas](./README.md#decisiones-acordadas).
-   2. `objectId()` y `date()`, en `mongozod/codecs/bson` y `mongozod/codecs/date` (hecho). Ver [Inputs](./inputs.md#decisiones-de-los-inputs).
+   2. `mz.objectId()` y `mz.date()` (hecho). Ver [Inputs](./inputs.md#decisiones-de-los-inputs).
    3. `timestamps` sin `.default()` (hecho). Ver [Timestamps](./model.md#timestamps).
    4. Los updates con pipeline, con `updatePipeline: true` (hecho). Ver [Updates](./types.md#updates).
    5. `populate`, en este orden: el valor como objeto, con `filter` y `sort` (hecho); las referencias en
@@ -52,11 +52,12 @@ El orden de implementación. Al cerrar una fase, se marca acá en el mismo cambi
       1. `.meta({ bsonType })`, la API de metadata de Zod, en el `$jsonSchema` (hecho): un campo sin codec,
          como `z.instanceof(Decimal128).meta({ bsonType: 'decimal' })`, declara su tipo BSON. Los
          codecs usan el mismo mecanismo, y desaparece el registro propio de `objectId()`.
-      2. `decimal128()`, en `mongozod/codecs/bson` junto a `objectId()` (hecho), porque también necesita
-         `bson`: un string ↔ `Decimal128`, el tipo para dinero.
-      3. `binary()`, en `mongozod/codecs/bson` (hecho): base64, un `Uint8Array` o un `Binary` ↔ un
-         `Binary`, el tipo con el que el driver lee los binarios, así que también necesita `bson`.
-      4. GeoJSON, en `mongozod/geojson` (hecho): `point()`, `lineString()`, `polygon()` y sus `Multi*`,
+      2. `mz.decimal128()` (hecho): un string o un número exacto ↔ `Decimal128`, el tipo para
+         dinero.
+      3. `mz.binary()` (hecho): base64, un `Uint8Array` o un `Binary` ↔ un `Binary`, el tipo con el
+         que el driver lee los binarios.
+      4. GeoJSON (hecho): `mz.point()`, `mz.lineString()`, `mz.polygon()`, sus `Multi*` y
+         `mz.geometryCollection()`,
          con las reglas de MongoDB para los índices `2dsphere` (`[longitud, latitud]`, sus rangos
          y los anillos cerrados). No son codecs: validan la forma, sin convertir valores.
 
@@ -71,7 +72,9 @@ El orden de implementación. Al cerrar una fase, se marca acá en el mismo cambi
       migración a su agente.
 
 7. **Después**: [`audit`](./plugins/audit.md), [`logger`](./plugins/logger.md) y
-   [`history`](./plugins/history.md); un plugin de versión, el control de concurrencia optimista
+   [`history`](./plugins/history.md); `mz.from(schema)`, que ata los constructores de inputs a un
+   schema para no repetirlo, `mz.from(brandSchema).filter({…})`, como la forma cómoda junto a los
+   sueltos, que siguen siendo tree-shakeables (su objeto carga los seis); un plugin de versión, el control de concurrencia optimista
    que Mongoose hace con `__v` y `optimisticConcurrency`: un campo que el filtro chequea y un `$inc`
    aumenta en cada escritura, con el nombre configurable, así sirve `__v` en los documentos que
    vienen de Mongoose (el nombre por defecto se decide al diseñarlo, quizás `_v`); la documentación para usuarios; el sitio, con un playground

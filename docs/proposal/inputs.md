@@ -99,9 +99,20 @@ manda `{ createdAt, _id }` del último elemento de la página.
 
 ## Decisiones de los inputs
 
-1. **`mz`.** `mongozod/mzod` exporta cada constructor con su nombre, y se importa como namespace,
-   como el `import * as z` de Zod: `import * as mz from 'mongozod/mzod'`, y después `mz.filter`,
-   `mz.update`, `mz.sort`, `mz.projection`, `mz.cursor` y `mz.populate`.
+1. **`mz`.** `mongozod/mzod` es el Zod de MongoDB: todo lo que Zod no trae para MongoDB, en un
+   namespace, que se importa como el `import * as z` de Zod: `import * as mz from 'mongozod/mzod'`.
+   - **Dos grupos**: los constructores de inputs, `mz.filter`, `mz.update`, `mz.sort`,
+     `mz.projection`, `mz.cursor` y `mz.populate`, que reciben un schema; y los tipos de campo,
+     `mz.objectId()`, `mz.decimal128()`, `mz.binary()`, `mz.date()` y los de GeoJSON, que van en el
+     schema del documento. Los nombres los separan: los primeros son los de las opciones del driver
+     (`find(filter)`, `updateOne(filter, update)`, `sort`, `projection`), y los segundos, tipos BSON.
+     Están planos, como `z.string()` y `z.object()` en Zod: un sub-namespace como `mz.query` no
+     cuesta bundle, pero alarga lo que más se usa y `query` no le queda a `update`.
+   - **Un lugar**: primero los tipos de campo vivían en `mongozod/codecs/*` y `mongozod/geojson`,
+     un corte por implementación, «convierte o no convierte», que un usuario no tiene por qué
+     conocer.
+   - **`cursor`**: en el driver, un cursor es el iterador de resultados. Se mantiene porque tRPC
+     espera una key `cursor` en el input de `useInfiniteQuery`, que es donde se usa.
    - **Junto a `z`**: no reexporta Zod, así que cada archivo conserva su `z` y suma un import, sin
      chocar. Cada constructor devuelve un schema de Zod que se anida en `z.object` como cualquier
      otro.
@@ -236,31 +247,33 @@ manda `{ createdAt, _id }` del último elemento de la página.
 12. **Schemas**: los constructores aceptan schemas de Zod y de Zod Mini, y uniones discriminadas
     en la raíz, que buscan cada campo en sus tipos. Construyen schemas de Zod clásico. El `_id` se
     filtra si el schema lo declara: sin el driver no hay `ObjectId`.
-13. **`ObjectId`**: se declara con `objectId()`, de `mongozod/codecs/bson`, como
-    `_id: objectId().default(() => new ObjectId())`. Es la unión de un codec de su hex y un
-    `ObjectId`, como `date()` con las fechas: el servidor pasa un `ObjectId`, el cliente manda el hex
+13. **`ObjectId`**: se declara con `mz.objectId()`, como
+    `_id: mz.objectId().default(() => new ObjectId())`. Es la unión de un codec de su hex y un
+    `ObjectId`, como `mz.date()` con las fechas: el servidor pasa un `ObjectId`, el cliente manda el hex
     de 24 caracteres (`z.hex().length(24)`, en mayúsculas o minúsculas), el modelo y los
     constructores de `mz` lo convierten con `ObjectId.createFromHexString`, y `z.encode` lo vuelve a
     hex. El codec va primero: con el `ObjectId` primero, `z.encode` lo devuelve sin cambios.
     Cualquier otro valor da un solo issue: `Invalid ObjectId: expected an ObjectId or its
     24-character hex string`.
     - **Importa `bson`, nunca el driver**: `bson` no tiene dependencias y publica builds para browser
-      y React Native, así que sirve en un schema compartido con el cliente. Es un peer opcional
+      y React Native, así que sirve en un schema compartido con el cliente. Es un peer obligatorio
       (`^6.10.0 || ^7.0.0`), del mismo major que el driver, porque su serializador rechaza los
-      valores de otro major. `mongozod/codecs/bson` es el único build que importa `bson`.
+      valores de otro major. npm 7+ y pnpm, con `autoInstallPeers`, que viene activo, lo instalan
+      solos; Yarn moderno no. Fue un peer opcional mientras solo un subpath, `mongozod/codecs/bson`,
+      lo importaba; en `mongozod/mzod`, Node lo carga aunque no se use `mz.objectId()`. Un bundler,
+      en cambio, lo deja afuera si no se usa.
     - **Sin `instanceof`**: reconoce un `ObjectId` por su `_bsontype`, como el serializador de
       bson. `instanceof` falla entre dos copias de bson, y también con una sola: en Node, el driver
       carga el build CommonJS de bson, y una app que importa `bson` como módulo ES recibe otra clase.
       El símbolo `bsonType` serviría, pero bson 6 no lo tiene.
     - **Codec y no `.transform()`**: un transform no se puede encodear. El `ObjectId` de
-      `objectId()` declara `.meta({ bsonType: 'objectId' })`, la misma metadata que cualquier campo
+      `mz.objectId()` declara `.meta({ bsonType: 'objectId' })`, la misma metadata que cualquier campo
       puede usar, así el `$jsonSchema` le da su tipo (ver
       [Sincronización](./model.md#sincronización)).
     - **Frente a las otras formas**: `z.instanceof(ObjectId)` rechaza el hex de un cliente, y un
       regex con `.transform()` rechaza el `ObjectId` del servidor y tipa el insert como `string`.
       Zod no trae un codec de `ObjectId` entre sus ejemplos.
-14. **`Decimal128`**: se declara con `decimal128()`, de `mongozod/codecs/bson`, el tipo para
-    dinero. Es la unión de un codec de su string y un `Decimal128`, como `objectId()`: el servidor
+14. **`Decimal128`**: se declara con `mz.decimal128()`, el tipo para dinero. Es la unión de un codec de su string y un `Decimal128`, como `objectId()`: el servidor
     pasa un `Decimal128`, el cliente manda el string, como `'10.50'`, y `z.encode` lo vuelve a
     string; sin eso, `JSON.stringify` da `{ $numberDecimal: '10.50' }`. Valida con
     `Decimal128.fromString`, la API de bson, que rechaza lo que no es un decimal y lo que
@@ -274,19 +287,19 @@ manda `{ createdAt, _id }` del último elemento de la página.
     - **Un solo codec**: su entrada es la unión de un string, un número exacto y un `Decimal128`,
       así el error de un número dice que mande el string; con la unión de un codec y la instancia,
       como `objectId()`, el error de la unión de afuera lo tapaba.
-15. **Binarios**: se declaran con `binary()`, de `mongozod/codecs/bson`. Toma el base64 de los
+15. **Binarios**: se declaran con `mz.binary()`. Toma el base64 de los
     bytes, que manda un cliente JSON, un `Uint8Array` o un `Buffer`, que pasa el servidor, o un
     `Binary`, y devuelve un `Binary`. `z.encode` lo vuelve a base64.
     - **Devuelve un `Binary`, no un `Uint8Array`**: el driver guarda un `Uint8Array` como un
       `Binary` genérico, subtipo 0, y lo lee como `Binary`. Con un `Uint8Array`, el tipo de las
       lecturas mentiría, y un documento leído no podría volver a escribirse. La opción
       `promoteBuffers: true` del driver los lee como `Buffer`, pero a todos los binarios, también a
-      los UUID. Por eso necesita `bson`, como `objectId()` y `decimal128()`.
+      los UUID. Por eso necesita `bson`, como `mz.objectId()` y `mz.decimal128()`.
     - **Subtipos**: un `Binary` pasa tal cual, con su subtipo, y un UUID sigue siendo un UUID; los
       bytes y el base64 pasan a ser uno genérico, como los guarda el driver.
     - **TypeScript 5.5**: su tipo de retorno está escrito, porque TypeScript 7 emitiría
       `Uint8Array<ArrayBufferLike>`, que TypeScript 5.5 no acepta.
-16. **Fechas**: se declaran con `date()`, de `mongozod/codecs/date`. Es la unión del codec
+16. **Fechas**: se declaran con `mz.date()`. Es la unión del codec
     `isoDatetimeToDate` de la documentación de Zod y una `Date`: el servidor pasa una `Date`, el
     cliente manda un ISO con `Z` o con zona horaria (`z.iso.datetime({ offset: true })`), y
     `z.encode` lo vuelve a ISO en UTC. Un ISO sin `Z` ni zona horaria se rechaza, porque no dice qué
@@ -295,16 +308,15 @@ manda `{ createdAt, _id }` del último elemento de la página.
     - **Por qué un codec propio**: Zod no exporta sus codecs, sino que los propone para copiar y
       adaptar. Copiado, el orden de la unión es fácil de equivocar: con la `Date` primero, `z.encode`
       la devuelve sin cambios, y así estaba la forma que documentaba esta propuesta.
-    - **Sin `bson`**: importa solo Zod. Los codecs viven en `mongozod/codecs`, un subpath por codec,
-      así `date()` no pide `bson`.
+    - **Sin `bson`**: importa solo Zod, así que un cliente que usa `mz.date()` no carga `bson`.
 
-17. **GeoJSON**: `mongozod/geojson` da `point()`, `lineString()`, `polygon()`, `multiPoint()`,
-    `multiLineString()` y `multiPolygon()`, schemas de Zod del GeoJSON que MongoDB guarda y
-    consulta. No son codecs: no convierten valores, validan la forma.
+17. **GeoJSON**: `mz.point()`, `mz.lineString()`, `mz.polygon()`, `mz.multiPoint()`,
+    `mz.multiLineString()`, `mz.multiPolygon()` y `mz.geometryCollection()`, schemas de Zod del
+    GeoJSON que MongoDB guarda y consulta. No convierten valores: validan la forma.
     - **Qué chequean**: lo que MongoDB rechaza con un índice `2dsphere`, que sin uno guarda tal cual:
       `[longitud, latitud]`, en ese orden y en sus rangos, con una altitud opcional; una línea con
       dos posiciones distintas; anillos cerrados, con cuatro posiciones al menos; y geometrías no
-      vacías. Que un anillo no se cruce consigo mismo, o que un hueco esté dentro del anillo
+      vacías. Una `GeometryCollection` no puede estar vacía ni contener otra, como MongoDB y el RFC 7946. Que un anillo no se cruce consigo mismo, o que un hueco esté dentro del anillo
       exterior, lo chequea el índice.
     - **Altitud**: MongoDB acepta un tercer valor, y hasta un cuarto; el RFC 7946 permite la altitud
       y desaconseja más, así que toman tres como máximo.
