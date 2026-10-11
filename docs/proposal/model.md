@@ -17,7 +17,10 @@ export const NotesModel = mongozod({
   describe el documento tal como se guarda. Con una unión, la colección guarda varios tipos de
   documento. El `_id` se genera con su `.default()`, como
   `z.uuidv4().default(() => crypto.randomUUID())`, que conviene definir una vez y reusar. Si el
-  schema no lo declara, el driver genera un ObjectId.
+  schema no lo declara, el driver genera un ObjectId. Un `z.bigint()` pide un cliente o un `Db` con
+  `useBigInt64: true`: sin esa opción el driver lee un long como un `number`, o como un `Long` desde
+  2^53 (verificado), y el tipo de las lecturas prometería un `bigint`. La primera operación lanza un
+  `Error` con el path, porque el `db` puede llegar recién entonces.
 - **`collection`**: el nombre de la colección.
 - **`db`**: un `Db` del driver o una función que lo devuelve, que se resuelve en la primera
   operación. Así el modelo se puede definir al importar el módulo aunque la conexión dependa del
