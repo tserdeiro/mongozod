@@ -99,8 +99,12 @@ El orden de implementación. Al cerrar una fase, se marca acá en el mismo cambi
          el input del endpoint. Uno implícito haría que un `find` sin `sort` no haga lo que dice el
          código, ordenaría en memoria las lecturas sin un índice que lo cubra y cambiaría qué
          devuelve un `findOne`.
-      9. Los codecs de Temporal ↔ `Date`, si la versión mínima de Node lo trae sin flag
-         ([Automattic/mongoose#11462](https://github.com/Automattic/mongoose/issues/11462)).
+      9. Los codecs de Temporal (pasa a la fase 7,
+         [Automattic/mongoose#11462](https://github.com/Automattic/mongoose/issues/11462)): las
+         lecturas no se parsean, así que el driver seguiría devolviendo un `Date` y Temporal solo
+         llegaría a las escrituras; además, no lo tienen Node 22, el mínimo (viene sin flag desde
+         Node 26), TypeScript 5.5 ni Safari, y `mongozod/mzod` corre en los clientes. Una fecha sin
+         hora ya se valida con `z.iso.date()`, y la guía «Desde Mongoose» lo explica.
       10. Generar el schema de Zod de una colección, desde su `$jsonSchema` o una muestra de
           documentos, como `prisma db pull`, y desde un schema de Mongoose para migrar
           ([Automattic/mongoose#14570](https://github.com/Automattic/mongoose/issues/14570)).
@@ -151,6 +155,9 @@ El orden de implementación. Al cerrar una fase, se marca acá en el mismo cambi
         ([#15803](https://github.com/Automattic/mongoose/issues/15803) y
         [#13546](https://github.com/Automattic/mongoose/issues/13546)).
 
+      Entre las recetas va la fecha sin hora, como un cumpleaños: un string con `z.iso.date()`, que
+      se ordena bien y no se corre de día por la zona horaria, como un `Date` a medianoche.
+
       Antes de listarlos se verifican contra MongoDB dos que se suponen resueltos: que un objeto
       vacío se guarda
       ([#8505](https://github.com/Automattic/mongoose/issues/8505)) y que un upsert con
@@ -164,6 +171,6 @@ El orden de implementación. Al cerrar una fase, se marca acá en el mismo cambi
    resultados; un plugin de versión, el control de concurrencia optimista
    que Mongoose hace con `__v` y `optimisticConcurrency`: un campo que el filtro chequea y un `$inc`
    aumenta en cada escritura, con el nombre configurable, así sirve `__v` en los documentos que
-   vienen de Mongoose (el nombre por defecto se decide al diseñarlo, quizás `_v`); la documentación para usuarios; el sitio, con un playground
+   vienen de Mongoose (el nombre por defecto se decide al diseñarlo, quizás `_v`); los codecs de Temporal, cuando los mínimos de Node y TypeScript lo traigan y se decida si las lecturas se parsean (lo que también le daría a `mz.set()` un `Set`); la documentación para usuarios; el sitio, con un playground
    que muestre, para un schema, sus tipos, su `$jsonSchema` y lo que acepta cada constructor de
    `mongozod/mzod`; los ejemplos; los demás módulos de adsgpt, uno por uno; y la v1.
