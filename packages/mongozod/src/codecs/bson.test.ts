@@ -1,5 +1,10 @@
-import { Decimal128, ObjectId } from 'bson'
-import { Decimal128 as DriverDecimal128, MongoClient, ObjectId as DriverObjectId } from 'mongodb'
+import { Binary, Decimal128, ObjectId, UUID } from 'bson'
+import {
+  Binary as DriverBinary,
+  Decimal128 as DriverDecimal128,
+  MongoClient,
+  ObjectId as DriverObjectId
+} from 'mongodb'
 import {
   afterAll,
   beforeAll,
@@ -17,7 +22,7 @@ import { mongozod } from '../mongozod'
 import { filter } from '../mzod/filter'
 import { update } from '../mzod/update'
 
-import { decimal128, objectId } from './bson'
+import { binary, decimal128, objectId } from './bson'
 
 const client = new MongoClient(inject('mongoUri'))
 const db = client.db('mongozod-codecs-bson')
@@ -171,5 +176,68 @@ describe('decimal128()', () => {
     expect(await InvoicesModel.find(invoicesFilter.parse({ total: { $gte: '50' } }))).toMatchObject(
       [{ _id: 'i2' }]
     )
+  })
+})
+
+describe('binary()', () => {
+  const fileSchema = z.object({ _id: z.string(), data: binary(), name: z.string() })
+  const bytes = new Uint8Array([104, 105])
+
+  test('takes base64, a Uint8Array, a Buffer or a Binary, and returns a Binary', () => {
+    const schema = binary()
+    const md5 = new Binary(bytes, Binary.SUBTYPE_MD5)
+
+    for (const value of ['aGk=', bytes, Buffer.from('hi'), new DriverBinary(bytes)]) {
+      const parsed = schema.parse(value)
+
+      expect([parsed._bsontype, parsed.sub_type, [...parsed.value()]]).toEqual([
+        'Binary',
+        0,
+        [104, 105]
+      ])
+    }
+
+    // A Binary passes as it is, with its subtype: a UUID stays a UUID.
+    expect(schema.parse(md5)).toBe(md5)
+    expect(schema.parse(new UUID())).toBeInstanceOf(UUID)
+    expectTypeOf<z.input<typeof schema>>().toEqualTypeOf<string | Uint8Array | Binary>()
+    expectTypeOf<z.output<typeof schema>>().toEqualTypeOf<Binary>()
+  })
+
+  test('rejects anything else with one message', () => {
+    for (const value of ['not base64!', 42, null, { _bsontype: 'ObjectId' }]) {
+      expect(binary().safeParse(value).error?.issues).toMatchObject([
+        {
+          message:
+            'Invalid binary: expected a Binary, a Uint8Array or the base64 string of its bytes'
+        }
+      ])
+    }
+  })
+
+  test('encodes back to base64, and is binData in the $jsonSchema', () => {
+    expect(z.encode(fileSchema, { _id: 'f1', data: new Binary(bytes), name: 'hi.txt' })).toEqual({
+      _id: 'f1',
+      data: 'aGk=',
+      name: 'hi.txt'
+    })
+    expect(toJsonSchema(fileSchema).properties.data).toEqual({ bsonType: 'binData' })
+  })
+
+  test('a model stores base64 as bytes, and its reads write back as they are', async () => {
+    const FilesModel = mongozod({ collection: 'files', db, schema: fileSchema })
+
+    await FilesModel.insertOne({ _id: 'f1', data: 'aGk=', name: 'hi.txt' })
+
+    const stored = await FilesModel.findOne({ _id: 'f1' })
+
+    if (!stored) throw new Error('the file was not stored')
+
+    // The driver reads bytes as a `Binary`, the type of the field, which a replacement takes.
+    expect([...stored.data.value()]).toEqual([104, 105])
+    await FilesModel.replaceOne({ _id: 'f1' }, { ...stored, name: 'hello.txt' })
+
+    expect(await db.collection('files').countDocuments({ data: { $type: 'binData' } })).toBe(1)
+    expect(await FilesModel.findOne({ _id: 'f1' })).toMatchObject({ name: 'hello.txt' })
   })
 })

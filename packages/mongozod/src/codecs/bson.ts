@@ -1,4 +1,4 @@
-import { BSONError, Decimal128, ObjectId } from 'bson'
+import { Binary, BSONError, Decimal128, ObjectId } from 'bson'
 import { z } from 'zod'
 
 /**
@@ -33,7 +33,7 @@ const hexToObjectId = z.codec(z.hex().length(24), objectIdInstance, {
  *
  * @example
  *   ;```ts
- *   import { BSONError, Decimal128, ObjectId } from 'bson'
+ *   import { Binary, BSONError, Decimal128, ObjectId } from 'bson'
  *   import { objectId } from 'mongozod/codecs/bson'
  *
  *   const brandSchema = z.object({
@@ -124,5 +124,63 @@ export function decimal128() {
   return z.codec(input, decimal128Instance, {
     decode: (value) => (typeof value === 'object' ? value : Decimal128.fromString(String(value))),
     encode: (value) => value.toString()
+  })
+}
+
+/**
+ * A `Binary`, the type the driver reads binary data as, recognized by its `_bsontype` like an
+ * `ObjectId`. Its metadata gives the `$jsonSchema` its BSON type.
+ */
+const binaryInstance = z
+  .custom<Binary>(
+    (value) =>
+      typeof value === 'object' &&
+      value !== null &&
+      '_bsontype' in value &&
+      value._bsontype === 'Binary'
+  )
+  .meta({ bsonType: 'binData' })
+
+const BINARY_ERROR =
+  'Invalid binary: expected a Binary, a Uint8Array or the base64 string of its bytes'
+
+/**
+ * A binary field: it takes the base64 string of its bytes, which a JSON client sends, a
+ * `Uint8Array` or a `Buffer`, which the server passes, or a `Binary`, as the driver reads it, and
+ * returns a `Binary`, so its type is the one reads return. A `Binary` passes as it is, with its
+ * subtype; the others become a generic one, subtype 0, as the driver stores bytes. `z.encode` turns
+ * it back into base64, and the `$jsonSchema` of `sync()` checks it as `binData`.
+ *
+ * @example
+ *   ;```ts
+ *   import { binary } from 'mongozod/codecs/bson'
+ *
+ *   const fileSchema = z.object({ name: z.string(), data: binary() })
+ *   ```
+ */
+// The return type is written out: TypeScript 7 would emit `Uint8Array<ArrayBufferLike>`, which
+// TypeScript 5.5, the minimum, does not take.
+export function binary(): z.ZodCodec<
+  z.ZodUnion<
+    readonly [z.ZodBase64, z.ZodCustom<Uint8Array, Uint8Array>, z.ZodCustom<Binary, Binary>]
+  >,
+  z.ZodCustom<Binary, Binary>
+> {
+  const input = z.union(
+    [
+      z.base64({ error: BINARY_ERROR }),
+      z.custom<Uint8Array>((value) => value instanceof Uint8Array),
+      binaryInstance
+    ],
+    { error: BINARY_ERROR }
+  )
+
+  return z.codec(input, binaryInstance, {
+    decode: (value) => {
+      if (typeof value === 'string') return Binary.createFromBase64(value)
+
+      return value instanceof Uint8Array ? new Binary(value) : value
+    },
+    encode: (value) => value.toString('base64')
   })
 }
