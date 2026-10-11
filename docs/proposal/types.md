@@ -79,7 +79,7 @@ valor tiene que servir para su operador y su campo. Se aplica en `updateOne`, `u
 | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
 | `$set`, `$setOnInsert`, `$min`, `$max` | El `z.input` del campo: un ISO en un campo que lo transforma en `Date` compila.                                    |
 | `$unset`                               | Solo en campos opcionales. Uno con `.default()` no lo es.                                                          |
-| `$inc`, `$mul`, `$bit`                 | Solo en números.                                                                                                   |
+| `$inc`, `$mul`, `$bit`                 | Solo en números; `$inc` y `$mul` también en un `Decimal128`, con el valor que parsea su schema.                    |
 | `$currentDate`                         | Solo en fechas, con `true` o `{ $type: 'date' }`.                                                                  |
 | `$push`, `$addToSet`                   | Solo en arrays, con el `z.input` del elemento, también en `$each`. `$push` acepta `$position`, `$slice` y `$sort`. |
 | `$pop`, `$pullAll`                     | Solo en arrays.                                                                                                    |

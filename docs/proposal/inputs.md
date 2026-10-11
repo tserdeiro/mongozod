@@ -294,6 +294,9 @@ manda `{ createdAt, _id }` del último elemento de la página.
     - **Un solo codec**: su entrada es la unión de un string, un número exacto y un `Decimal128`,
       así el error de un número dice que mande el string; con la unión de un codec y la instancia,
       como `objectId()`, el error de la unión de afuera lo tapaba.
+    - **`$inc` y `$mul`**: MongoDB los aplica a un `Decimal128` (verificado), y el valor se parsea
+      con el schema del campo, también en `mz.update`: un `'0.10'` llega como un `Decimal128`
+      exacto. Con un número, el servidor suma el double, que arrastra dígitos (`10.200000000000000`).
 15. **Binarios**: se declaran con `mz.binary()`. Toma el base64 de los
     bytes, que manda un cliente JSON, un `Uint8Array` o un `Buffer`, que pasa el servidor, o un
     `Binary`, y devuelve un `Binary`. `z.encode` lo vuelve a base64.
