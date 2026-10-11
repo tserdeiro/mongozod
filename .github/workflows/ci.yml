@@ -51,6 +51,28 @@ jobs:
           require-lockfile: true
       - run: pnpm test
 
+  test-driver-6:
+    name: Types and tests with driver 6.20
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: pnpm/setup@v3
+        with:
+          require-lockfile: true
+      # The driver of Mongoose 8, the lowest in the peer range, in place of the locked 7.x.
+      - run: pnpm --filter mongozod add -D mongodb@6.20.0
+      - run: pnpm check-types
+        working-directory: packages/mongozod
+      - run: pnpm test
+        working-directory: packages/mongozod
+      - run: pnpm build
+        working-directory: packages/mongozod
+      # The published declarations, compiled by a consumer that has driver 6.20.
+      - run: pnpm check-dist-types
+        working-directory: packages/mongozod
+
   test-bun:
     name: Test on Bun
     runs-on: ubuntu-latest

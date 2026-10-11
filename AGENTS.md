@@ -66,7 +66,7 @@ The [tooling](docs/proposal/structure.md#herramientas) runs from the root with p
 
 - Add tests where the logic warrants it, never for trivial code or for coverage.
 - Exact versions for devDependencies. Peer dependencies keep the agreed ranges: `zod@^4.5.0` and
-  `mongodb@^7.0.0`.
+  `mongodb@^6.20.0 || ^7.0.0`. CI also runs the types and tests with the driver 6.20.
 
 ## Git
 
