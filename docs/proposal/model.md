@@ -278,7 +278,9 @@ await TransactionsModel.find(
 - **Chequeos**: no compila un `populate` con una key que no es una referencia, ni el de un campo
   que guarda otro tipo que el `_id` de su destino, porque el `$in` no encontraría nada. En runtime,
   una key que no es una referencia lanza un `ZodError`, con el issue en `['populate', key]`. Una
-  referencia que no es un path del schema no compila y lanza un `Error` al definir el modelo.
+  referencia que no es un path del schema no compila y lanza un `Error` al definir el modelo, igual
+  que una que pasa por un record, cuyas keys no son campos, o cuyo campo guarda un record, que no
+  guarda ids: `populate` dejaría los ids sin avisar o borraría el record de la lectura.
 - **Dónde se chequea el destino**: al pedir el `populate`, no al declarar la referencia. Chequearlo
   al declararla hace circulares los tipos de dos modelos que se referencian, de un modelo que se
   referencia a sí mismo y de uno con dos referencias al mismo modelo (`TS7022`). Por eso el tipo de
