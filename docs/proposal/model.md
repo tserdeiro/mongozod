@@ -75,8 +75,8 @@ objeto por campo. Está apagada por defecto.
   Mongoose. En un upsert, `updatedAt` es la fecha de la escritura, porque `$set` y `$setOnInsert` no
   pueden escribir el mismo campo. Un [pipeline](./types.md#updates) recibe una última etapa `$set`
   con las dos fechas, `createdAt` con `$ifNull` y solo en un upsert.
-- **Escribirlos**: un update que escribe `updatedAt`, o `createdAt` fuera de `$setOnInsert`, no
-  compila y lanza un `ZodError`: `"updatedAt" is set by timestamps: pass timestamps: false to write
+- **Escribirlos**: un update que escribe `updatedAt`, o `createdAt` fuera de `$setOnInsert`,
+  también como destino de un `$rename`, no compila y lanza un `ZodError`: `"updatedAt" is set by timestamps: pass timestamps: false to write
   it`. Mongoose los descarta o pisa en silencio. `$setOnInsert` sí puede dar `createdAt`, que es la
   fecha de creación de un upsert, como en un insert.
 - **Por operación**: una operación puede saltearlos con la opción `timestamps: false`, como en

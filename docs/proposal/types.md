@@ -80,7 +80,7 @@ valor tiene que servir para su operador y su campo. Se aplica en `updateOne`, `u
 | `$push`, `$addToSet`                   | Solo en arrays, con el `z.input` del elemento, también en `$each`. `$push` acepta `$position`, `$slice` y `$sort`. |
 | `$pop`, `$pullAll`                     | Solo en arrays.                                                                                                    |
 | `$pull`                                | Solo en arrays, con una condición sobre el elemento, como `$elemMatch`.                                            |
-| `$rename`                              | De un campo opcional a otro del mismo tipo.                                                                        |
+| `$rename`                              | De un campo opcional a otro que guarda el mismo tipo: el servidor mueve el valor guardado, sin parsearlo.          |
 
 - **Uniones**: cada campo que escribe un operador tiene que estar en todos los tipos que permite el
   filtro o, dentro de un array, la entrada de `arrayFilters` de su `$[id]`, como en
