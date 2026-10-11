@@ -3,13 +3,16 @@
 Las operaciones se agrupan para que un plugin declare sus opciones, su contexto y sus hooks una
 sola vez por grupo.
 
-| Grupo    | Operaciones                                                                            |
-| -------- | -------------------------------------------------------------------------------------- |
-| `read`   | `find`, `findOne`, `countDocuments`, `estimatedDocumentCount`, `distinct`, `aggregate` |
-| `insert` | `insertOne`, `insertMany`                                                              |
-| `update` | `updateOne`, `updateMany`, `replaceOne`, `findOneAndUpdate`, `findOneAndReplace`       |
-| `delete` | `deleteOne`, `deleteMany`, `findOneAndDelete`                                          |
-| `bulk`   | `bulkWrite`                                                                            |
+| Grupo    | Operaciones                                                                      |
+| -------- | -------------------------------------------------------------------------------- |
+| `read`   | `find`, `findOne`, `countDocuments`, `distinct`                                  |
+| `insert` | `insertOne`, `insertMany`                                                        |
+| `update` | `updateOne`, `updateMany`, `replaceOne`, `findOneAndUpdate`, `findOneAndReplace` |
+| `delete` | `deleteOne`, `deleteMany`, `findOneAndDelete`                                    |
+| `bulk`   | `bulkWrite`                                                                      |
+
+`aggregate` y `estimatedDocumentCount` no tienen grupo, porque no tienen filtro: solo corren sus
+propios hooks y el `middleware` (ver [Hooks](./plugins/README.md#hooks)).
 
 ## Cómo funciona una operación
 

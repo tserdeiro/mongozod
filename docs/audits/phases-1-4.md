@@ -350,9 +350,9 @@ En orden de prioridad. Los que dicen «decidir» cambian algo registrado en la p
 
 1. **CI**: aceptar `!` en el patrón de
    [conventions.yml](../../.github/workflows/conventions.yml#L24), en las líneas 24 y 36
-   (error 1).
+   (error 1). Hecho.
 2. **Propuesta**: corregir la tabla de grupos de [operations.md](../proposal/operations.md#L8)
-   (error 2).
+   (error 2). Hecho.
 3. **`mz.filter`**: exigir `$regex` cuando viene `$options` (error 3), con un test contra MongoDB.
 4. **`references`**: rechazar en runtime una referencia que no es un campo de primer nivel, como
    hacen los tipos (error 4), con un test.
