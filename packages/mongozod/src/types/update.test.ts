@@ -59,6 +59,22 @@ function updateEvent<
   return value
 }
 
+const car = z.object({ kind: z.literal('car'), wheels: z.number().int() })
+const vehicleSchema = z.discriminatedUnion('kind', [
+  z.discriminatedUnion('fuel', [
+    car.extend({ fuel: z.literal('electric'), kwh: z.number() }),
+    car.extend({ fuel: z.literal('gas'), liters: z.number() })
+  ]),
+  z.object({ gears: z.number().int(), kind: z.literal('bike') })
+])
+
+function updateVehicle<
+  const F extends ModelFilter<typeof vehicleSchema, F>,
+  const U extends ModelUpdate<typeof vehicleSchema, U, F, unknown>
+>(_filter: F, value: U) {
+  return value
+}
+
 /** A partial update: an `undefined` value compiles, because it is dropped at runtime. */
 function patchNickname(nickname?: string) {
   return update({}, { $set: { nickname } })
@@ -163,6 +179,23 @@ test('the filter fixes the type of document an update writes', () => {
   updateEvent({ $or: [{ kind: 'click' }] }, { $set: { url: 'https://a.b' } })
   // @ts-expect-error the discriminator changes only by replacing the document
   updateEvent({ kind: 'click' }, { $set: { kind: 'view' } })
+  expect(true).toBe(true)
+})
+
+test('the filter fixes the discriminator of each nested union', () => {
+  updateVehicle({ kind: 'car' }, { $set: { wheels: 3 } })
+  updateVehicle({ fuel: 'electric', kind: 'car' }, { $set: { kwh: 70 } })
+  updateVehicle({ $and: [{ kind: 'car' }, { fuel: { $in: ['gas'] } }] }, { $inc: { liters: 5 } })
+  updateVehicle({}, { $setOnInsert: { fuel: 'gas', kind: 'car' } })
+
+  // @ts-expect-error without fixing "kind", a bike could get wheels
+  updateVehicle({}, { $set: { wheels: 3 } })
+  // @ts-expect-error without fixing "fuel", a gas car could get kwh
+  updateVehicle({ kind: 'car' }, { $set: { kwh: 70 } })
+  // @ts-expect-error a bike has no fuel
+  updateVehicle({ fuel: 'electric', kind: 'bike' }, { $set: { kwh: 70 } })
+  // @ts-expect-error the inner discriminator changes only by replacing the document
+  updateVehicle({ kind: 'car' }, { $set: { fuel: 'gas' } })
   expect(true).toBe(true)
 })
 

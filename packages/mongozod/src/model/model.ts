@@ -64,11 +64,18 @@ import type {
 } from 'mongodb'
 import type * as core from 'zod/v4/core'
 
+/** A discriminated union of the types of document, or of other such unions. */
+type DocumentUnion<O extends core.$ZodType> = core.$ZodDiscriminatedUnion<readonly O[]>
+
 /**
  * The schema of a model: a `z.object`, or a `z.discriminatedUnion` of objects for a collection that
- * stores several types of document. Zod Classic and Zod Mini schemas are both accepted.
+ * stores several types of document. Its options can be discriminated unions too, for types with
+ * subtypes, up to three levels: a recursive type is too deep for TypeScript. Zod Classic and Zod
+ * Mini schemas are both accepted.
  */
-export type ModelSchema = core.$ZodObject | core.$ZodDiscriminatedUnion<readonly core.$ZodObject[]>
+export type ModelSchema =
+  | core.$ZodObject
+  | DocumentUnion<core.$ZodObject | DocumentUnion<core.$ZodObject | DocumentUnion<core.$ZodObject>>>
 
 /** The virtuals, references or `populate` of a model or a read that has none. */
 // oxlint-disable-next-line typescript/no-generated-empty-object-type -- an object without keys is the point

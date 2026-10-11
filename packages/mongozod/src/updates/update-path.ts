@@ -133,8 +133,9 @@ function walk(
 
     return { matches, option }
   })
+  // An option can be a discriminated union too, whose own discriminator the scope fixes.
   const steps = options.flatMap(({ matches, option }) =>
-    walkStep(option, segments, scope, context, path, allowed && matches)
+    walk(option, segments, scope, context, path, allowed && matches)
   )
 
   for (const found of steps) {

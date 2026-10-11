@@ -151,7 +151,8 @@ type Walk<S, P extends string, Sc extends Scope, F, AF, Path extends string> = [
       ? Missing<'no type matches the filter'>
       : Allowed<Unwrap<S>, Sc, F, AF> extends infer A
         ? A extends unknown
-          ? WalkStep<A, P, Sc, F, AF, Path> extends infer R
+          ? // An option can be a discriminated union too, whose own discriminator the scope fixes.
+            Walk<A, P, Sc, F, AF, Path> extends infer R
             ? R extends ['missing', 'not a path']
               ? Missing<FixAt<Sc, DiscriminatorOf<Unwrap<S>>>>
               : R

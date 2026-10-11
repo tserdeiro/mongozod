@@ -498,6 +498,66 @@ describe('schemas', () => {
     )
   })
 
+  test('takes types with subtypes: a discriminated union of discriminated unions', async () => {
+    const car = z.object({ kind: z.literal('car'), wheels: z.number().int() })
+    const vehicleSchema = z.discriminatedUnion('kind', [
+      z.discriminatedUnion('fuel', [
+        car.extend({ fuel: z.literal('electric'), kwh: z.number() }),
+        car.extend({ fuel: z.literal('gas'), liters: z.number() })
+      ]),
+      z.object({ gears: z.number().int(), kind: z.literal('bike') })
+    ])
+    const VehiclesModel = mongozod({ collection: 'vehicles', db, schema: vehicleSchema })
+
+    const { document } = await VehiclesModel.insertOne({
+      fuel: 'electric',
+      kind: 'car',
+      kwh: 60,
+      wheels: 4
+    })
+
+    await expect(
+      // @ts-expect-error a gas car has liters, not kwh
+      VehiclesModel.insertOne({ fuel: 'gas', kind: 'car', kwh: 60, wheels: 4 })
+    ).rejects.toBeInstanceOf(z.ZodError)
+
+    // The fields of every subtype of a type need only its discriminator.
+    await VehiclesModel.updateOne({ _id: document._id, kind: 'car' }, { $set: { wheels: 3 } })
+    await VehiclesModel.updateOne(
+      { _id: document._id, fuel: 'electric', kind: 'car' },
+      { $set: { kwh: 70 } }
+    )
+    await expect(
+      // @ts-expect-error "kwh" is not in every type allowed: fix "fuel" in the filter
+      VehiclesModel.updateOne({ _id: document._id, kind: 'car' }, { $set: { kwh: 70 } })
+    ).rejects.toBeInstanceOf(z.ZodError)
+
+    const found = await VehiclesModel.findOne({ _id: document._id })
+
+    expect(found).toMatchObject({ kwh: 70, wheels: 3 })
+    expectTypeOf(found).toEqualTypeOf<WithId<
+      | { fuel: 'electric'; kind: 'car'; kwh: number; wheels: number }
+      | { fuel: 'gas'; kind: 'car'; liters: number; wheels: number }
+      | { gears: number; kind: 'bike' }
+    > | null>()
+    // timestamps and plugins need their fields in each subtype.
+    expect(() =>
+      // @ts-expect-error the gas cars have no createdAt
+      mongozod({
+        collection: 'vehicles',
+        db,
+        schema: z.discriminatedUnion('kind', [
+          z.discriminatedUnion('fuel', [
+            car.extend({ createdAt: z.date(), fuel: z.literal('electric') }),
+            car.extend({ fuel: z.literal('gas') })
+          ]),
+          z.object({ createdAt: z.date(), kind: z.literal('bike') })
+        ]),
+        timestamps: { createdAt: true }
+      })
+    ).toThrow('timestamps needs the field "createdAt" in the schema')
+  })
+
   test('takes Zod Mini schemas and still throws a ZodError', async () => {
     const TagsModel = mongozod({
       collection: 'tags',

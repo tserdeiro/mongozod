@@ -210,6 +210,35 @@ describe('discriminated unions', () => {
     ).toEqual([['$set kind', '"kind" changes the type of its object: replace the object']])
   })
 
+  test('the filter fixes the discriminator of each nested union', () => {
+    const car = z.object({ kind: z.literal('car'), wheels: z.number().int() })
+    const vehicleSchema = z.discriminatedUnion('kind', [
+      z.discriminatedUnion('fuel', [
+        car.extend({ fuel: z.literal('electric'), kwh: z.number() }),
+        car.extend({ fuel: z.literal('gas'), liters: z.number() })
+      ]),
+      z.object({ gears: z.number().int(), kind: z.literal('bike') })
+    ])
+
+    expect(parseUpdate(vehicleSchema, { kind: 'car' }, { $set: { wheels: 3 } })).toBeDefined()
+    expect(
+      parseUpdate(vehicleSchema, { fuel: 'electric', kind: 'car' }, { $set: { kwh: 70 } })
+    ).toBeDefined()
+    expect(
+      parseUpdate(vehicleSchema, {}, { $setOnInsert: { fuel: 'gas', kind: 'car' } })
+    ).toBeDefined()
+
+    expect(issuesOf(() => parseUpdate(vehicleSchema, {}, { $set: { wheels: 3 } }))).toEqual([
+      ['$set wheels', '"wheels" is not in every type allowed: fix "kind" in the filter']
+    ])
+    expect(
+      issuesOf(() => parseUpdate(vehicleSchema, { kind: 'car' }, { $set: { kwh: 70 } }))
+    ).toEqual([['$set kwh', '"kwh" is not in every type allowed: fix "fuel" in the filter']])
+    expect(
+      issuesOf(() => parseUpdate(vehicleSchema, { kind: 'car' }, { $set: { fuel: 'gas' } }))
+    ).toEqual([['$set fuel', '"fuel" changes the type of its object: replace the object']])
+  })
+
   test('an arrayFilters entry fixes the type of an element', () => {
     const path = 'connections.$[c].accounts.$[a].details.loginCustomerId'
 
