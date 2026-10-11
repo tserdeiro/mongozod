@@ -22,6 +22,7 @@ import * as core from 'zod/v4/core'
 
 import { documentTypes } from '../schema/document-types'
 import { schemaAt } from '../schema/schema-at'
+import { variants } from '../schema/schema-kinds'
 import { isPlainObject } from '../utils/is-plain-object'
 
 /**
@@ -474,6 +475,29 @@ function isForeign(target: unknown): target is ForeignReference {
 export function checkReferences(schema: core.$ZodType, references: object = {}): void {
   const types = documentTypes(schema)
   const inSchema = (path: string) => types.some((type) => schemaAt(type, path, 'filter').length > 0)
+  const isRecord = (path: string) =>
+    types.some((type) =>
+      schemaAt(type, path, 'filter').some((sub) =>
+        variants(sub).some((variant) => variant instanceof core.$ZodRecord)
+      )
+    )
+
+  // The keys of a record are not fields, so its types take no path through one, and a record
+  // stores no ids: `populate` would leave them, or drop the record.
+  const checkStored = (name: string, path: string) => {
+    const segments = path.split('.')
+    const record = segments
+      .map((_, index) => segments.slice(0, index + 1).join('.'))
+      .find((prefix) => isRecord(prefix))
+
+    if (record === path)
+      throw new Error(`references: "${name}" stores a record in "${path}", not ids`)
+    if (record) {
+      throw new Error(
+        `references: "${name}" goes through "${record}", a record, whose keys are not fields`
+      )
+    }
+  }
 
   for (const [name, target] of Object.entries(references)) {
     if (isLocal(target)) {
@@ -489,6 +513,7 @@ export function checkReferences(schema: core.$ZodType, references: object = {}):
         )
       }
 
+      checkStored(name, target.localField)
       continue
     }
 
@@ -505,6 +530,8 @@ export function checkReferences(schema: core.$ZodType, references: object = {}):
         throw new Error(`references: "${name}" needs its localField "${localField}" in the schema`)
       }
 
+      checkStored(name, localField)
+
       continue
     }
 
@@ -514,6 +541,8 @@ export function checkReferences(schema: core.$ZodType, references: object = {}):
     }
 
     if (!inSchema(name)) throw new Error(`references needs the field "${name}" in the schema`)
+
+    checkStored(name, name)
 
     const isTarget =
       typeof target === 'function' ||

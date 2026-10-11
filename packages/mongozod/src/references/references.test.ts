@@ -530,6 +530,29 @@ describe('the option', () => {
         })
       })
     ).toThrow('references: "items.0.product" names an array index: a reference takes every element')
+
+    // The keys of a record are not fields, and a record stores no ids.
+    const teamSchema = z.object({ byRole: z.record(z.string(), z.string()) })
+
+    expect(() =>
+      mongozod({
+        collection: 'teams',
+        db,
+        // @ts-expect-error byRole.owner goes through a record
+        references: { 'byRole.owner': () => AccountsModel },
+        schema: teamSchema
+      })
+    ).toThrow(
+      'references: "byRole.owner" goes through "byRole", a record, whose keys are not fields'
+    )
+    expect(() =>
+      mongozod({
+        collection: 'teams',
+        db,
+        references: { byRole: () => AccountsModel },
+        schema: teamSchema
+      })
+    ).toThrow('references: "byRole" stores a record in "byRole", not ids')
   })
 
   test('points to a function that returns a model, or to a collection and its schema', () => {
