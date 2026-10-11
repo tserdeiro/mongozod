@@ -295,9 +295,9 @@ equipo va a buscar.
      documentar la salida.
 6. **No hay README ni guía de migración.**
    - No hay `README.md` en la raíz ni en `packages/mongozod`, aunque
-     [structure.md](../proposal/structure.md) lo prevé. Al publicar la 0.x (fase 5), la página del
+     [structure.md](../proposal/structure.md) lo prevé. Al publicar la 0.x (fase 6), la página del
      paquete en npm quedaría vacía.
-   - La documentación para usuarios está en la fase 6. Para este público, además, hace falta una
+   - La documentación para usuarios está en la fase 7. Para este público, además, hace falta una
      guía «Desde Mongoose», con la tabla de equivalencias, los huecos y las recetas de abajo.
 
 ### Funciones de Mongoose sin equivalente
@@ -337,7 +337,10 @@ verdad, y ninguna capa existente lo cubre más barato» ([Objetivo](../proposal/
   los usa. Se quedan: son API estándar de MongoDB, y en `mz` cada campo los habilita a mano.
 - **Propuesta para reformularlo**: «La API del modelo cubre lo que acepta el driver. Los tres
   proyectos marcan las prioridades y los casos de prueba, no el límite. Lo que la librería no
-  soporta lanza un error claro y nunca falla en silencio». **Decidir.**
+  soporta lanza un error claro y nunca falla en silencio».
+- **Decidido**: la v1 es la versión con la que mongozod reemplaza a Mongoose, al menos en sus
+  funciones principales, y la primera versión se publica recién entonces. El roadmap suma la fase 5,
+  «Reemplazo de Mongoose», y la [propuesta](../proposal/README.md#objetivo) registra el criterio.
 
 ## Puntos a mejorar
 
@@ -354,14 +357,15 @@ En orden de prioridad. Los que dicen «decidir» cambian algo registrado en la p
 4. **`references`**: rechazar en runtime una referencia que no es un campo de primer nivel, como
    hacen los tipos (error 4), con un test.
 
-### Antes de publicar la 0.x (fase 5)
+### Antes de publicar la 0.x (fase 6)
 
 5. **README** del paquete y de la raíz: qué es, cómo se instala, un ejemplo mínimo y que la API
    todavía puede cambiar en la 0.x (hueco 6).
 
 ### Decidir
 
-6. **El criterio de la v1**, reformulado para una librería.
+6. **El criterio de la v1**, reformulado para una librería. Decidido: reemplazar a Mongoose en sus
+   funciones principales.
 7. **ObjectId**: un codec oficial, en un subpath que importe `bson`, o una receta (hueco 1).
 8. **El alcance de `populate`**: primero las referencias dentro de arrays de subdocumentos; después,
    opciones y varios niveles (hueco 2).
@@ -382,7 +386,7 @@ En orden de prioridad. Los que dicen «decidir» cambian algo registrado en la p
 16. **Propuesta**: precisar que es Zod Mini el que no expone los enteros; opcional, usar `format`
     cuando existe (hallazgo 8).
 
-### Documentación (fase 6)
+### Documentación (fase 7)
 
 17. **Guía «Desde Mongoose»**:
     - la tabla de equivalencias;

@@ -13,12 +13,15 @@ verdad del documento: valida lo que se escribe, tipa lo que se lee y define qué
 endpoint. Complementa al driver oficial, no lo reemplaza: espeja sus operaciones, opciones y
 resultados, y lo deja a mano para todo lo demás.
 
-En adsgpt reemplaza a `MongoModel`, `MongoSchema`, el `parser` de consultas y los helpers de Zod del
-package `libs`. `MongoModel` también se usa en wortise-dashboard-monorepo y en app-maker, así que
-los tres proyectos son la referencia de los casos de uso.
+Es para quien deja Mongoose y se queda con el driver y Zod. En adsgpt reemplaza a `MongoModel`,
+`MongoSchema`, el `parser` de consultas y los helpers de Zod del package `libs`. `MongoModel`
+también se usa en wortise-dashboard-monorepo y en app-maker, así que los tres proyectos son la
+referencia de los casos de uso: marcan las prioridades y los casos de prueba, no el límite.
 
-**Criterio para la v1**: una regla entra solo si cierra un hueco verificado que esos proyectos usan
-de verdad, y ninguna capa existente lo cubre más barato.
+**Criterio para la v1**: mongozod reemplaza a Mongoose, al menos en sus funciones principales. Hasta
+entonces no se publica la primera versión (ver el [Roadmap](./roadmap.md)). Las decisiones que se
+tomaron con el criterio anterior, que solo admitía lo que usaban los tres proyectos, se revisan con
+este: la lista está en la [auditoría de las fases 1 a 4](../audits/phases-1-4.md#decidir).
 
 ## Decisiones acordadas
 
@@ -71,5 +74,7 @@ Las decisiones del núcleo están tomadas. El orden en que se implementan está 
   [`history`](./plugins/history.md).
 - **Repo**: la estructura y las herramientas están listas (ver [Estructura del repo](./structure.md)).
   Faltan la documentación para usuarios y lo que la estructura deja por definir.
+- **Reemplazo de Mongoose**: decidir y cerrar los huecos de la
+  [auditoría de las fases 1 a 4](../audits/phases-1-4.md#decidir), antes de la primera versión.
 - **adsgpt**: arreglar wortise/adsgpt#230 y wortise/adsgpt#231, y migrar módulo por módulo cuando
   haya una versión.

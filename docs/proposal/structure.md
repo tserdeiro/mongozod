@@ -47,7 +47,7 @@
   (`packages/mongozod/test/consumer/`), con `skipLibCheck: false`.
 - **Releases** con Changesets y el workflow de trusted publishing de su guía: cada push a `main`
   abre o actualiza el PR de versión, y al mergearlo publica en npm. El trusted publisher se
-  configura en npm después de la primera publicación (fase 5).
+  configura en npm después de la primera publicación (fase 6).
 
 ## Por definir
 

@@ -28,10 +28,14 @@ El orden de implementación. Al cerrar una fase, se marca acá en el mismo cambi
       métodos (hecho).
    2. [`softDelete`](./plugins/soft-delete.md), en `mongozod/plugins/soft-delete` (hecho).
 4. **Inputs** (hecho): `mz`, en `mongozod/mz`. Ver [Inputs de los endpoints](./inputs.md).
-5. **Primera versión**: una 0.x en npm y un primer módulo de adsgpt migrado. Publicarla confirma el
+5. **Reemplazo de Mongoose**: lo que falta para que mongozod reemplace a Mongoose en sus funciones
+   principales, que es el [criterio de la v1](./README.md#objetivo). Sale de la
+   [auditoría de las fases 1 a 4](../audits/phases-1-4.md#decidir): primero se decide cada punto y
+   después se implementa.
+6. **Primera versión**: una 0.x en npm y un primer módulo de adsgpt migrado. Publicarla confirma el
    nombre, y su número no puede repetir ninguno de los que usó el autor anterior (ver
    [Qué se verificó](./verified.md)). Antes, adsgpt arregla wortise/adsgpt#230 y wortise/adsgpt#231,
    que no dependen de mongozod.
-6. **Después**: [`audit`](./plugins/audit.md), [`logger`](./plugins/logger.md) y
+7. **Después**: [`audit`](./plugins/audit.md), [`logger`](./plugins/logger.md) y
    [`history`](./plugins/history.md); la documentación para usuarios, el sitio y los ejemplos; los
    demás módulos de adsgpt, uno por uno; y la v1.
