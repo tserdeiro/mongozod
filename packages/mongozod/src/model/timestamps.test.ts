@@ -27,6 +27,7 @@ const timestampSchema = date()
 const noteSchema = z.object({
   _id: z.uuidv4().default(() => crypto.randomUUID()),
   createdAt: timestampSchema,
+  importedAt: z.date().optional(),
   tags: z.array(z.string()).default([]),
   title: z.string(),
   updatedAt: timestampSchema
@@ -147,6 +148,12 @@ describe('updates', () => {
       // @ts-expect-error createdAt is set by timestamps
       NotesModel.updateMany({}, { $set: { createdAt: source } })
     ).rejects.toBeInstanceOf(z.ZodError)
+    await expect(
+      // @ts-expect-error updatedAt is set by timestamps, also as the target of $rename
+      NotesModel.updateOne({ _id: insertedId }, { $rename: { importedAt: 'updatedAt' } })
+    ).rejects.toMatchObject({
+      issues: [{ message: '"updatedAt" is set by timestamps: pass timestamps: false to write it' }]
+    })
 
     await NotesModel.updateOne(
       { _id: insertedId },

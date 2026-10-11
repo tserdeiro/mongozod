@@ -31,6 +31,9 @@ const pluginSchema = z.object({
   history: z.array(z.object({ at: z.date(), label: z.string() })).default([]),
   nickname: z.string().optional(),
   organization: z.uuidv4(),
+  publishedAt: z
+    .union([z.date(), z.iso.datetime().transform((value) => new Date(value))])
+    .optional(),
   scores: z.array(z.number()).default([]),
   title: z.string(),
   views: z.number().int().default(0)
@@ -150,6 +153,8 @@ test('each operator takes the fields it applies to', () => {
   update({}, { $pull: { history: { color: 'red' } } })
   // @ts-expect-error a title is required, so it cannot be renamed
   update({}, { $rename: { title: 'nickname' } })
+  // @ts-expect-error the server moves the string as it is, which publishedAt does not store
+  update({}, { $rename: { nickname: 'publishedAt' } })
   expect(true).toBe(true)
 })
 

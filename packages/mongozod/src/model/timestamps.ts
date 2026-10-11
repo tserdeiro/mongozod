@@ -213,14 +213,18 @@ export function stampUpdate(
   for (const [operator, fields] of Object.entries(update)) {
     if (!isPlainObject(fields)) continue
 
-    for (const path of Object.keys(fields)) {
-      const locked = path === updatedAt || (path === createdAt && operator !== '$setOnInsert')
+    for (const [path, value] of Object.entries(fields)) {
+      // `$rename` also writes the path it moves the value to.
+      const written = operator === '$rename' && typeof value === 'string' ? [path, value] : [path]
+      const locked = written.find(
+        (each) => each === updatedAt || (each === createdAt && operator !== '$setOnInsert')
+      )
 
-      if (locked) {
+      if (locked !== undefined) {
         issues.push({
           code: 'custom',
-          input: fields[path],
-          message: `"${path}" is set by timestamps: pass timestamps: false to write it`,
+          input: value,
+          message: `"${locked}" is set by timestamps: pass timestamps: false to write it`,
           path: [operator, path]
         })
       }

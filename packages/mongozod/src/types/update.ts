@@ -280,7 +280,8 @@ type RenameCheck<S, T, K extends string, To> =
     : To extends string
       ? [SchemaAt<S, To, 'update'>] extends [never]
         ? NotAPath<To>
-        : NonNullable<core.output<T extends [infer Sub] ? Sub : never>> extends core.input<
+        : // The server moves the stored value as it is, without parsing it for its new path.
+          NonNullable<core.output<T extends [infer Sub] ? Sub : never>> extends core.output<
               SchemaAt<S, To, 'update'>
             >
           ? To
@@ -370,11 +371,19 @@ type OperatorCheck<S, Op, Fields, F, AF, Locked> = {
   [K in keyof Fields]: K extends string
     ? K extends Locked
       ? `"${K}" is set by timestamps: pass timestamps: false to write it`
-      : [SetAbove<S, K>] extends [never]
-        ? FieldCheck<S, Op, K, Targets<S, K, F, AF, Op>, Fields[K]>
-        : `"${SetAbove<S, K>}" is a set: write it whole, or use $addToSet, $pull, $pullAll or $pop`
+      : Op extends '$rename'
+        ? // `$rename` also writes the path it moves the value to.
+          Fields[K] extends Locked
+          ? `"${Fields[K] & string}" is set by timestamps: pass timestamps: false to write it`
+          : PathCheck<S, Op, K, Fields[K], F, AF>
+        : PathCheck<S, Op, K, Fields[K], F, AF>
     : never
 }
+
+/** The value one operator takes at one path, which cannot write an element of a set. */
+type PathCheck<S, Op, K extends string, C, F, AF> = [SetAbove<S, K>] extends [never]
+  ? FieldCheck<S, Op, K, Targets<S, K, F, AF, Op>, C>
+  : `"${SetAbove<S, K>}" is a set: write it whole, or use $addToSet, $pull, $pullAll or $pop`
 
 /** The stages MongoDB takes in an update pipeline. */
 type PipelineStage = '$addFields' | '$project' | '$replaceRoot' | '$replaceWith' | '$set' | '$unset'
