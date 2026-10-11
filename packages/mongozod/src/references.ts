@@ -1,7 +1,10 @@
 import type { FieldsOf } from './document-types'
 import type { FilterCheck, SuggestedFilter } from './filter'
+import type { Leaf } from './loose'
 import type { ModelSchema, None, Output } from './model'
+import type { PathSuggestions } from './path-suggestions'
 import type { Entries, IsLiteral, Mode, ProjectionCheck, SuggestedProjection } from './projection'
+import type { SchemaAt } from './schema-at'
 import type { SortCheck, SuggestedSort } from './sort'
 import type { Simplify } from './type-helpers'
 import type { Read, Virtuals } from './virtuals'
@@ -44,18 +47,22 @@ export function registerFind(
  */
 export type ReferenceTarget = (() => ReferencedModel) | { collection: string; schema: ModelSchema }
 
+/** The paths a reference can have: the fields of every type of document, and the paths under them. */
+type ReferencePath<S extends ModelSchema> = FieldsOf<Output<S>> | PathSuggestions<S, 'filter'>
+
 /**
  * The `references` of a model: the fields that store the `_id` of another document, or an array of
- * them, in one or more types of document. Each target is a `ReferenceTarget`, which `populate`
- * checks: checking it here makes models that reference each other, or themselves, circular types.
+ * them, in one or more types of document, also inside objects and arrays of objects, such as
+ * `items.product`. Each target is a `ReferenceTarget`, which `populate` checks: checking it here
+ * makes models that reference each other, or themselves, circular types.
  */
 export type References<S extends ModelSchema> = {
-  [K in FieldsOf<Output<S>>]?: unknown
+  [K in ReferencePath<S>]?: unknown
 }
 
-/** The keys of `references` that are not fields of the schema. */
+/** The keys of `references` that are not paths of the schema. */
 export type UnknownReferences<S extends ModelSchema, R> = {
-  [K in Exclude<keyof R, FieldsOf<Output<S>>>]: `"${K & string}" is not a field of the schema`
+  [K in Exclude<keyof R, ReferencePath<S>>]: `"${K & string}" is not a path of the schema`
 }
 
 type TargetSchema<T> = T extends () => { readonly schema: infer TS extends ModelSchema }
@@ -68,12 +75,22 @@ type TargetVirtuals<T> = T extends () => { readonly virtuals: infer TV } ? TV : 
 
 type TargetDocument<T> = WithId<Output<TargetSchema<T>>>
 
-/** The values a field stores in the types of document that have it: the ids, or arrays of them. */
-type FieldIds<O, K> = O extends unknown
-  ? K extends keyof O
-    ? Flatten<Exclude<O[K], null | undefined>>
-    : never
+/**
+ * The ids a reference stores, in the types of document that have it: its values, or the elements of
+ * an array of them.
+ */
+type FieldIds<S, K> = K extends string
+  ? Flatten<Exclude<core.output<SchemaAt<S, K, 'filter'>>, null | undefined>>
   : never
+
+/** Whether the projection leaves out a reference: it excludes the reference or an object above it. */
+type ExcludedBy<P, K> = {
+  [Q in keyof P & string]: [P[Q]] extends [0 | false]
+    ? K extends Q | `${Q}.${string}`
+      ? true
+      : never
+    : never
+}[keyof P & string]
 
 /** The options of a populated reference, named like the driver's, checked like the target's. */
 type PopulateOptionsCheck<T, X> = {
@@ -102,12 +119,10 @@ export type PopulateCheck<S extends ModelSchema, R, Pop, P> = {
   [K in keyof Pop]: K extends keyof R
     ? [TargetSchema<R[K]>] extends [never]
       ? `"${K & string}" points to neither a function that returns a model nor { collection, schema }`
-      : [FieldIds<Output<S>, K>] extends [TargetDocument<R[K]>['_id']]
-        ? K extends keyof P
-          ? [P[K]] extends [0 | false]
-            ? `populate needs "${K & string}": the projection excludes it`
-            : PopulateValueCheck<R[K], Exclude<Pop[K], undefined>>
-          : PopulateValueCheck<R[K], Exclude<Pop[K], undefined>>
+      : [FieldIds<S, K>] extends [TargetDocument<R[K]>['_id']]
+        ? [ExcludedBy<P, K>] extends [never]
+          ? PopulateValueCheck<R[K], Exclude<Pop[K], undefined>>
+          : `populate needs "${K & string}": the projection excludes it`
         : `"${K & string}" stores another type than the _id of its target`
     : `"${K & string}" is not a reference of the model`
 }
@@ -128,12 +143,20 @@ export type PopulateOption<R, Pop> = [keyof R] extends [never]
   ? unknown
   : { populate?: Pop & SuggestedPopulate<R> }
 
-/** The projection a read asks the server for: an inclusion also returns what it populates. */
+/** Whether a path of the projection is the reference or an object above it. */
+type IncludedBy<P, K> = {
+  [Q in keyof P & string]: K extends Q | `${Q}.${string}` ? true : never
+}[keyof P & string]
+
+/**
+ * The projection a read asks the server for: an inclusion also returns what it populates, unless it
+ * already includes it or an object above it, which MongoDB would take as a path collision.
+ */
 export type PopulatedProjection<P, Pop> = [keyof Pop] extends [never]
   ? P
   : IsLiteral<P> extends true
     ? Mode<Entries<P>> extends 'inclusion'
-      ? P & { [K in keyof Pop]: 1 }
+      ? P & { [K in keyof Pop as [IncludedBy<P, K>] extends [never] ? K : never]: 1 }
       : P
     : P
 
@@ -149,35 +172,46 @@ type PopulatedValue<F, T, X> =
   | Extract<F, null | undefined>
 
 /**
- * One type of document with its references populated. A reference that may not have been asked
- * for, as in a `populate` that arrives at runtime, may still be the id.
+ * One type of document with its references populated, at the paths under `Prefix`: through arrays
+ * and objects, down to each reference. A reference that may not have been asked for, as in a
+ * `populate` that arrives at runtime, may still be the id.
  */
-type PopulatedOption<T, R, Pop> = Simplify<{
-  [K in keyof T]: K extends keyof Pop & keyof R
-    ?
-        | PopulatedValue<T[K], R[K], Exclude<Pop[K], undefined>>
-        | (Pick<Pop, K> extends Required<Pick<Pop, K>> ? never : T[K])
-    : T[K]
-}>
+type PopulatedLevel<T, R, Pop, Prefix extends string> =
+  T extends ReadonlyArray<infer E>
+    ? Array<PopulatedLevel<E, R, Pop, Prefix>>
+    : T extends Leaf
+      ? T
+      : Simplify<{
+          [K in keyof T]: K extends string
+            ? `${Prefix}${K}` extends infer Path extends keyof Pop & keyof R
+              ?
+                  | PopulatedValue<T[K], R[Path], Exclude<Pop[Path], undefined>>
+                  | (Pick<Pop, Path> extends Required<Pick<Pop, Path>> ? never : T[K])
+              : [Extract<keyof Pop, `${Prefix}${K}.${string}`>] extends [never]
+                ? T[K]
+                : PopulatedLevel<T[K], R, Pop, `${Prefix}${K}.`>
+            : T[K]
+        }>
 
 /** The documents a read returns, with the references of its `populate` replaced. */
 export type Populated<T, R, Pop> = [keyof Pop] extends [never]
   ? T
   : T extends unknown
-    ? PopulatedOption<T, R, Pop>
+    ? PopulatedLevel<T, R, Pop, ''>
     : never
 
 /**
- * Checks that each reference is a top-level field of the schema, in one or more types of document,
- * and points to a function or to `{ collection, schema }`. Throws an `Error` when it does not.
+ * Checks that each reference is a path of the schema, in one or more types of document, without
+ * array indexes, and points to a function or to `{ collection, schema }`. Throws an `Error` when it
+ * does not.
  */
 export function checkReferences(schema: core.$ZodType, references: object = {}): void {
   const types = documentTypes(schema)
 
   for (const [name, target] of Object.entries(references)) {
-    // `populate` reads the top-level field, so a path would leave its ids untouched.
-    if (name.includes('.')) {
-      throw new Error(`references takes top-level fields, and "${name}" is a path`)
+    // `populate` goes through every element of an array, so an index would leave its ids untouched.
+    if (name.split('.').some((segment) => /^\d+$/.test(segment))) {
+      throw new Error(`references: "${name}" names an array index: a reference takes every element`)
     }
 
     if (!types.some((type) => schemaAt(type, name, 'filter').length > 0)) {
@@ -286,6 +320,28 @@ export function populateEntries(
   return entries
 }
 
+/**
+ * Calls `visit` with each object that holds the last segment of a path, going through the arrays on
+ * the way, as MongoDB does with the paths of a filter.
+ */
+function eachHolder(
+  value: unknown,
+  segments: readonly string[],
+  visit: (holder: Document, key: string) => void
+): void {
+  if (Array.isArray(value)) {
+    for (const element of value) eachHolder(element, segments, visit)
+
+    return
+  }
+
+  const [segment, ...rest] = segments
+
+  if (!isPlainObject(value) || segment === undefined) return
+  if (rest.length === 0) visit(value, segment)
+  else eachHolder(value[segment], rest, visit)
+}
+
 /** An id as a key of a map: two ids are the same key when MongoDB finds one with the other. */
 function idKey(id: unknown) {
   return BSON.EJSON.stringify(id)
@@ -305,12 +361,13 @@ export async function populateDocuments(
 ): Promise<void> {
   await Promise.all(
     entries.map(async ([key, target, { filter, projection, sort }]) => {
+      const segments = key.split('.')
+      const stored: unknown[] = []
+
+      eachHolder(documents, segments, (holder, field) => stored.push(holder[field] ?? []))
+
       // Each id once, by its key: many documents of a batch may point to the same one.
-      const ids = [
-        ...new Map(
-          documents.flatMap((document) => document[key] ?? []).map((id) => [idKey(id), id])
-        ).values()
-      ]
+      const ids = [...new Map(stored.flat().map((id) => [idKey(id), id])).values()]
 
       if (ids.length === 0) return
 
@@ -324,7 +381,9 @@ export async function populateDocuments(
       if (sort) options.sort = sort
 
       // In `$and`, so that a `filter` on the `_id` narrows the references instead of replacing them.
-      const query = filter ? { $and: [{ _id: { $in: ids } }, filter] } : { _id: { $in: ids } }
+      const query: Document = filter
+        ? { $and: [{ _id: { $in: ids } }, filter] }
+        : { _id: { $in: ids } }
       let found: Document[]
 
       if (typeof target === 'function') {
@@ -344,19 +403,19 @@ export async function populateDocuments(
       // With a `sort`, an array follows the order of the query, the one the server sorted.
       const position = new Map(found.map((document, index) => [document, index]))
 
-      for (const document of documents) {
-        const value = document[key]
+      eachHolder(documents, segments, (holder, field) => {
+        const value = holder[field]
 
         if (Array.isArray(value)) {
           const populated = value.flatMap((id) => byId.get(idKey(id)) ?? [])
 
           if (sort) populated.sort((a, b) => (position.get(a) ?? 0) - (position.get(b) ?? 0))
 
-          document[key] = populated
+          holder[field] = populated
         } else if (value !== null && value !== undefined) {
-          document[key] = byId.get(idKey(value)) ?? null
+          holder[field] = byId.get(idKey(value)) ?? null
         }
-      }
+      })
     })
   )
 }

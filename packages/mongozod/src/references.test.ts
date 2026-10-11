@@ -423,19 +423,19 @@ describe('the option', () => {
     ).toThrow('references needs the field "owner" in the schema')
   })
 
-  test('takes top-level fields, not paths', () => {
+  test('takes paths through objects and arrays, without array indexes', () => {
     expect(() =>
       mongozod({
         collection: 'orders',
         db,
-        // @ts-expect-error items.product is a path
-        references: { 'items.product': () => AccountsModel },
+        // @ts-expect-error items.0.product names an index
+        references: { 'items.0.product': () => AccountsModel },
         schema: z.object({
           _id: z.string(),
           items: z.array(z.object({ product: z.string(), qty: z.number() }))
         })
       })
-    ).toThrow('references takes top-level fields, and "items.product" is a path')
+    ).toThrow('references: "items.0.product" names an array index: a reference takes every element')
   })
 
   test('points to a function that returns a model, or to a collection and its schema', () => {
@@ -496,5 +496,126 @@ describe('the option', () => {
   test('is only on the models that have references', () => {
     // @ts-expect-error accounts have no reference called email
     expectTypeOf(() => AccountsModel.find({}, { populate: { email: true } })).toBeFunction()
+  })
+})
+
+describe('a reference inside objects and arrays', () => {
+  const productSchema = z.object({ _id: z.string(), name: z.string(), price: z.number() })
+  const ProductsModel = mongozod({ collection: 'products', db, schema: productSchema })
+  const OrdersModel = mongozod({
+    collection: 'orders',
+    db,
+    references: {
+      'items.alternatives': () => ProductsModel,
+      'items.product': () => ProductsModel,
+      'shipping.carrier': () => AccountsModel
+    },
+    schema: z.object({
+      _id: z.string(),
+      items: z.array(
+        z.object({
+          alternatives: z.array(z.string()).default([]),
+          product: z.string(),
+          qty: z.number()
+        })
+      ),
+      shipping: z.object({ carrier: z.string(), city: z.string() }).optional()
+    })
+  })
+
+  beforeEach(async () => {
+    await ProductsModel.insertMany([
+      { _id: 'p1', name: 'Mate', price: 10 },
+      { _id: 'p2', name: 'Bombilla', price: 5 }
+    ])
+    await OrdersModel.insertMany([
+      {
+        _id: 'o1',
+        items: [
+          { alternatives: ['p2', 'gone'], product: 'p1', qty: 2 },
+          { product: 'gone', qty: 1 }
+        ],
+        shipping: { carrier: 'a1', city: 'Rosario' }
+      },
+      { _id: 'o2', items: [{ product: 'p2', qty: 1 }] }
+    ])
+  })
+
+  test('replaces the ids in each element and object, in one query per reference', async () => {
+    const queries: string[] = []
+    const listener = (event: CommandStartedEvent) => {
+      if (event.commandName === 'find') queries.push(event.command.find)
+    }
+
+    client.on('commandStarted', listener)
+
+    const [o1, o2] = await OrdersModel.find(
+      {},
+      {
+        populate: {
+          'items.alternatives': { projection: { name: 1 } },
+          'items.product': { projection: { name: 1 } },
+          'shipping.carrier': { projection: { email: 1 } }
+        }
+      }
+    ).sort({ _id: 1 })
+
+    client.off('commandStarted', listener)
+
+    expect(o1).toEqual({
+      _id: 'o1',
+      items: [
+        {
+          alternatives: [{ _id: 'p2', name: 'Bombilla' }],
+          product: { _id: 'p1', name: 'Mate' },
+          qty: 2
+        },
+        { alternatives: [], product: null, qty: 1 }
+      ],
+      shipping: { carrier: { _id: 'a1', email: 'ana@example.com' }, city: 'Rosario' }
+    })
+    expect(o2?.items[0]?.product).toEqual({ _id: 'p2', name: 'Bombilla' })
+    expect(o2).not.toHaveProperty('shipping')
+    expect(queries.toSorted()).toEqual(['accounts', 'orders', 'products', 'products'])
+    expectTypeOf<NonNullable<typeof o1>['items'][number]>().toEqualTypeOf<{
+      alternatives: Array<{ _id: string; name: string }>
+      product: { _id: string; name: string } | null
+      qty: number
+    }>()
+    expectTypeOf<NonNullable<typeof o1>['shipping']>().toEqualTypeOf<
+      { carrier: { _id: string; email: string } | null; city: string } | undefined
+    >()
+  })
+
+  test('works with a projection that includes the object above the reference, or a sibling', async () => {
+    const whole = await OrdersModel.findOne(
+      { _id: 'o1' },
+      { populate: { 'items.product': true }, projection: { items: 1 } }
+    )
+    const sibling = await OrdersModel.findOne(
+      { _id: 'o1' },
+      { populate: { 'items.product': true }, projection: { 'items.qty': 1 } }
+    )
+
+    expect(whole?.items[0]?.product).toEqual({ _id: 'p1', name: 'Mate', price: 10 })
+    expect(sibling).toEqual({
+      _id: 'o1',
+      items: [
+        { product: { _id: 'p1', name: 'Mate', price: 10 }, qty: 2 },
+        { product: null, qty: 1 }
+      ]
+    })
+  })
+
+  test('needs the reference: a projection that excludes the object above it fails', async () => {
+    await expect(
+      OrdersModel.findOne(
+        { _id: 'o1' },
+        // @ts-expect-error the projection excludes items
+        { populate: { 'items.product': true }, projection: { items: 0 } }
+      )
+    ).rejects.toMatchObject({
+      issues: [{ message: 'populate needs "items.product": the projection excludes it' }]
+    })
   })
 })

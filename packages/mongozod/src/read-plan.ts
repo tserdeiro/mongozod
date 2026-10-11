@@ -56,6 +56,11 @@ function isInclusion(entries: ReadonlyArray<[string, Kind]>) {
   return kinds.has('elemMatch')
 }
 
+/** Whether a path of the projection is a reference or an object above it. */
+function covers(path: string, field: string) {
+  return field === path || field.startsWith(`${path}.`)
+}
+
 /**
  * Plans a read with virtuals or `populate`. A projection that asks for a virtual also asks the
  * server for the fields it reads, which are removed afterwards, and an inclusion also returns the
@@ -101,8 +106,9 @@ export function planRead(
   const strip = new Set<string>()
 
   if (inclusion) {
+    // Asking for a reference under a path already included would be a path collision.
     for (const [field] of references) {
-      if (!entries.some(([path]) => path === field)) fields[field] = 1
+      if (!entries.some(([path]) => covers(path, field))) fields[field] = 1
     }
 
     for (const [name, virtual] of context.virtuals) {
@@ -136,7 +142,7 @@ export function planRead(
     }
   } else {
     for (const [field] of references) {
-      if (entries.some(([path, kind]) => path === field && kind === 'exclude')) {
+      if (entries.some(([path, kind]) => covers(path, field) && kind === 'exclude')) {
         issues.push({
           code: 'custom',
           input: projection,

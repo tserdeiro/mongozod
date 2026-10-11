@@ -84,11 +84,15 @@ export interface MongozodOptions<
 
   /**
    * The fields that store the `_id` of another document, or an array of them, which `populate`
-   * replaces with the documents. Each one points to a function that returns another model, so that
-   * its plugins and virtuals apply, or to a collection and its schema, for one without a model.
+   * replaces with the documents, also inside objects and arrays of objects, such as
+   * `items.product`. Each one points to a function that returns another model, so that its plugins
+   * and virtuals apply, or to a collection and its schema, for one without a model.
    *
    * @example
-   *   references: { brand: () => BrandsModel, organization: { collection: 'organizations', schema } }
+   *   references: {
+   *   'items.product': () => ProductsModel,
+   *   'organization': { collection: 'organizations', schema }
+   *   }
    */
   references?: R & UnknownReferences<S, R>
 
