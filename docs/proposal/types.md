@@ -18,6 +18,10 @@
   MongoDB. Las sugerencias del editor se calculan aparte desde el schema: hasta 6 niveles, con `$[]`
   en los arrays de los updates, y sin entrar en `z.custom`, records, `z.lazy` ni transforms. Una key
   de tipo `string` no compila: tiene que ser literal.
+- **Strings de Mongoose**: un `sort`, una `projection` o un `populate` en un string, como
+  `sort: '-createdAt'`, no compilan, y el `sort` y la `projection` lanzan un `ZodError` en runtime:
+  el driver ordenaba en silencio por un campo con ese nombre. El problema llega como una propiedad
+  que falta, porque la restricción de un genérico no puede ser condicional sobre él.
 
 ## Filtros
 
