@@ -62,13 +62,14 @@ objeto por campo. Está apagada por defecto.
     encode: (date) => date.toISOString()
   })
 
-  const timestampSchema = z.union([z.date(), isoToDate])
+  const timestampSchema = z.union([isoToDate, z.date()])
   ```
 
   Es el ejemplo `isoDatetimeToDate` de la documentación de Zod, que tiene codecs desde la 4.1. Un
   codec declara su salida, así que el [`$jsonSchema`](#sincronización) sabe que el campo es una
   fecha; con `.transform()` no lo sabe, porque un transform puede devolver cualquier cosa. Además,
-  `z.encode` la vuelve a ISO, y un transform no se puede encodear. La misma forma sirve para las
+  `z.encode` la vuelve a ISO, y un transform no se puede encodear. El codec va primero en la unión:
+  con la `Date` primero, `z.encode` la devuelve sin cambios. La misma forma sirve para las
   demás fechas, como `deletedAt` o `scheduledFor`.
 
 - **Inserts y reemplazos**: como Mongoose, `createdAt` es el que viene o «ahora»; adsgpt guarda en

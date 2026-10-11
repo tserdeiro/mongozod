@@ -108,7 +108,7 @@ export interface MongozodOptions<
    *     decode: (iso) => new Date(iso),
    *     encode: (date) => date.toISOString()
    *   })
-   *   const timestampSchema = z.union([z.date(), isoToDate]).default(() => new Date())
+   *   const timestampSchema = z.union([isoToDate, z.date()]).default(() => new Date())
    */
   timestamps?: T
 
