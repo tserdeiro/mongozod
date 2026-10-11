@@ -5,7 +5,7 @@
  * - **Field types** for a document's schema: `objectId()`, `decimal128()`, `binary()`, `date()` and
  *   GeoJSON, which take what a JSON client sends and return the BSON value.
  * - **Builders of endpoint inputs**, from a document's schema: `filter`, `update`, `sort`,
- *   `projection`, `cursor` and `populate`, MongoDB syntax restricted to what each endpoint
+ *   `projection`, `after` and `populate`, MongoDB syntax restricted to what each endpoint
  *   declares.
  *
  * It never imports the driver, so the schemas that use it also run in web and native clients. It
@@ -21,7 +21,7 @@
  *   const brandSchema = z.object({ _id: mz.objectId(), name: z.string(), createdAt: mz.date() })
  *
  *   export const listBrandsSchema = z.object({
- *     cursor: mz.cursor(brandSchema, { createdAt: -1, _id: -1 }).default({}),
+ *     after: mz.after(brandSchema, { createdAt: -1, _id: -1 }).default({}),
  *     filter: mz
  *       .filter(brandSchema, { _id: ['$eq', '$in'], name: ['$eq', '$exists'] })
  *       .default({}),
@@ -29,7 +29,7 @@
  *   })
  *   ```
  */
-export { cursor } from './mzod/cursor'
+export { after } from './mzod/after'
 export { filter } from './mzod/filter'
 export { populate } from './mzod/populate'
 export { projection } from './mzod/projection'

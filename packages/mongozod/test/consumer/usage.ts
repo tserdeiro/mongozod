@@ -135,7 +135,7 @@ mongozod({
 
 // A validations file: it keeps its own z and adds mz, which never imports the driver.
 const listNotesSchema = z.object({
-  cursor: mz.cursor(noteSchema, { createdAt: -1, _id: -1 }).default({}),
+  after: mz.after(noteSchema, { createdAt: -1, _id: -1 }).default({}),
   filter: mz
     .filter(noteSchema, { '_id': ['$eq', '$in'], 'author.name': ['$eq'], 'tags': ['$all', '$eq'] })
     .default({}),
@@ -251,7 +251,7 @@ export async function usage() {
 
   const list = listNotesSchema.parse({ filter: { tags: { $all: ['home'] } } })
   const page = await NotesModel.find(
-    { $and: [list.filter, list.cursor] },
+    { $and: [list.filter, list.after] },
     { limit: list.limit, projection: list.projection, sort: list.sort }
   )
   const edit = updateNoteSchema.parse({ filter: { _id: id }, update: { $set: { title: 'New' } } })
