@@ -77,11 +77,11 @@ existían, y la segunda era mucho más simple. Los plugins y `mz` son otro 29%.
   - abrir el `additionalProperties: false` que pone en cada `z.object`;
   - y además agrega `pattern`, `minLength` y rangos de `int`, que según la decisión quedan en la app.
 
-  El recorrido de [json-schema.ts](../../packages/mongozod/src/json-schema.ts) escribe directamente
+  El recorrido de [json-schema.ts](../../packages/mongozod/src/model/json-schema.ts) escribe directamente
   lo que hace falta.
 
 - **Sacar los `undefined` en la librería está justificado.** La opción `ignoreUndefined` del driver
-  también los saca. Pero [parse-document.ts](../../packages/mongozod/src/parse-document.ts) además
+  también los saca. Pero [parse-document.ts](../../packages/mongozod/src/model/parse-document.ts) además
   rechaza las keys con `.` o `$`, y devuelve un `document` sin esas keys.
 - **Los tipos no son caros**:
   - Con TypeScript 7, el paquete y sus tests compilan en 0,39 s, con 1,4 millones de instanciaciones.
@@ -103,7 +103,7 @@ existían, y la segunda era mucho más simple. Los plugins y `mz` son otro 29%.
    y en los commits (líneas 24 y 36).
 2. **La tabla de grupos de `operations.md` quedó vieja.** [operations.md](../proposal/operations.md#L8)
    pone `estimatedDocumentCount` y `aggregate` en `read`. El código
-   ([plugin.ts](../../packages/mongozod/src/plugin.ts#L21)) y la
+   ([plugin.ts](../../packages/mongozod/src/plugins/plugin.ts#L21)) y la
    [documentación de plugins](../proposal/plugins/README.md#hooks) los dejan sin grupo, que es lo
    correcto: no tienen filtro.
 3. **`mz.filter` acepta un `$options` sin `$regex`.** Un campo con `['$regex']` suma `$options` a su
@@ -118,10 +118,10 @@ existían, y la segunda era mucho más simple. Los plugins y `mz` son otro 29%.
 4. **Una referencia con punto pasa el chequeo, y `populate` la ignora.**
    - **Qué pasa**: el tipo de `references` solo acepta campos de primer nivel. Pero en runtime
      `checkReferences` busca la referencia como un path de filtro
-     ([references.ts](../../packages/mongozod/src/references.ts#L161)), que atraviesa arrays.
+     ([references.ts](../../packages/mongozod/src/references/references.ts#L161)), que atraviesa arrays.
      Entonces `references: { 'items.product': … }` pasa la definición.
    - **Qué devuelve**: `populate` lee `document['items.product']`
-     ([references.ts](../../packages/mongozod/src/references.ts#L253)), que no existe, y deja el
+     ([references.ts](../../packages/mongozod/src/references/references.ts#L253)), que no existe, y deja el
      id sin avisar. Lo probé contra MongoDB 8.2: el pedido volvió con
      `items: [{ product: "6aca…", qty: 2 }]`.
    - **Qué dice la propuesta**: una referencia que no es un campo del schema lanza un `Error` al
@@ -133,8 +133,8 @@ existían, y la segunda era mucho más simple. Los plugins y `mz` son otro 29%.
 ### Código duplicado o más complejo de lo necesario
 
 5. **Dos recorridos de paths que hacen lo mismo.** `step()` de
-   [schema-at.ts](../../packages/mongozod/src/schema-at.ts#L149) y `next()` de
-   [update-path.ts](../../packages/mongozod/src/update-path.ts#L78) repiten las mismas ramas:
+   [schema-at.ts](../../packages/mongozod/src/schema/schema-at.ts#L149) y `next()` de
+   [update-path.ts](../../packages/mongozod/src/updates/update-path.ts#L78) repiten las mismas ramas:
    - `any` y `unknown`;
    - uniones;
    - objetos con catchall;
@@ -146,19 +146,19 @@ existían, y la segunda era mucho más simple. Los plugins y `mz` son otro 29%.
 
 6. **Helpers repetidos entre archivos**:
    - **Los mismos tipos**:
-     - `Unwrap` está igual en [projection.ts](../../packages/mongozod/src/projection.ts#L19) y
-       [update.ts](../../packages/mongozod/src/update.ts#L19).
+     - `Unwrap` está igual en [projection.ts](../../packages/mongozod/src/types/projection.ts#L19) y
+       [update.ts](../../packages/mongozod/src/types/update.ts#L19).
      - `Simplify` está en `projection.ts`, `references.ts` y `virtuals.ts`.
      - `FieldsOf` está en `references.ts` y `virtuals.ts`.
      - `UnionToIntersection` está en `projection.ts` y `plugin.ts`, y `IntersectAll`, en `update.ts`.
    - **Las mismas regex**: `IDENTIFIER` e `INDEX` están en
-     [schema-at.ts](../../packages/mongozod/src/schema-at.ts#L145) y
-     [update-path.ts](../../packages/mongozod/src/update-path.ts#L34).
+     [schema-at.ts](../../packages/mongozod/src/schema/schema-at.ts#L145) y
+     [update-path.ts](../../packages/mongozod/src/updates/update-path.ts#L34).
    - **Interfaces casi iguales**: `AnyPlugin`
-     ([plugin.ts](../../packages/mongozod/src/plugin.ts#L271)) y `RuntimePlugin`
-     ([plugin-pipeline.ts](../../packages/mongozod/src/plugin-pipeline.ts#L20)).
+     ([plugin.ts](../../packages/mongozod/src/plugins/plugin.ts#L271)) y `RuntimePlugin`
+     ([plugin-pipeline.ts](../../packages/mongozod/src/plugins/pipeline.ts#L20)).
    - **Una lista que ya existe**: `GROUP_NAMES`
-     ([plugin-pipeline.ts](../../packages/mongozod/src/plugin-pipeline.ts#L39)) repite las keys de
+     ([plugin-pipeline.ts](../../packages/mongozod/src/plugins/pipeline.ts#L39)) repite las keys de
      `GROUPS`.
 
    Como ya se usan en varios archivos, conviene que cada uno viva en un solo lugar.
@@ -166,7 +166,7 @@ existían, y la segunda era mucho más simple. Los plugins y `mz` son otro 29%.
 7. **El `.default()` obligatorio de `timestamps` no se usa en runtime.**
    - **Qué pide hoy**: la [decisión](../proposal/README.md#decisiones-acordadas) pide declarar
      `createdAt` y `updatedAt` con un `.default()` o como opcionales. El tipo `InputProblem`
-     ([timestamps.ts](../../packages/mongozod/src/timestamps.ts#L57)) lo exige.
+     ([timestamps.ts](../../packages/mongozod/src/model/timestamps.ts#L57)) lo exige.
    - **Por qué no se usa**: el núcleo completa las fechas antes de validar, con `stampDocument`
      ([mongozod.ts](../../packages/mongozod/src/mongozod.ts#L564), y también en `insertMany`, los
      reemplazos y `bulkWrite`). Con `timestamps` activo, el default del schema no corre en las
@@ -182,7 +182,7 @@ existían, y la segunda era mucho más simple. Los plugins y `mz` son otro 29%.
 
 ### APIs propias frente a las oficiales
 
-8. **`isInteger` prueba con `0.5`** ([schema-kinds.ts](../../packages/mongozod/src/schema-kinds.ts#L30)).
+8. **`isInteger` prueba con `0.5`** ([schema-kinds.ts](../../packages/mongozod/src/schema/schema-kinds.ts#L30)).
    - **La premisa no es exacta**: la propuesta dice que «Zod no expone si un campo es entero»
      ([types.md](../proposal/types.md#updates-en-runtime)). Zod clásico sí lo expone, con
      `ZodNumber.format` (`'safeint'`, `'int32'`…). Su `isInt` está deprecado justamente a favor de
@@ -197,7 +197,7 @@ existían, y la segunda era mucho más simple. Los plugins y `mz` son otro 29%.
      ([Sincronización](../proposal/model.md#sincronización)), y se eligió en la fase 2.6 por eso.
    - **Como librería, conviene**: tiene la misma forma que el `schema.index(fields, options)` de
      Mongoose, que quien migra ya conoce.
-10. **`SortDirection` se vuelve a declarar** ([sort.ts](../../packages/mongozod/src/sort.ts#L5)).
+10. **`SortDirection` se vuelve a declarar** ([sort.ts](../../packages/mongozod/src/types/sort.ts#L5)).
     - El driver ya exporta `SortDirection`, que acepta cualquier `$meta`; la nuestra lo restringe a
       `textScore`.
     - Se puede derivar del tipo del driver, cambiando solo su `$meta`, así sigue sus cambios.

@@ -43,7 +43,7 @@ export const BrandsModel = mongozod({
 ```ts
 // schemas/validations.ts: client-safe, no model imported.
 
-import { mz } from 'mongozod/mz'
+import * as mz from 'mongozod/mz'
 import { z } from 'zod'
 
 /** The project's own search, here MongoDB's text index. */
@@ -99,16 +99,17 @@ manda `{ createdAt, _id }` del último elemento de la página.
 
 ## Decisiones de los inputs
 
-1. **`mz`.** `mongozod/mz` exporta `mz`, con los constructores: `mz.filter`, `mz.update`,
-   `mz.sort`, `mz.projection`, `mz.cursor` y `mz.populate`.
+1. **`mz`.** `mongozod/mz` exporta cada constructor con su nombre, y se importa como namespace,
+   como el `import * as z` de Zod: `import * as mz from 'mongozod/mz'`, y después `mz.filter`,
+   `mz.update`, `mz.sort`, `mz.projection`, `mz.cursor` y `mz.populate`.
    - **Junto a `z`**: no reexporta Zod, así que cada archivo conserva su `z` y suma un import, sin
      chocar. Cada constructor devuelve un schema de Zod que se anida en `z.object` como cualquier
      otro.
-   - **Namespace**: no son funciones sueltas porque `filter`, `update` y `sort` chocan con nombres
-     de variables comunes, como los `filter` y `update` de los routers de adsgpt. Además, con `mz`
-     como único export, el editor agrega el import al escribir `mz` y no sugiere los constructores
-     sueltos. Con funciones sueltas y `import * as mz`, como el `import * as z` de Zod, el editor no
-     agrega ese import y sugiere `filter` cada vez que se escribe.
+   - **Tree shaking**: primero exportaba un objeto `mz`, que el editor agrega solo al escribir `mz` y
+     que no deja nombres sueltos como `filter`, `update` y `sort`, que chocan con variables comunes.
+     Pero un bundler incluye el objeto entero: usar solo `mz.sort` sumaba 14 KB al cliente, y con
+     exports con nombre suma 3,4 KB. Se eligió el tamaño, como Zod: el import se escribe una vez
+     por archivo, como el de `z`, y los nombres sueltos solo aparecen con `import { filter }`.
    - **Subpath**: `mongozod/mz`, igual que lo único que exporta. `/zod` hacía esperar un `z`, y
      `/inputs` no coincidía con `mz`. No importa el driver, así los schemas de validación siguen
      sirviendo en web y en native.

@@ -651,6 +651,20 @@
     path, `references` toma cualquier key, y `UnknownReferences` da el error de las que no
     corresponden: `"ownr" is not a path of the schema`. El editor sugiere la key y las opciones. El
     costo de tipos del consumidor queda en 308.862 instanciaciones.
+- **Estructura y tree shaking** (rolldown 1.2.13, Zod 4.6.5, Node 22):
+  - Con el objeto `mz`, un bundle que usa solo `mz.sort` pesaba 14.031 bytes, lo mismo que uno que
+    usa todo `mz`, con `filter` adentro. Con exports con nombre e `import * as mz`, el del `dist`
+    pesa 3.434 bytes, sin `filter`.
+  - En un proyecto sin `bson`, `mongozod/codecs/date` funciona y `mongozod/codecs/bson` falla al
+    importarse con `ERR_MODULE_NOT_FOUND: Cannot find package 'bson'`; solo `dist/codecs/bson.mjs`
+    importa `bson`. Con npm, el `bson` del driver queda arriba en `node_modules` y suele
+    encontrarse; con pnpm hay que instalarlo.
+  - Zod clásico tiene `.unwrap()` en cada wrapper, de a un nivel, y el de `z.lazy` llama al getter,
+    que en `z.json()` arma un schema nuevo cada vez. Zod Mini no tiene `.unwrap()` y `zod/v4/core`
+    no exporta un equivalente, así que `unwrapSchema` sigue: recorre todos los wrappers con
+    `_zod.def.innerType` y los lazies con `_zod.innerType`. `z.exactOptional` es instancia de
+    `$ZodOptional`, así que ya lo cubre.
+  - Mover los 49 archivos a carpetas por tema no cambió los tests (229), el build ni los `.d.ts`.
   - Populate de Mongoose (su documentación): `match` deja en `null` una referencia que no cumple y
     saca las de un array; `limit` no es por documento, porque consulta con `numDocuments * limit`;
     `perDocumentLimit` hace una consulta por documento; `refPath` elige el modelo con otro campo del
