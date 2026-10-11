@@ -141,8 +141,31 @@ describe('toJsonSchema', () => {
     expect(toJsonSchema(z.looseObject({ name: z.string() }))).not.toHaveProperty(
       'additionalProperties'
     )
+    // The driver's ObjectId passes a catchall rule too, and the strict types of nested unions.
     expect(toJsonSchema(z.object({ name: z.string() }).catchall(z.number()))).toMatchObject({
-      additionalProperties: { bsonType: 'number' }
+      additionalProperties: { bsonType: 'number' },
+      properties: { _id: { bsonType: 'objectId' } }
+    })
+    expect(
+      toJsonSchema(
+        z.discriminatedUnion('kind', [
+          z.discriminatedUnion('fuel', [
+            z.strictObject({ fuel: z.literal('gas'), kind: z.literal('car') }),
+            z.strictObject({ fuel: z.literal('electric'), kind: z.literal('car') })
+          ]),
+          z.strictObject({ kind: z.literal('bike') })
+        ])
+      )
+    ).toMatchObject({
+      anyOf: [
+        {
+          anyOf: [
+            { properties: { _id: { bsonType: 'objectId' } } },
+            { properties: { _id: { bsonType: 'objectId' } } }
+          ]
+        },
+        { properties: { _id: { bsonType: 'objectId' } } }
+      ]
     })
     expect(toJsonSchema(z.object({ name: z.string() }))).not.toHaveProperty('additionalProperties')
   })

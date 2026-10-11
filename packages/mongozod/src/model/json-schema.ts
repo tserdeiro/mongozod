@@ -175,12 +175,20 @@ function describe(schema: core.$ZodType, seen: ReadonlySet<core.$ZodType>): Docu
 export function toJsonSchema(schema: core.$ZodType): Document {
   const jsonSchema = walk(schema, new Set())
 
-  // A discriminated union at the root is an `anyOf` of its types of document.
-  for (const type of jsonSchema.anyOf ?? [jsonSchema]) {
-    if (type.additionalProperties === false && !type.properties._id) {
-      type.properties._id = { bsonType: 'objectId' }
-    }
-  }
+  allowId(jsonSchema)
 
   return jsonSchema
+}
+
+/**
+ * Declares the `_id` of each type of document that leaves it out and closes or rules its other
+ * keys, as a strict object or a catchall does, which would reject the driver's `ObjectId`. A
+ * discriminated union at the root is an `anyOf` of its types, or of other unions.
+ */
+function allowId(type: Document): void {
+  if (Array.isArray(type.anyOf)) {
+    for (const option of type.anyOf) allowId(option)
+  } else if (type.additionalProperties !== undefined && !type.properties._id) {
+    type.properties._id = { bsonType: 'objectId' }
+  }
 }
