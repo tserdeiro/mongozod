@@ -50,10 +50,12 @@ objeto por campo. Está apagada por defecto.
 - **En el schema**: los campos se declaran en el schema, que sigue siendo la única fuente de verdad,
   y siguen a la opción, renombrados o apagados. Tienen que estar en todos los tipos de documento y
   tomar y devolver una `Date`. Si no, `mongozod()` no compila, y en runtime lanza un `Error`.
-- **Sin `.default()`** (fase 5; hasta entonces lo necesitan, o ser opcionales): el schema declara
+- **Sin `.default()`**: el schema declara
   lo que se guarda, y mientras `timestamps` está activo el tipo del insert y del reemplazo los deja
   opcionales, porque el núcleo los completa antes de validar. Así funciona la opción de Mongoose,
-  que agrega los campos sola. Un `.default()` sigue funcionando. La forma documentada es
+  que agrega los campos sola. Un `.default()` sigue funcionando. El tipo infiere de las opciones si
+  la operación pasa `timestamps: false`, en vez de usar un overload: así sigue rechazando una opción
+  mal escrita. La forma documentada es
   [`date()`](./inputs.md#decisiones-de-los-inputs), de `mongozod/codecs/date`, que acepta una
   `Date` o un ISO, para los inputs que llegan en JSON, y devuelve una `Date`:
 
@@ -79,7 +81,7 @@ objeto por campo. Está apagada por defecto.
 - **Por operación**: una operación puede saltearlos con la opción `timestamps: false`, como en
   Mongoose; sus campos vuelven a ser campos comunes, que se pueden escribir para corregirlos. Un
   insert o un reemplazo con `timestamps: false` pide las fechas, salvo que el schema les dé un
-  `.default()` (fase 5). En
+  `.default()`; si faltan, no compila, y en runtime el schema lanza un `ZodError`. En
   `bulkWrite` va en las opciones de la llamada y vale para todas sus operaciones. Solo existe en los
   modelos con timestamps, y mongozod la quita antes de llamar al driver.
 - **Borrados**: un borrado de `softDelete` es un update, así que también completa `updatedAt`.

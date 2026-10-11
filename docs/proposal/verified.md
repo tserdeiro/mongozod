@@ -379,8 +379,14 @@
     del schema; un update cambia `updatedAt` y no `createdAt`; un upsert pone `createdAt`, o respeta
     el de `$setOnInsert`; escribir `updatedAt` o `createdAt` no compila y lanza, salvo con
     `timestamps: false`; `bulkWrite` estampa inserts y updates; los nombres se cambian o se apagan; y
-    un schema sin el campo, sin default, con otro tipo o sin el campo en un tipo de una unión no
-    compila y lanza al definir el modelo.
+    un schema sin el campo, con otro tipo o sin el campo en un tipo de una unión no compila y lanza
+    al definir el modelo.
+  - Sin `.default()` (TypeScript 5.5.4 y 7.0.2, 14 tests): un insert, un reemplazo y el insert de
+    un `bulkWrite` compilan sin las fechas, y el editor las sugiere como opcionales; con
+    `timestamps: false` no compilan sin ellas y el schema lanza un `ZodError`, salvo que tengan un
+    `.default()`; una opción mal escrita sigue sin compilar. El consumidor de los `.d.ts` compila con
+    `date()` sin default, y su costo de tipos casi no cambia (304.474 instanciaciones contra
+    303.618).
   - El consumidor de los `.d.ts` publicados compila un modelo con timestamps con TS 5.5 y 7.
 
 - **Referencias y virtuals** (driver 7.7.0, MongoDB 8.2.6, Zod 4.6.5, TypeScript 5.5.4 y 7.0.2, y
