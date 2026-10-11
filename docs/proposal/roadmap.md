@@ -88,10 +88,11 @@ El orden de implementación. Al cerrar una fase, se marca acá en el mismo cambi
          cada array de ids, y en una uno a muchos, que exige un `sort`, hace una consulta por
          documento. Una sola con `$setWindowFields` no alcanza: el `aggregate` no pasa por los
          plugins del destino. Ver [Referencias](./model.md#referencias).
-      7. Una referencia con `localField` que devuelve un documento y no un array, para poblar
-         `capital` desde `capitalId`
+      7. Una referencia en otra key (hecho): con `localField` y sin `foreignField`, puebla
+         `capital` desde `capitalId`, un documento o un array según lo que guarda el `localField`
          ([Automattic/mongoose#3225](https://github.com/Automattic/mongoose/issues/3225) y
-         [#9034](https://github.com/Automattic/mongoose/issues/9034)).
+         [#9034](https://github.com/Automattic/mongoose/issues/9034)). Ver
+         [Referencias](./model.md#referencias).
       8. Un `sort` por defecto en el modelo, para las lecturas que no mandan uno
          ([Automattic/mongoose#16577](https://github.com/Automattic/mongoose/issues/16577)).
       9. Los codecs de Temporal ↔ `Date`, si la versión mínima de Node lo trae sin flag

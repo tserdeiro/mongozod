@@ -217,6 +217,24 @@ await TransactionsModel.find(
 
   `skip` queda afuera.
 
+- **En otra key**: una referencia con `localField` y sin `foreignField` puebla, en una key que no
+  se guarda, el documento cuyo `_id` guarda el `localField`, que queda como está:
+  `capital: { model: () => CitiesModel, localField: 'capitalId' }`. Es el `as` del `$lookup` de
+  MongoDB, que Mongoose resuelve con un virtual populate y `justOne`
+  ([Automattic/mongoose#3225](https://github.com/Automattic/mongoose/issues/3225) y
+  [#9034](https://github.com/Automattic/mongoose/issues/9034)).
+  - **El valor** sigue a lo que guarda el `localField`, como una referencia guardada: un documento,
+    o `null` si no existe, cuando guarda un id; un array cuando guarda un array o el path atraviesa
+    uno, como `regions.seatId`. Busca por `_id`, que es único, así que nunca hay varios para elegir.
+    Toma las mismas opciones, con el `limit` de los arrays.
+  - **Por qué no `justOne`**: hay que declararlo, y con un `foreignField` que no es único devuelve
+    uno cualquiera sin avisar; mongozod no puede chequear esa unicidad, que vive en un índice de la
+    base. Lo único que agrega es un campo único que no es `_id`, como un `handle`, que hoy cubre la
+    uno a muchos con un array de uno, y se suma si un proyecto lo necesita.
+  - **La key y las proyecciones**: como en la uno a muchos, la key no es un campo ni un path del
+    schema, el `localField` sí, y una proyección que deja afuera el `localField` lo pide igual y lo
+    quita después. Si no, no compila y lanza un `Error` al definir el modelo, o un `ZodError` al
+    leer.
 - **Uno a muchos**: una referencia con `foreignField` trae los documentos del destino que apuntan
   a este, sin guardar sus ids, como el virtual populate de Mongoose:
   `posts: { model: () => PostsModel, foreignField: 'author' }`. `localField` es `_id` si no se
