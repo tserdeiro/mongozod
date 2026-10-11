@@ -1,4 +1,4 @@
-import { Binary, BSONError, Decimal128, ObjectId } from 'bson'
+import { Binary, BSONError, Decimal128, ObjectId, UUID } from 'bson'
 import { z } from 'zod'
 
 /**
@@ -34,7 +34,7 @@ const hexToObjectId = z.codec(z.hex().length(24), objectIdInstance, {
  *
  * @example
  *   ;```ts
- *   import { Binary, BSONError, Decimal128, ObjectId } from 'bson'
+ *   import { Binary, BSONError, Decimal128, ObjectId, UUID } from 'bson'
  *   import * as mz from 'mongozod/mzod'
  *
  *   const brandSchema = z.object({
@@ -183,5 +183,47 @@ export function binary(): z.ZodCodec<
       return value instanceof Uint8Array ? new Binary(value) : value
     },
     encode: (value) => value.toString('base64')
+  })
+}
+
+/**
+ * A `UUID`, a `Binary` of subtype 4, recognized by its `_bsontype` and subtype like an `ObjectId`.
+ * Its metadata gives the `$jsonSchema` its BSON type.
+ */
+const uuidInstance = z
+  .custom<UUID>(
+    (value) =>
+      typeof value === 'object' &&
+      value !== null &&
+      '_bsontype' in value &&
+      value._bsontype === 'Binary' &&
+      'sub_type' in value &&
+      value.sub_type === Binary.SUBTYPE_UUID
+  )
+  .meta({ bsonType: 'binData' })
+
+const UUID_ERROR = 'Invalid UUID: expected a UUID or its string'
+
+/**
+ * A UUID field, stored as a `Binary` of subtype 4, which takes 16 bytes where its string takes 36:
+ * it takes the string of a UUID, which a JSON client sends, or a `UUID`, as the driver reads it,
+ * and returns a `UUID`, so its type is the one reads return. `z.encode` and `JSON.stringify` turn
+ * it back into the string, and the `$jsonSchema` of `sync()` checks it as `binData`.
+ *
+ * @example
+ *   ;```ts
+ *   import { UUID } from 'bson'
+ *   import * as mz from 'mongozod/mzod'
+ *
+ *   const sessionSchema = z.object({ _id: mz.uuid().default(() => new UUID()), user: mz.uuid() })
+ *   ```
+ */
+export function uuid() {
+  const input = z.union([z.uuid({ error: UUID_ERROR }), uuidInstance], { error: UUID_ERROR })
+
+  return z.codec(input, uuidInstance, {
+    // `toUUID()` also turns a `Binary` of subtype 4 into a `UUID`, which has `toHexString()`.
+    decode: (value) => (typeof value === 'string' ? new UUID(value) : value.toUUID()),
+    encode: (value) => value.toHexString()
   })
 }

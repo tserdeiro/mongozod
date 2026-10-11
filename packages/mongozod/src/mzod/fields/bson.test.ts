@@ -1,9 +1,12 @@
+import type { WithId } from 'mongodb'
+
 import { Binary, Decimal128, ObjectId, UUID } from 'bson'
 import {
   Binary as DriverBinary,
   Decimal128 as DriverDecimal128,
   MongoClient,
-  ObjectId as DriverObjectId
+  ObjectId as DriverObjectId,
+  UUID as DriverUUID
 } from 'mongodb'
 import {
   afterAll,
@@ -22,7 +25,7 @@ import { mongozod } from '../../mongozod'
 import { filter } from '../filter'
 import { update } from '../update'
 
-import { binary, decimal128, objectId } from './bson'
+import { binary, decimal128, objectId, uuid } from './bson'
 
 const client = new MongoClient(inject('mongoUri'))
 const db = client.db('mongozod-codecs-bson')
@@ -239,5 +242,74 @@ describe('binary()', () => {
 
     expect(await db.collection('files').countDocuments({ data: { $type: 'binData' } })).toBe(1)
     expect(await FilesModel.findOne({ _id: 'f1' })).toMatchObject({ name: 'hello.txt' })
+  })
+})
+
+describe('uuid()', () => {
+  const sessionSchema = z.object({ _id: uuid().default(() => new UUID()), user: uuid() })
+  const text = '0f1aef5a-e7a8-4f60-811b-6685550d99ff'
+
+  test('takes the string of a UUID, a UUID or a Binary of subtype 4, and returns a UUID', () => {
+    const schema = uuid()
+
+    for (const value of [
+      text,
+      text.toUpperCase(),
+      new UUID(text),
+      new DriverBinary(new UUID(text).buffer, 4)
+    ]) {
+      const parsed = schema.parse(value)
+
+      // The UUID of the driver's copy of bson, for its Binary: recognized by its subtype.
+      expect([parsed._bsontype, parsed.sub_type, parsed.toHexString()]).toEqual(['Binary', 4, text])
+    }
+
+    expectTypeOf<z.input<typeof schema>>().toEqualTypeOf<string | UUID>()
+    expectTypeOf<z.output<typeof schema>>().toEqualTypeOf<UUID>()
+  })
+
+  test('rejects anything else with one message', () => {
+    for (const value of [
+      'not-a-uuid',
+      '0f1aef5ae7a84f60811b6685550d99ff',
+      new Binary(new Uint8Array(16)),
+      42,
+      null
+    ]) {
+      expect(uuid().safeParse(value).error?.issues).toMatchObject([
+        { message: 'Invalid UUID: expected a UUID or its string' }
+      ])
+    }
+  })
+
+  test('encodes back to the string, as JSON does, and is binData in the $jsonSchema', () => {
+    const session = sessionSchema.parse({ user: text })
+
+    expect(z.encode(sessionSchema, session)).toEqual({ _id: session._id.toHexString(), user: text })
+    expect(JSON.parse(JSON.stringify(session))).toEqual({
+      _id: session._id.toHexString(),
+      user: text
+    })
+    expect(toJsonSchema(sessionSchema).properties.user).toEqual({ bsonType: 'binData' })
+  })
+
+  test('a model stores a Binary of subtype 4, which reads return as a UUID', async () => {
+    const SessionsModel = mongozod({ collection: 'sessions', db, schema: sessionSchema })
+
+    const { document } = await SessionsModel.insertOne({ user: text })
+    const stored = await SessionsModel.findOne({ _id: document._id, user: new UUID(text) })
+
+    expect(stored?.user).toBeInstanceOf(DriverUUID)
+    expect(stored?.user.toHexString()).toBe(text)
+    expect(await db.collection('sessions').countDocuments({ user: { $type: 'binData' } })).toBe(1)
+    expectTypeOf(stored).toEqualTypeOf<WithId<{ _id: UUID; user: UUID }> | null>()
+
+    // The string a client sends through mz becomes a UUID, which the filter needs.
+    const sessionFilter = filter(sessionSchema, { user: ['$eq', '$in'] })
+
+    expect(await SessionsModel.countDocuments(sessionFilter.parse({ user: text }))).toBe(1)
+    expect(await SessionsModel.countDocuments(sessionFilter.parse({ user: { $in: [text] } }))).toBe(
+      1
+    )
   })
 })

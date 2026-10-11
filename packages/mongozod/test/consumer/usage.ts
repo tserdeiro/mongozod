@@ -305,7 +305,8 @@ const brandSchema = z.object({
   logo: mz.binary().optional(),
   office: mz.point().optional(),
   launchedAt: mz.date().optional(),
-  owner: mz.objectId().optional()
+  owner: mz.objectId().optional(),
+  sessionId: mz.uuid().optional()
 })
 
 export async function brands() {
@@ -313,6 +314,7 @@ export async function brands() {
   const { document } = await BrandsModel.insertOne({ owner: '65c3b9b4f1d2a34b5c6d7e8f' })
   const owner: ObjectId | undefined = document.owner
   const launchedAt: Date | undefined = document.launchedAt
+  const sessionId: string | undefined = document.sessionId?.toHexString()
 
   await BrandsModel.updateOne(
     { _id: document._id },
@@ -323,7 +325,13 @@ export async function brands() {
   // @ts-expect-error a number is not an ObjectId
   await BrandsModel.insertOne({ owner: 42 })
 
-  return { found: await BrandsModel.findOne({ _id: document._id }), launchedAt, owner, byId }
+  return {
+    found: await BrandsModel.findOne({ _id: document._id }),
+    launchedAt,
+    owner,
+    byId,
+    sessionId
+  }
 }
 
 // @ts-expect-error decimel is not a BSON type
