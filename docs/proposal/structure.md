@@ -26,7 +26,7 @@
 | `updates/`          | Los updates en runtime: la validación por path, el recorrido de los paths y los upserts.                                                           |
 | `references/`       | `references`, `populate` y los virtuals.                                                                                                           |
 | `types/`            | Los tipos estrictos de las consultas: filtros, updates, proyecciones, `sort`, pipelines y las sugerencias de paths.                                |
-| `schema/`           | El recorrido de los schemas de Zod: los paths, los wrappers, los tipos de documento y los tipos BSON que Zod no conoce.                            |
+| `schema/`           | El recorrido de los schemas de Zod: los paths, los wrappers, y los tipos de documento.                                                             |
 | `plugins/`          | El contrato de plugins, su runtime y sus chequeos, y los plugins oficiales, cada uno su entry.                                                     |
 | `codecs/`           | Los codecs, cada uno su entry: `bson` y `date`.                                                                                                    |
 | `mzod.ts` y `mzod/` | El entry de `mongozod/mzod` y un archivo por constructor; `mzod/internal/` tiene lo que comparten.                                                 |

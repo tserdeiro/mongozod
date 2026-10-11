@@ -49,7 +49,7 @@ El orden de implementación. Al cerrar una fase, se marca acá en el mismo cambi
    [Qué se verificó](./verified.md)). Antes, adsgpt arregla wortise/adsgpt#230 y wortise/adsgpt#231,
    que no dependen de mongozod. Antes de publicarla:
    1. Los tipos BSON que todavía no tienen una forma cómoda:
-      1. `.meta({ bsonType })`, la API de metadata de Zod, en el `$jsonSchema`: un campo sin codec,
+      1. `.meta({ bsonType })`, la API de metadata de Zod, en el `$jsonSchema` (hecho): un campo sin codec,
          como `z.instanceof(Decimal128).meta({ bsonType: 'decimal' })`, declara su tipo BSON. Los
          codecs usan el mismo mecanismo, y desaparece el registro propio de `objectId()`.
       2. `decimal128()`, en `mongozod/codecs/bson` junto a `objectId()`, porque también necesita

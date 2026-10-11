@@ -668,6 +668,18 @@
     `_zod.def.innerType` y los lazies con `_zod.innerType`. `z.exactOptional` es instancia de
     `$ZodOptional`, así que ya lo cubre.
   - Mover los 49 archivos a carpetas por tema no cambió los tests (229), el build ni los `.d.ts`.
+- **`bsonType` en la metadata de Zod** (Zod 4.6.5, MongoDB 8.2.6, TypeScript 5.5.4 y 7.0.2, 2 tests
+  nuevos):
+  - `.meta()` de Zod clásico y `z.meta()` de Mini guardan la metadata en `globalRegistry`, cuyo
+    `get` hereda la de la copia original: `z.number().meta({ bsonType: 'int' }).min(0)` la conserva.
+    El driver exporta los alias como `BSONTypeAlias`; `number` es un alias del `$jsonSchema` que no
+    está ahí.
+  - El `$jsonSchema` da `decimal` a un `Decimal128` declarado, en los dos órdenes con
+    `.nullable()`, en Mini y como opción de una `z.union`; sin metadata sigue sin regla. Con
+    `jsonSchema: true`, MongoDB acepta un `Decimal128` y rechaza un número en ese campo (código 121).
+  - Costo de tipos, con el mismo consumidor de los `.d.ts`: 309.763 instanciaciones sin la
+    augmentation, 315.543 con `string`, 335.622 con los alias y 360.024 con alias o arrays de alias.
+    Se eligió el alias. El editor sugiere los alias dentro de `.meta({ bsonType })`.
   - Populate de Mongoose (su documentación): `match` deja en `null` una referencia que no cumple y
     saca las de un array; `limit` no es por documento, porque consulta con `numDocuments * limit`;
     `perDocumentLimit` hace una consulta por documento; `refPath` elige el modelo con otro campo del

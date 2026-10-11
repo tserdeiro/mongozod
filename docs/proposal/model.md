@@ -138,9 +138,18 @@ const { extraIndexes } = await PluginsModel.sync()
   cada campo, los obligatorios, objetos y arrays anidados, enums y literales, `null` y las uniones
   con `anyOf`. Sigue la salida del schema, que es lo que se guarda: el final de un pipe o de un
   codec. Los refinements quedan en la app; los transforms, `z.custom`, `z.unknown` y los schemas
-  recursivos, sin regla, porque MongoDB no tiene `$ref`. La excepción es el
-  [`objectId()`](./inputs.md#decisiones-de-los-inputs) de `mongozod/codecs/bson`, que es un
-  `objectId`.
+  recursivos, sin regla, porque MongoDB no tiene `$ref`.
+- **Tipos BSON declarados**: un campo que Zod no describe declara su tipo con la API de metadata de
+  Zod, `.meta({ bsonType })` o `z.meta()` en Zod Mini, como
+  `z.instanceof(Decimal128).meta({ bsonType: 'decimal' })`. Ese tipo reemplaza al que infiere
+  mongozod, así que también sirve para pedir un `int` en vez de `number`. En un `.nullable()` es el
+  tipo del valor y `null` sigue pasando, así que da igual el orden de `.meta()` y `.nullable()`; un
+  `.min()` o un `.refine()` posterior lo heredan, como hace Zod con su metadata. Los codecs usan lo
+  mismo: el `ObjectId` de [`objectId()`](./inputs.md#decisiones-de-los-inputs) es un `objectId`.
+  - **Tipado**: mongozod agrega `bsonType` al `GlobalMeta` de Zod, así el editor sugiere los alias
+    de MongoDB y uno mal escrito no compila. Toma un alias y no un array, porque el tipo de
+    `.meta()` de cada schema de Zod lo incluye: un array subía un 16 % las instanciaciones de
+    cualquier proyecto, y un alias, un 8 %. Un campo de varios tipos es una `z.union`.
 - **Campos de más**: un `z.object` común descarta las keys que no declara, pero los documentos
   viejos pueden tenerlas, así que `additionalProperties` queda abierto. Un `z.strictObject` lo
   cierra, y un catchall usa su schema.

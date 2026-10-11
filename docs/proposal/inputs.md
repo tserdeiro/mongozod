@@ -252,9 +252,10 @@ manda `{ createdAt, _id }` del último elemento de la página.
       bson. `instanceof` falla entre dos copias de bson, y también con una sola: en Node, el driver
       carga el build CommonJS de bson, y una app que importa `bson` como módulo ES recibe otra clase.
       El símbolo `bsonType` serviría, pero bson 6 no lo tiene.
-    - **Codec y no `.transform()`**: un transform no se puede encodear. mongozod registra el
-      `ObjectId` de `objectId()` en un registro de Zod (`core.registry`), así el `$jsonSchema` le da
-      `bsonType: 'objectId'`.
+    - **Codec y no `.transform()`**: un transform no se puede encodear. El `ObjectId` de
+      `objectId()` declara `.meta({ bsonType: 'objectId' })`, la misma metadata que cualquier campo
+      puede usar, así el `$jsonSchema` le da su tipo (ver
+      [Sincronización](./model.md#sincronización)).
     - **Frente a las otras formas**: `z.instanceof(ObjectId)` rechaza el hex de un cliente, y un
       regex con `.transform()` rechaza el `ObjectId` del servidor y tipa el insert como `string`.
       Zod no trae un codec de `ObjectId` entre sus ejemplos.
