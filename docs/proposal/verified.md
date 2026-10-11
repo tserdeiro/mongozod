@@ -620,6 +620,19 @@
     que no existe da `"nickname" is not a path of the document`. Con `ReadOf` dentro de un argumento,
     la unión `true | { projection }` de un `populate` que llega en runtime mezclaba las dos
     proyecciones; distribuida en el nivel de arriba, da una unión de las dos lecturas.
+  - Referencias dentro de objetos y arrays (MongoDB 8.2.6, TypeScript 5.5.4 y 7.0.2, 3 tests
+    nuevos): `items.product`, `items.alternatives` (un array de ids dentro de un array) y
+    `shipping.carrier` se reemplazan en cada elemento y objeto, con una consulta `find` por
+    referencia, y un faltante queda en `null` dentro del elemento; el tipo de la lectura sigue cada
+    path, con el objeto opcional que falta; una inclusión de `items` o de `items.qty` trae la
+    referencia sin colisión de paths, y una exclusión de `items` no compila y lanza un `ZodError`;
+    `items.0.product` no compila y lanza un `Error`. El editor sugiere los paths en `populate`; en
+    `references` no sugería ni antes los campos de primer nivel. El costo de tipos del consumidor
+    sube de 302.954 a 308.572 instanciaciones (1,9 %), porque `references` toma los paths del
+    schema.
+  - Un modelo con un campo `z.json()` no compilaba en un `find` (`TS2589`, ya en la fase 4): las
+    sugerencias de paths recorrían su unión recursiva sin sumar profundidad. Ahora cada unión suma
+    un nivel, y las sugerencias de los arrays de objetos no cambian.
   - Populate de Mongoose (su documentación): `match` deja en `null` una referencia que no cumple y
     saca las de un array; `limit` no es por documento, porque consulta con `numDocuments * limit`;
     `perDocumentLimit` hace una consulta por documento; `refPath` elige el modelo con otro campo del

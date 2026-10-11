@@ -177,10 +177,13 @@ await TransactionsModel.find(
   pueden referenciarse entre sí, y un modelo a sí mismo, como el `parent` de las cuentas de
   wortise-dashboard-monorepo.
 - **Campos**: un campo que guarda el `_id` del destino o un array de ids, en uno o más tipos de
-  documento. Desde la fase 5 también dentro de subdocumentos y arrays de subdocumentos, como el
-  `items.product` de un pedido, lo más común en quien viene de Mongoose; hasta entonces, solo de
-  primer nivel. Todas las referencias de los tres proyectos guardan un id; el único array es
-  `advertisers`, en las cuentas de wortise-dashboard-monorepo.
+  documento, también dentro de subdocumentos y arrays de subdocumentos, como el `items.product` de
+  un pedido o el `shipping.carrier` de un envío, lo más común en quien viene de Mongoose. El path
+  atraviesa los arrays como el de un filtro: `populate` reemplaza los ids en cada elemento y cada
+  objeto, con una consulta por referencia, y el tipo de la lectura lo sigue. Un path con un índice,
+  como `items.0.product`, no compila y lanza un `Error` al definir el modelo: dejaría los ids sin
+  avisar en los demás elementos. Todas las referencias de los tres proyectos guardan un id; el único
+  array es `advertisers`, en las cuentas de wortise-dashboard-monorepo.
 - **Valores**: `true` trae el documento entero, como el `include: { author: true }` de Prisma y el
   `with` de Drizzle. Un objeto lo acota con los nombres de `FindOptions` del driver, cada opción
   chequeada contra el schema del destino, con las sugerencias del editor:
@@ -214,15 +217,14 @@ await TransactionsModel.find(
   de la lectura, así ve las escrituras de su transacción. Las referencias de un lote se consultan
   en paralelo.
 - **Con una proyección**: una inclusión trae igual las referencias que se populan, como trae los
-  campos de un virtual. Una exclusión que deja afuera una referencia que se popula no compila y
-  lanza un `ZodError`. Si la proyección del destino deja afuera el `_id`, mongozod lo pide igual
+  campos de un virtual, salvo que ya incluya la referencia o un objeto de arriba, como `items`: pedir
+  las dos sería una colisión de paths para MongoDB. Una exclusión que deja afuera una referencia que
+  se popula, o un objeto de arriba, no compila y lanza un `ZodError`. Si la proyección del destino deja afuera el `_id`, mongozod lo pide igual
   para ubicar cada documento y después lo quita.
 - **Chequeos**: no compila un `populate` con una key que no es una referencia, ni el de un campo
   que guarda otro tipo que el `_id` de su destino, porque el `$in` no encontraría nada. En runtime,
   una key que no es una referencia lanza un `ZodError`, con el issue en `['populate', key]`. Una
-  referencia que no es un campo de primer nivel del schema no compila y lanza un `Error` al definir
-  el modelo. Hasta la fase 5, un path como `items.product` también lo lanza: `populate` lee el
-  campo de primer nivel y dejaría los ids sin avisar.
+  referencia que no es un path del schema no compila y lanza un `Error` al definir el modelo.
 - **Dónde se chequea el destino**: al pedir el `populate`, no al declarar la referencia. Chequearlo
   al declararla hace circulares los tipos de dos modelos que se referencian, de un modelo que se
   referencia a sí mismo y de uno con dos referencias al mismo modelo (`TS7022`). Por eso el tipo de
