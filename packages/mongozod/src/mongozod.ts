@@ -36,6 +36,7 @@ import { toJsonSchema } from './model/json-schema'
 import { batchSource, ModelCursor } from './model/model-cursor'
 import { ModelFindCursor } from './model/model-find-cursor'
 import { parseDocument } from './model/parse-document'
+import { parseEach } from './model/parse-each'
 import { planRead } from './model/read-plan'
 import { stampDocument, stampPipeline, stampUpdate, timestampsOf } from './model/timestamps'
 import { checkPlugins, runCursor, runOperation } from './plugins/pipeline'
@@ -520,52 +521,50 @@ export function mongozod(
   ): Promise<AnyBulkWriteOperation[]> {
     const { stamps } = write
 
-    return Promise.all(
-      operations.map(async (operation): Promise<AnyBulkWriteOperation> => {
-        if ('insertOne' in operation) {
-          const document = stampDocument(operation.insertOne.document, stamps, now)
+    return parseEach(operations, async (operation): Promise<AnyBulkWriteOperation> => {
+      if ('insertOne' in operation) {
+        const document = stampDocument(operation.insertOne.document, stamps, now)
 
-          return { insertOne: { document: await parseDocument(options.schema, document) } }
-        }
+        return { insertOne: { document: await parseDocument(options.schema, document) } }
+      }
 
-        if ('replaceOne' in operation) {
-          const { filter, replacement, upsert } = operation.replaceOne
+      if ('replaceOne' in operation) {
+        const { filter, replacement, upsert } = operation.replaceOne
 
-          return {
-            replaceOne: {
-              ...operation.replaceOne,
-              replacement: await parseReplacement(filter, replacement, upsert, stamps, now)
-            }
+        return {
+          replaceOne: {
+            ...operation.replaceOne,
+            replacement: await parseReplacement(filter, replacement, upsert, stamps, now)
           }
         }
+      }
 
-        if ('updateOne' in operation) {
-          const { filter, update } = operation.updateOne
+      if ('updateOne' in operation) {
+        const { filter, update } = operation.updateOne
 
-          return {
-            updateOne: {
-              ...operation.updateOne,
-              update: await parseModelUpdate(filter, update, operation.updateOne, write, now)
-            }
+        return {
+          updateOne: {
+            ...operation.updateOne,
+            update: await parseModelUpdate(filter, update, operation.updateOne, write, now)
           }
         }
+      }
 
-        if ('updateMany' in operation) {
-          const { filter, update } = operation.updateMany
+      if ('updateMany' in operation) {
+        const { filter, update } = operation.updateMany
 
-          return {
-            updateMany: {
-              ...operation.updateMany,
-              update: await parseModelUpdate(filter, update, operation.updateMany, write, now)
-            }
+        return {
+          updateMany: {
+            ...operation.updateMany,
+            update: await parseModelUpdate(filter, update, operation.updateMany, write, now)
           }
         }
+      }
 
-        if ('deleteOne' in operation) return { deleteOne: operation.deleteOne }
+      if ('deleteOne' in operation) return { deleteOne: operation.deleteOne }
 
-        return { deleteMany: operation.deleteMany }
-      })
-    )
+      return { deleteMany: operation.deleteMany }
+    })
   }
 
   const model = {
@@ -640,10 +639,8 @@ export function mongozod(
         async (args) => {
           const { driverOptions, stamps } = writeOptions(args.options)
           const now = new Date()
-          const documents = await Promise.all(
-            args.documents.map((input: Document) =>
-              parseDocument(options.schema, stampDocument(input, stamps, now))
-            )
+          const documents = await parseEach(args.documents, (input: Document) =>
+            parseDocument(options.schema, stampDocument(input, stamps, now))
           )
           const result = await getCollection().insertMany(documents, driverOptions)
 

@@ -111,10 +111,16 @@ describe('insertMany', () => {
     expect(await NotesModel.find().sort({ title: 1 })).toEqual(documents)
   })
 
-  test('writes nothing when one document is invalid', async () => {
-    await expect(NotesModel.insertMany([{ title: 'One' }, { title: '' }])).rejects.toBeInstanceOf(
-      z.ZodError
-    )
+  test('writes nothing when one document is invalid, and names each by its index', async () => {
+    await expect(
+      NotesModel.insertMany([{ title: 'One' }, { title: '' }, { title: '' }])
+    ).rejects.toMatchObject({ issues: [{ path: [1, 'title'] }, { path: [2, 'title'] }] })
+    await expect(
+      NotesModel.bulkWrite([
+        { insertOne: { document: { title: 'One' } } },
+        { updateOne: { filter: {}, update: { $set: { title: '' } } } }
+      ])
+    ).rejects.toMatchObject({ issues: [{ path: [1, '$set', 'title'] }] })
     expect(await NotesModel.countDocuments()).toBe(0)
   })
 })
