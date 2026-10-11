@@ -4,7 +4,7 @@ import type { AnyModel, FilterOf, ReadOptionsArg } from 'mongozod'
 import { Decimal128, ObjectId } from 'bson'
 import { MongoClient } from 'mongodb'
 import { definePlugin, mongozod } from 'mongozod'
-import { objectId } from 'mongozod/codecs/bson'
+import { decimal128, objectId } from 'mongozod/codecs/bson'
 import { date } from 'mongozod/codecs/date'
 import * as mz from 'mongozod/mzod'
 import { softDelete } from 'mongozod/plugins/soft-delete'
@@ -303,6 +303,7 @@ export async function usage() {
 const brandSchema = z.object({
   _id: objectId().default(() => new ObjectId()),
   budget: z.instanceof(Decimal128).meta({ bsonType: 'decimal' }).optional(),
+  fee: decimal128().optional(),
   launchedAt: date().optional(),
   owner: objectId().optional()
 })

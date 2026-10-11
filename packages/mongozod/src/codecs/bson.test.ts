@@ -1,5 +1,5 @@
-import { ObjectId } from 'bson'
-import { MongoClient, ObjectId as DriverObjectId } from 'mongodb'
+import { Decimal128, ObjectId } from 'bson'
+import { Decimal128 as DriverDecimal128, MongoClient, ObjectId as DriverObjectId } from 'mongodb'
 import {
   afterAll,
   beforeAll,
@@ -17,7 +17,7 @@ import { mongozod } from '../mongozod'
 import { filter } from '../mzod/filter'
 import { update } from '../mzod/update'
 
-import { objectId } from './bson'
+import { decimal128, objectId } from './bson'
 
 const client = new MongoClient(inject('mongoUri'))
 const db = client.db('mongozod-codecs-bson')
@@ -105,5 +105,63 @@ describe('in a model', () => {
     expect(await BrandsModel.findOne(brandFilter.parse({ _id: { $in: [id] } }))).toMatchObject({
       owner: ObjectId.createFromHexString(hex)
     })
+  })
+})
+
+describe('decimal128()', () => {
+  const invoiceSchema = z.object({ _id: z.string(), total: decimal128() })
+
+  test('takes a Decimal128 or its string, and returns a Decimal128', () => {
+    const schema = decimal128()
+
+    expect(schema.parse('10.50').toString()).toBe('10.50')
+    expect(schema.parse('-1E+3').toString()).toBe('-1E+3')
+    expect(schema.parse(Decimal128.fromString('0.1')).toString()).toBe('0.1')
+    // The driver loads the CommonJS build of bson, and this test its ES module build.
+    expect(schema.parse(DriverDecimal128.fromString('2.5')).toString()).toBe('2.5')
+    expectTypeOf<z.input<typeof schema>>().toEqualTypeOf<string | Decimal128>()
+    expectTypeOf<z.output<typeof schema>>().toEqualTypeOf<Decimal128>()
+  })
+
+  test('rejects a number, which JSON rounds, and a string bson would round or not take', () => {
+    const tooPrecise = `0.${'1'.repeat(40)}`
+
+    for (const value of [
+      10.5,
+      'abc',
+      '1.2.3',
+      ' 10',
+      '',
+      tooPrecise,
+      null,
+      { _bsontype: 'Long' }
+    ]) {
+      expect(decimal128().safeParse(value).error?.issues).toMatchObject([
+        { message: 'Invalid Decimal128: expected a Decimal128 or its string, such as "10.50"' }
+      ])
+    }
+  })
+
+  test('encodes back to the string, and is a decimal in the $jsonSchema', () => {
+    expect(z.encode(invoiceSchema, { _id: 'i1', total: Decimal128.fromString('10.50') })).toEqual({
+      _id: 'i1',
+      total: '10.50'
+    })
+    expect(toJsonSchema(invoiceSchema).properties.total).toEqual({ bsonType: 'decimal' })
+  })
+
+  test('a model stores a Decimal128 from its string, and mzod compares with one', async () => {
+    const InvoicesModel = mongozod({ collection: 'invoices', db, schema: invoiceSchema })
+    const invoicesFilter = filter(invoiceSchema, { total: ['$gte'] })
+
+    await InvoicesModel.insertMany([
+      { _id: 'i1', total: '10.50' },
+      { _id: 'i2', total: Decimal128.fromString('99.99') }
+    ])
+
+    expect(await db.collection('invoices').countDocuments({ total: { $type: 'decimal' } })).toBe(2)
+    expect(await InvoicesModel.find(invoicesFilter.parse({ total: { $gte: '50' } }))).toMatchObject(
+      [{ _id: 'i2' }]
+    )
   })
 })
