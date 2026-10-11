@@ -1,7 +1,7 @@
-import type { FilterOf, UpdateOf } from './model'
+import type { FilterOf, ReadOf, UpdateOf } from './model'
 
 import { MongoClient } from 'mongodb'
-import { expect, test } from 'vitest'
+import { expect, expectTypeOf, test } from 'vitest'
 import { z } from 'zod'
 
 import { mongozod } from '../mongozod'
@@ -62,4 +62,23 @@ test('UpdateOf passes an update to a model with timestamps, references and plugi
     // @ts-expect-error updatedAt is set by timestamps
     void updateTasks({}, { $set: { updatedAt: new Date() } })
   }).toBeTypeOf('function')
+})
+
+test('ReadOf is the document a read returns, with its projection and its populate', () => {
+  const readPost = () =>
+    PostsModel.findOne(
+      {},
+      { populate: { author: { projection: { name: 1 } } }, projection: { author: 1, title: 1 } }
+    )
+  const readTask = () => TasksModel.findOne({})
+
+  expectTypeOf<
+    ReadOf<
+      typeof PostsModel,
+      { populate: { author: { projection: { name: 1 } } }; projection: { author: 1; title: 1 } }
+    >
+  >().toEqualTypeOf<NonNullable<Awaited<ReturnType<typeof readPost>>>>()
+  expectTypeOf<ReadOf<typeof TasksModel>>().toEqualTypeOf<
+    NonNullable<Awaited<ReturnType<typeof readTask>>>
+  >()
 })

@@ -239,6 +239,25 @@ type TimestampsOf<M> = M extends {
 /** The documents of a model, as stored. */
 export type DocOf<M> = WithId<Output<SchemaOf<M>>>
 
+type VirtualsOf<M> = M extends { readonly virtuals: infer V } ? V : None
+
+type ReferencesOf<M> = M extends { readonly references: infer R } ? R : None
+
+/**
+ * A document as a read of a model returns it, given the `projection` and the `populate` of its
+ * options, for a function that takes or returns one, such as a service or an API response.
+ *
+ * @example
+ *   type Order = ReadOf<typeof OrdersModel, { populate: { customer: true } }>
+ */
+export type ReadOf<M, O = unknown> = ReadDocument<
+  SchemaOf<M>,
+  VirtualsOf<M>,
+  ReferencesOf<M>,
+  ProjectionOf<O>,
+  PopulateOf<O>
+>
+
 /**
  * A filter on the documents of a model, for a function that takes one and passes it to the model,
  * such as a plugin's method or a service. Each key is checked like the model's.

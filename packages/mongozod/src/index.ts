@@ -5,6 +5,7 @@ export type {
   Model,
   ModelSchema,
   Output,
+  ReadOf,
   ReadOptionsArg,
   SortOf,
   SyncResult,
