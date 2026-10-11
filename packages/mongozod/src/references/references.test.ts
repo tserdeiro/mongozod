@@ -72,7 +72,7 @@ interface Account {
   firstName: string
   fullName: string
   lastName: string
-  lastTransaction?: string
+  lastTransaction?: string | undefined
 }
 
 beforeEach(async () => {
@@ -328,7 +328,7 @@ describe('populate', () => {
     expectTypeOf(account).toEqualTypeOf<{
       _id: string
       fullName: string
-      lastTransaction?: { _id: string; amount: number } | null
+      lastTransaction?: { _id: string; amount: number } | null | undefined
     } | null>()
   })
 })
@@ -459,7 +459,7 @@ describe('a populate that arrives at runtime', () => {
           firstName?: string
           fullName?: string
           lastName?: string
-          lastTransaction?: string
+          lastTransaction?: string | undefined
         }
       | null
     >()

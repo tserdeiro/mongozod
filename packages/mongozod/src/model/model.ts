@@ -81,7 +81,7 @@ export type Output<S extends ModelSchema> = Extract<core.output<S>, Document>
 export type Input<S extends ModelSchema> = core.input<S>
 
 /** Driver options whose `sort` is checked against the schema, with the keys the editor suggests. */
-type Sorted<S, O, Sort> = Omit<O, 'sort'> & { sort?: Sort & SuggestedSort<S> }
+type Sorted<S, O, Sort> = Omit<O, 'sort'> & { sort?: (Sort & SuggestedSort<S>) | undefined }
 
 /**
  * Driver options whose `sort` and `projection` are checked against the schema, plus `populate` on
@@ -89,8 +89,8 @@ type Sorted<S, O, Sort> = Omit<O, 'sort'> & { sort?: Sort & SuggestedSort<S> }
  */
 type ReadOptions<S, O, Sort, P, V, R, Pop> = Omit<O, 'projection' | 'sort'> &
   PopulateOption<R, Pop> & {
-    projection?: P & SuggestedProjection<S, V>
-    sort?: Sort & SuggestedSort<S>
+    projection?: (P & SuggestedProjection<S, V>) | undefined
+    sort?: (Sort & SuggestedSort<S>) | undefined
   }
 
 /**

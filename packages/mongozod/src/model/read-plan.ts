@@ -17,7 +17,7 @@ import { isPlainObject } from '../utils/is-plain-object'
 /** What a read asks the server for, and what it does with each batch the server returns. */
 export interface ReadPlan {
   /** The projection for the server: the one asked for, plus what virtuals and `populate` need. */
-  projection?: Document
+  projection?: Document | undefined
 
   /** Computes the virtuals of a batch and populates its references, in place. */
   process?: (documents: Document[]) => Promise<Document[]>

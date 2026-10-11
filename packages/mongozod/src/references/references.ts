@@ -245,7 +245,7 @@ export type SuggestedPopulate<R> = {
 /** The `populate` option, on the models that have references. */
 export type PopulateOption<R, Pop> = [keyof R] extends [never]
   ? unknown
-  : { populate?: Pop & SuggestedPopulate<R> }
+  : { populate?: (Pop & SuggestedPopulate<R>) | undefined }
 
 /** Whether a path of the projection is the reference or an object above it. */
 type IncludedBy<P, K> = {
@@ -689,8 +689,9 @@ export async function populateDocuments(
       // is asked for and removed afterwards.
       const { _id: idProjection, ...rest } = projection ?? {}
       const withoutId = idProjection === 0 || idProjection === false
-      const findOptions: FindOptions = { projection: withoutId ? rest : projection }
+      const findOptions: FindOptions = {}
 
+      if (projection) findOptions.projection = withoutId ? rest : projection
       if (session) findOptions.session = session
       if (sort) findOptions.sort = sort
 

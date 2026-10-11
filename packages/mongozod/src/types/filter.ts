@@ -1,4 +1,5 @@
 import type { Def, FieldAt, NotAPath, Wrapper } from '../schema/schema-at'
+import type { UndefinedIfOptional } from '../utils/type-helpers'
 import type { Leaf, Loose } from './loose'
 import type { PathSuggestions } from './path-suggestions'
 import type { Binary, BSONRegExp, BSONType, BSONTypeAlias, Document } from 'mongodb'
@@ -178,13 +179,15 @@ type FiltersCheck<S, A> =
  * fit the field, with every query operator of MongoDB.
  */
 export type FilterCheck<S, F> = {
-  [K in keyof F]: K extends '$and' | '$nor' | '$or'
-    ? FiltersCheck<S, F[K]>
-    : K extends keyof RootOperators<S>
-      ? RootOperators<S>[K]
-      : K extends string
-        ? KeyCheck<S, K, F[K]>
-        : never
+  [K in keyof F]:
+    | (K extends '$and' | '$nor' | '$or'
+        ? FiltersCheck<S, F[K]>
+        : K extends keyof RootOperators<S>
+          ? RootOperators<S>[K]
+          : K extends string
+            ? KeyCheck<S, K, F[K]>
+            : never)
+    | UndefinedIfOptional<F, K>
 }
 
 /** The keys the editor suggests in a filter. The checks come from `FilterCheck`. */

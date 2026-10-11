@@ -171,7 +171,7 @@ describe('inclusion', () => {
       _id: string
       connections: Array<{
         // oxlint-disable-next-line typescript/no-empty-object-type -- MongoDB returns {} for the Wortise Ads details
-        accounts: Array<{ details: { loginCustomerId?: string } | {} }>
+        accounts: Array<{ details: { loginCustomerId?: string | undefined } | {} }>
       }>
     } | null>()
   })

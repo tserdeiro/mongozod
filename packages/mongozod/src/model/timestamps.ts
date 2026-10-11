@@ -113,8 +113,8 @@ export type TimestampedInput<S, N extends TimestampNames, T> = [T] extends [fals
 
 /** The fields of a `timestamps` option at runtime, `undefined` for one that is off. */
 export interface Timestamps {
-  createdAt?: string
-  updatedAt?: string
+  createdAt?: string | undefined
+  updatedAt?: string | undefined
 }
 
 function nameOf(option: TimestampsOption | undefined, role: 'createdAt' | 'updatedAt') {

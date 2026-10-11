@@ -7,3 +7,11 @@ export type UnionToIntersection<U> = (U extends unknown ? (value: U) => void : n
 ) => void
   ? I
   : never
+
+/**
+ * `undefined` when `K` is optional in `T`. A check that maps the keys of a value keeps them
+ * optional, and with `exactOptionalPropertyTypes` an optional key takes `undefined` only when its
+ * type says so, as the outputs of Zod do.
+ */
+export type UndefinedIfOptional<T, K extends keyof T> =
+  Partial<Pick<T, K>> extends Pick<T, K> ? undefined : never
