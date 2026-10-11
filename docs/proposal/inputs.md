@@ -15,7 +15,7 @@ directamente la sintaxis de Mongo.
     `content` con `''`.
   - **`mz.sort`**: los campos declarados, con `1` o `-1`, en el orden en que los manda el cliente.
   - **`mz.projection`**: los campos declarados, sin mezclar inclusión y exclusión.
-  - **`mz.cursor`**: la paginación por clave.
+  - **`mz.after`**: la página después de un documento, la paginación por clave.
   - **`mz.populate`**: las referencias que el cliente puede expandir y los campos que puede ver.
 - **Errores de tipos al declarar**: un `$regex` sobre una fecha, un `$unset` de un campo
   obligatorio, un `$inc` sobre un string o un campo que no existe no compilan.
@@ -58,7 +58,7 @@ const organizationPopulate = mz
   .optional()
 
 export const listBrandsSchema = z.object({
-  cursor: mz.cursor(brandSchema, { createdAt: -1, _id: -1 }).default({}),
+  after: mz.after(brandSchema, { createdAt: -1, _id: -1 }).default({}),
   filter: mz
     .filter(brandSchema, {
       _id: ['$eq', '$in'],
@@ -81,7 +81,7 @@ export const findOneBrandSchema = z.object({
 // router.ts: every input is already a filter, so there is nothing to fall back on.
 
 export async function list(input: z.output<typeof listBrandsSchema>) {
-  const filter = { $and: [input.filter, input.cursor, input.term, scope] }
+  const filter = { $and: [input.filter, input.after, input.term, scope] }
   const list = await BrandsModel.find(filter, {
     limit: input.limit,
     populate: input.populate,
@@ -94,7 +94,7 @@ export async function list(input: z.output<typeof listBrandsSchema>) {
 
 El cliente manda, por ejemplo,
 `{ filter: { name: { $exists: true } }, populate: { organization: { name: 1 } } }`, y el router
-recibe `populate: { organization: { projection: { name: 1 } } }`. Como `cursor`,
+recibe `populate: { organization: { projection: { name: 1 } } }`. Como `after`,
 manda `{ createdAt, _id }` del último elemento de la página.
 
 ## Decisiones de los inputs
@@ -102,7 +102,7 @@ manda `{ createdAt, _id }` del último elemento de la página.
 1. **`mz`.** `mongozod/mzod` es el Zod de MongoDB: todo lo que Zod no trae para MongoDB, en un
    namespace, que se importa como el `import * as z` de Zod: `import * as mz from 'mongozod/mzod'`.
    - **Dos grupos**: los constructores de inputs, `mz.filter`, `mz.update`, `mz.sort`,
-     `mz.projection`, `mz.cursor` y `mz.populate`, que reciben un schema; y los tipos de campo,
+     `mz.projection`, `mz.after` y `mz.populate`, que reciben un schema; y los tipos de campo,
      `mz.objectId()`, `mz.decimal128()`, `mz.binary()`, `mz.date()` y los de GeoJSON, que van en el
      schema del documento. Los nombres los separan: los primeros son los de las opciones del driver
      (`find(filter)`, `updateOne(filter, update)`, `sort`, `projection`), y los segundos, tipos BSON.
@@ -111,8 +111,10 @@ manda `{ createdAt, _id }` del último elemento de la página.
    - **Un lugar**: primero los tipos de campo vivían en `mongozod/codecs/*` y `mongozod/geojson`,
      un corte por implementación, «convierte o no convierte», que un usuario no tiene por qué
      conocer.
-   - **`cursor`**: en el driver, un cursor es el iterador de resultados. Se mantiene porque tRPC
-     espera una key `cursor` en el input de `useInfiniteQuery`, que es donde se usa.
+   - **`after`**: primero se llamó `mz.cursor`, pero en el driver un cursor es el iterador de
+     resultados, y el nombre venía de la key que espera el `useInfiniteQuery` de tRPC, no de
+     MongoDB. `after` sigue al `searchAfter` de Atlas Search y a las consultas por rango del manual:
+     la página después de un documento. La key del input la elige cada proyecto, también `cursor`.
    - **Junto a `z`**: no reexporta Zod, así que cada archivo conserva su `z` y suma un import, sin
      chocar. Cada constructor devuelve un schema de Zod que se anida en `z.object` como cualquier
      otro.
@@ -133,7 +135,7 @@ manda `{ createdAt, _id }` del último elemento de la página.
      native.
 2. **Sin fallbacks en el router, con la API de Zod.** Los constructores no tienen props propias
    para lo que pasa cuando el cliente no manda algo: lo decide el proyecto con Zod. Una lista usa
-   `.default({})` en `mz.filter` y `mz.cursor`, así el router solo junta filtros con `$and`, sin
+   `.default({})` en `mz.filter` y `mz.after`, así el router solo junta filtros con `$and`, sin
    `?? {}` ni `|| {}`, y el proyecto convierte el `term` en filtro dentro del schema. Un filtro por
    id usa `.required({ _id: true })`, y un findOne que pide al menos uno de varios campos, como los
    de adsgpt y wortise, usa `.refine()`. `sort`, `projection` y `populate` toman `.optional()` o un
@@ -227,21 +229,26 @@ manda `{ createdAt, _id }` del último elemento de la página.
      `z.partialRecord`. Las tablas de los tres proyectos mandan una sola columna, a veces con punto.
    - **Valores**: `mz.sort` toma `1` o `-1`. `mz.projection` toma `1` o `true` para incluir y `0` o
      `false` para excluir, como MongoDB, sin mezclar salvo `_id`.
-10. **`mz.cursor` pide `_id` al final y campos obligatorios.** MongoDB ordena un valor que falta o
+10. **`mz.after` pide `_id` al final y campos obligatorios.** MongoDB ordena un valor que falta o
     es `null` antes que cualquier otro, y un `$lt` sobre una fecha no lo alcanza, así que esos
     documentos se perderían. Sin un campo único al final, las páginas repiten o saltean empates.
     - **Chequeos**: un campo opcional o nullable, o dentro de un array, no compila y lanza un
       `Error` al declararlo. Los tipos piden `_id`, pero no ven el orden de las keys de un objeto:
       que `_id` sea el último lo chequea el runtime.
     - **Formato**: el cliente manda los valores de orden del último documento,
-      `{ createdAt, _id }`, y el router recibe el `$or` de la página siguiente. Con tRPC es el
-      `cursor` del input: la primera página no lo manda.
+      `{ createdAt, _id }`, y el router recibe el `$or` de la página siguiente. La primera página no
+      lo manda. Con tRPC, el input lo puede llamar `cursor`, la key que espera `useInfiniteQuery`.
+    - **`skip` también es de MongoDB**: el manual explica las dos formas en `cursor.skip()`. `skip` y
+      `limit` sirven para tablas con páginas numeradas, donde se salta a la página 7, y son
+      opciones del driver que el modelo pasa tal cual; un cliente manda un número, que no necesita
+      un constructor. Las consultas por rango usan el índice y no se corren cuando se inserta un
+      documento mientras se pagina, pero no saltan páginas.
     - **Hoy**: ningún proyecto pagina por clave. El scroll infinito manda el número de página, y
       `skip` y `limit` siguen para las tablas con páginas numeradas.
 11. **Declaraciones inválidas**: no compilan y lanzan un `Error` al declarar, con el nombre del
     constructor: un path que no existe, un operador desconocido, uno de arrays en un campo que no
     lo es, un `$elemMatch` sin nada que tomar, un `$unset` de un campo obligatorio, un `$inc` sobre
-    algo que no es número, y un path que pasa por un array en `mz.update` o `mz.cursor`. Un `$regex`
+    algo que no es número, y un path que pasa por un array en `mz.update` o `mz.after`. Un `$regex`
     sobre algo que no es string y un rango sobre un booleano solo no compilan: en runtime, el valor
     se valida igual con el schema del campo.
 12. **Schemas**: los constructores aceptan schemas de Zod y de Zod Mini, y uniones discriminadas
@@ -330,7 +337,7 @@ manda `{ createdAt, _id }` del último elemento de la página.
   cada constructor. El cliente manda `{ $in: [...] }` y `{ $exists: true }`, la sintaxis de Mongo.
 - El `sort` y la `projection` con `z.any()` de `paginationSchema` pasan a ser `mz.sort` y
   `mz.projection`, lo que cierra el hueco de wortise/adsgpt#231.
-- La página con `skip` del scroll infinito pasa a ser `mz.cursor`.
+- La página con `skip` del scroll infinito pasa a ser `mz.after`.
 - `populateSchema` y `WithPopulate` pasan a ser `mz.populate` y los tipos calculados.
 - `parser.search` no se reemplaza: cada proyecto convierte su `term` en filtro, por ejemplo con
   `$text`, que necesita un índice de texto.

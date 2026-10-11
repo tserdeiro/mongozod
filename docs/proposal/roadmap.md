@@ -74,7 +74,9 @@ El orden de implementación. Al cerrar una fase, se marca acá en el mismo cambi
 7. **Después**: [`audit`](./plugins/audit.md), [`logger`](./plugins/logger.md) y
    [`history`](./plugins/history.md); `mz.from(schema)`, que ata los constructores de inputs a un
    schema para no repetirlo, `mz.from(brandSchema).filter({…})`, como la forma cómoda junto a los
-   sueltos, que siguen siendo tree-shakeables (su objeto carga los seis); un plugin de versión, el control de concurrencia optimista
+   sueltos, que siguen siendo tree-shakeables (su objeto carga los seis); `mz.before`, la página anterior, como el
+   `searchBefore` de Atlas Search, con el diseño de cómo el router invierte el `sort` y los
+   resultados; un plugin de versión, el control de concurrencia optimista
    que Mongoose hace con `__v` y `optimisticConcurrency`: un campo que el filtro chequea y un `$inc`
    aumenta en cada escritura, con el nombre configurable, así sirve `__v` en los documentos que
    vienen de Mongoose (el nombre por defecto se decide al diseñarlo, quizás `_v`); la documentación para usuarios; el sitio, con un playground

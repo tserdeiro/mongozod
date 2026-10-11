@@ -90,13 +90,14 @@ El cursor del driver no sirve para paginar entre requests. Vive en el servidor d
 cierra cuando la sesión pasa más de 30 minutos inactiva, y con varias instancias del server el
 request siguiente puede llegar a otra.
 
-Para el scroll infinito, la paginación es por clave. El endpoint declara un `cursor` que recibe los
-valores de orden del último elemento de la página, como `{ createdAt, _id }`, y lo convierte en el
-filtro de rango de la página siguiente. MongoDB lo recomienda: `skip()` se vuelve más lento a medida
+Para el scroll infinito, la paginación es por clave, con las consultas por rango que el manual de
+MongoDB explica en `cursor.skip()`. El endpoint declara un `after` que recibe los valores de orden
+del último elemento de la página, como `{ createdAt, _id }`, y lo convierte en el filtro de rango de
+la página siguiente. MongoDB lo recomienda: `skip()` se vuelve más lento a medida
 que crece el offset, y las consultas por rango usan índices. El orden tiene que terminar en un campo
 único, como `_id`, para desempatar. `skip` y `limit` siguen disponibles para tablas con páginas
 numeradas.
 
-[`mz.cursor`](./inputs.md#decisiones-de-los-inputs) arma ese filtro y exige `_id` al final y campos
+[`mz.after`](./inputs.md#decisiones-de-los-inputs) arma ese filtro y exige `_id` al final y campos
 obligatorios: MongoDB ordena un valor que falta o es `null` antes que cualquier otro, y un rango
 sobre la página siguiente no lo alcanza.
