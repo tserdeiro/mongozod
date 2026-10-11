@@ -1,7 +1,7 @@
 // Compiles against the published declarations, as a project that installs mongozod would.
 import type { AnyModel, FilterOf, ReadOptionsArg } from 'mongozod'
 
-import { ObjectId } from 'bson'
+import { Decimal128, ObjectId } from 'bson'
 import { MongoClient } from 'mongodb'
 import { definePlugin, mongozod } from 'mongozod'
 import { objectId } from 'mongozod/codecs/bson'
@@ -302,6 +302,7 @@ export async function usage() {
 
 const brandSchema = z.object({
   _id: objectId().default(() => new ObjectId()),
+  budget: z.instanceof(Decimal128).meta({ bsonType: 'decimal' }).optional(),
   launchedAt: date().optional(),
   owner: objectId().optional()
 })
@@ -323,3 +324,6 @@ export async function brands() {
 
   return { found: await BrandsModel.findOne({ _id: document._id }), launchedAt, owner, byId }
 }
+
+// @ts-expect-error decimel is not a BSON type
+z.unknown().meta({ bsonType: 'decimel' })

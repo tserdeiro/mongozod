@@ -1,22 +1,21 @@
 import { ObjectId } from 'bson'
 import { z } from 'zod'
 
-import { bsonTypes } from '../schema/bson-types'
-
 /**
  * An `ObjectId`, recognized by its `_bsontype` as the driver's serializer does. `instanceof` would
  * fail between copies of bson, and between its CommonJS build, which the driver loads, and its ES
- * module build, which an app that imports `bson` gets.
+ * module build, which an app that imports `bson` gets. Its metadata gives the `$jsonSchema` its
+ * BSON type.
  */
-const objectIdInstance = z.custom<ObjectId>(
-  (value) =>
-    typeof value === 'object' &&
-    value !== null &&
-    '_bsontype' in value &&
-    value._bsontype === 'ObjectId'
-)
-
-bsonTypes.add(objectIdInstance, { bsonType: 'objectId' })
+const objectIdInstance = z
+  .custom<ObjectId>(
+    (value) =>
+      typeof value === 'object' &&
+      value !== null &&
+      '_bsontype' in value &&
+      value._bsontype === 'ObjectId'
+  )
+  .meta({ bsonType: 'objectId' })
 
 /** The 24-character hex string of an `ObjectId`, as a JSON client sends it, decoded to one. */
 const hexToObjectId = z.codec(z.hex().length(24), objectIdInstance, {

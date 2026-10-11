@@ -1,4 +1,4 @@
-import { MongoClient, MongoServerError } from 'mongodb'
+import { Decimal128, MongoClient, MongoServerError } from 'mongodb'
 import {
   afterAll,
   beforeAll,
@@ -145,6 +145,25 @@ describe('jsonSchema', () => {
     ).rejects.toMatchObject({ code: 121 })
     await expect(
       db.collection('notes').insertOne({ organization: 1, slug: 'b' })
+    ).rejects.toMatchObject({ code: 121 })
+  })
+
+  test('checks the bsonType that a field declares in its metadata', async () => {
+    const AccountsModel = mongozod({
+      collection: 'accounts',
+      db,
+      jsonSchema: true,
+      schema: z.object({
+        balance: z.instanceof(Decimal128).meta({ bsonType: 'decimal' }),
+        name: z.string()
+      })
+    })
+
+    await AccountsModel.sync()
+    await AccountsModel.insertOne({ balance: Decimal128.fromString('10.50'), name: 'Ana' })
+
+    await expect(
+      db.collection('accounts').insertOne({ balance: 10.5, name: 'Luis' })
     ).rejects.toMatchObject({ code: 121 })
   })
 

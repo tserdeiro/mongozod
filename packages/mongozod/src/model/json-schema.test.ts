@@ -1,3 +1,4 @@
+import { Decimal128 } from 'mongodb'
 import { describe, expect, test } from 'vitest'
 import { z } from 'zod'
 import * as zm from 'zod/mini'
@@ -144,6 +145,31 @@ describe('toJsonSchema', () => {
       additionalProperties: { bsonType: 'number' }
     })
     expect(toJsonSchema(z.object({ name: z.string() }))).not.toHaveProperty('additionalProperties')
+  })
+
+  test('takes the bsonType that the metadata declares, over the one inferred', () => {
+    const decimal = z.custom<Decimal128>((value) => value instanceof Decimal128)
+    const schema = z.object({
+      after: decimal.nullable().meta({ bsonType: 'decimal' }),
+      balance: decimal.meta({ bsonType: 'decimal' }),
+      before: decimal.meta({ bsonType: 'decimal' }).nullable(),
+      count: z.number().meta({ bsonType: 'int' }).min(0),
+      mini: zm.custom<Decimal128>().check(zm.meta({ bsonType: 'decimal' })),
+      price: z.union([decimal.meta({ bsonType: 'decimal' }), z.number()]).optional(),
+      undeclared: decimal
+    })
+
+    expect(toJsonSchema(schema).properties).toEqual({
+      after: { anyOf: [{ bsonType: 'decimal' }, { bsonType: 'null' }] },
+      balance: { bsonType: 'decimal' },
+      before: { anyOf: [{ bsonType: 'decimal' }, { bsonType: 'null' }] },
+      count: { bsonType: 'int' },
+      mini: { bsonType: 'decimal' },
+      price: { anyOf: [{ bsonType: 'decimal' }, { bsonType: 'number' }] },
+      undeclared: {}
+    })
+    // @ts-expect-error decimel is not a BSON type
+    decimal.meta({ bsonType: 'decimel' })
   })
 
   test('takes Zod Mini schemas', () => {

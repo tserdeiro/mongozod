@@ -1,8 +1,18 @@
-import type { Document } from 'mongodb'
+import type { BSONTypeAlias, Document } from 'mongodb'
 
 import * as core from 'zod/v4/core'
 
-import { bsonTypes } from '../schema/bson-types'
+declare module 'zod/v4/core' {
+  interface GlobalMeta {
+    /**
+     * The BSON type of the field in the `$jsonSchema` of mongozod's `sync()`, for one that Zod does
+     * not describe, such as `z.instanceof(Decimal128).meta({ bsonType: 'decimal' })`. It replaces
+     * the one mongozod infers. `number` takes any numeric type, and a field of several types is a
+     * `z.union` of them. One alias and no array: every Zod schema's `.meta()` type includes it.
+     */
+    bsonType?: BSONTypeAlias | 'number'
+  }
+}
 
 /**
  * The `jsonSchema` option of `mongozod()`: `true` for MongoDB's defaults, `strict` and `error`, or
@@ -32,7 +42,24 @@ function anyOf(schemas: Document[]): Document {
   return unique.length === 1 ? (unique[0] ?? ANY) : { anyOf: unique }
 }
 
+/**
+ * The `$jsonSchema` of a schema, with the `bsonType` its metadata declares, from `.meta()` or
+ * `z.meta()`, Zod's API, over the one inferred. On a `.nullable()` it is the type of the value, and
+ * `null` still passes, so `.meta()` goes before or after `.nullable()` alike.
+ */
 function walk(schema: core.$ZodType, seen: ReadonlySet<core.$ZodType>): Document {
+  const bsonType = core.globalRegistry.get(schema)?.bsonType
+
+  if (bsonType === undefined) return describe(schema, seen)
+
+  if (schema instanceof core.$ZodNullable) {
+    return anyOf([{ ...walk(schema._zod.def.innerType, seen), bsonType }, { bsonType: 'null' }])
+  }
+
+  return { ...describe(schema, seen), bsonType }
+}
+
+function describe(schema: core.$ZodType, seen: ReadonlySet<core.$ZodType>): Document {
   if (
     schema instanceof core.$ZodCatch ||
     schema instanceof core.$ZodDefault ||
@@ -43,10 +70,6 @@ function walk(schema: core.$ZodType, seen: ReadonlySet<core.$ZodType>): Document
   ) {
     return walk(schema._zod.def.innerType, seen)
   }
-
-  const known = bsonTypes.get(schema)
-
-  if (known) return { bsonType: known.bsonType }
 
   // A recursive schema leads back to itself, and `$jsonSchema` has no `$ref`.
   if (schema instanceof core.$ZodLazy) {
@@ -139,9 +162,9 @@ function walk(schema: core.$ZodType, seen: ReadonlySet<core.$ZodType>): Document
 /**
  * The `$jsonSchema` of a model's schema, for the documents as stored: the BSON type of each field,
  * the required ones, nested objects and arrays, enums and literals, `null` and unions. Refinements
- * stay in the app, and transforms, customs and recursive schemas have no rules, except the
- * `objectId()` of `mongozod/codecs/bson`. Without an `_id` in the schema, the driver's `ObjectId`
- * passes.
+ * stay in the app, and transforms, customs and recursive schemas have no rules, unless their
+ * metadata declares a `bsonType`, as the `objectId()` of `mongozod/codecs/bson` does. Without an
+ * `_id` in the schema, the driver's `ObjectId` passes.
  */
 export function toJsonSchema(schema: core.$ZodType): Document {
   const jsonSchema = walk(schema, new Set())
