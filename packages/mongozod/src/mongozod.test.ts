@@ -552,5 +552,13 @@ describe('schemas', () => {
     expect(() =>
       mongozod({ collection: 'events', db, schema: z.object({ payload: z.json() }) })
     ).not.toThrow()
+    // The paths the editor suggests end in a recursive union such as `z.json()`.
+    expectTypeOf(() =>
+      mongozod({
+        collection: 'events',
+        db,
+        schema: z.object({ name: z.string(), payload: z.json() })
+      }).find({ name: 'signup' })
+    ).toBeFunction()
   })
 })
