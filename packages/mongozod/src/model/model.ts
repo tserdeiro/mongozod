@@ -219,7 +219,12 @@ export type BulkWriteCheck<
 type SchemaOf<M> = M extends { readonly schema: infer S extends ModelSchema } ? S : never
 
 /** The timestamps of a model, which an update cannot write. */
-type TimestampsOf<M> = M extends Model<ModelSchema, infer N> ? N : NoTimestamps
+// Read from a property: inferring the whole model fails on the ones that have plugins.
+type TimestampsOf<M> = M extends {
+  readonly '~timestamps'?: infer N extends TimestampNames | undefined
+}
+  ? Exclude<N, undefined>
+  : NoTimestamps
 
 /** The documents of a model, as stored. */
 export type DocOf<M> = WithId<Output<SchemaOf<M>>>
@@ -281,39 +286,45 @@ export interface Model<
   PL extends readonly AnyPlugin[] = []
 > {
   /** The schema of each document. */
-  readonly schema: S
+  readonly 'schema': S
+
+  /**
+   * The fields that `timestamps` sets, for the types of the helpers such as `UpdateOf`: it only
+   * exists in the types, so it is optional.
+   */
+  readonly '~timestamps'?: N
 
   /** The virtuals of the model, which reads compute and do not store. */
-  readonly virtuals: V
+  readonly 'virtuals': V
 
   /** The references of the model, which `populate` replaces with the documents. */
-  readonly references: R
+  readonly 'references': R
 
   /** The name of the collection. */
-  readonly name: string
+  readonly 'name': string
 
   /** The driver's database, resolved on first use. */
-  readonly db: Db
+  readonly 'db': Db
 
   /** The driver's collection, for what the model does not wrap, such as `watch`. */
-  readonly collection: Collection<Output<S>>
+  readonly 'collection': Collection<Output<S>>
 
   /**
    * Runs an aggregation pipeline. With `schema`, each document is validated with it and typed by
    * it; without it, documents are returned as the driver returns them. The `$match` stages before
    * the first stage that reshapes the documents are checked like a filter.
    */
-  aggregate<const P extends PipelineCheck<S, P>, R extends core.$ZodType>(
+  'aggregate'<const P extends PipelineCheck<S, P>, R extends core.$ZodType>(
     pipeline: P,
     options: AggregateOptions & Abortable & { schema: R }
   ): ModelCursor<core.output<R>>
-  aggregate<const P extends PipelineCheck<S, P> = []>(
+  'aggregate'<const P extends PipelineCheck<S, P> = []>(
     pipeline?: P,
     options?: AggregateOptions & Abortable
   ): ModelCursor<Document>
 
   /** Runs several writes in one command. Inserts and replacements are validated like `insertOne`. */
-  bulkWrite<
+  'bulkWrite'<
     const Operations extends ReadonlyArray<Document> &
       BulkWriteCheck<S, Operations, N, BulkOptions>,
     const BulkOptions extends BulkWriteOptions &
@@ -324,32 +335,32 @@ export interface Model<
   ): Promise<BulkWriteResult>
 
   /** Counts the documents that match the filter. */
-  countDocuments<const F extends FilterCheck<S, F>>(
+  'countDocuments'<const F extends FilterCheck<S, F>>(
     filter?: F & SuggestedFilter<S>,
     ...options: OptionsArg<PL, 'read', CountDocumentsOptions & Abortable>
   ): Promise<number>
 
   /** Deletes every document that matches the filter. */
-  deleteMany<const F extends FilterCheck<S, F>>(
+  'deleteMany'<const F extends FilterCheck<S, F>>(
     filter?: F & SuggestedFilter<S>,
     ...options: OptionsArg<PL, 'delete', DeleteOptions>
   ): Promise<DeleteResult>
 
   /** Deletes the first document that matches the filter. */
-  deleteOne<const F extends FilterCheck<S, F>>(
+  'deleteOne'<const F extends FilterCheck<S, F>>(
     filter?: F & SuggestedFilter<S>,
     ...options: OptionsArg<PL, 'delete', DeleteOptions>
   ): Promise<DeleteResult>
 
   /** The distinct values of a path among the documents that match the filter. */
-  distinct<const K extends string, const F extends FilterCheck<S, F>>(
+  'distinct'<const K extends string, const F extends FilterCheck<S, F>>(
     key: K & DistinctKey<S, K>,
     filter?: F & SuggestedFilter<S>,
     ...options: OptionsArg<PL, 'read', DistinctOptions>
   ): Promise<Array<Exclude<Flatten<core.output<FieldAt<S, K, 'filter'>>>, undefined>>>
 
   /** Estimates the number of documents from the collection's metadata. */
-  estimatedDocumentCount(options?: EstimatedDocumentCountOptions): Promise<number>
+  'estimatedDocumentCount'(options?: EstimatedDocumentCountOptions): Promise<number>
 
   /**
    * Finds the documents that match the filter. The cursor can be awaited for the array, iterated
@@ -360,7 +371,7 @@ export interface Model<
    * @example
    *   await TransactionsModel.find({}, { populate: { createdBy: { fullName: 1 } } })
    */
-  find<
+  'find'<
     const F extends FilterCheck<S, F>,
     const Sort extends SortCheck<S, Sort>,
     const P extends ProjectionCheck<S, P, V>,
@@ -371,7 +382,7 @@ export interface Model<
   ): ModelFindCursor<ReadDocument<S, V, R, P, Pop>, S, V, R, Pop>
 
   /** Finds the first document that matches the filter. */
-  findOne<
+  'findOne'<
     const F extends FilterCheck<S, F>,
     const Sort extends SortCheck<S, Sort>,
     const P extends ProjectionCheck<S, P, V>,
@@ -386,7 +397,7 @@ export interface Model<
   ): Promise<ReadDocument<S, V, R, P, Pop> | null>
 
   /** Deletes the first document that matches the filter and returns it. */
-  findOneAndDelete<
+  'findOneAndDelete'<
     const F extends FilterCheck<S, F>,
     const Sort extends SortCheck<S, Sort>,
     const P extends ProjectionCheck<S, P, V>,
@@ -400,7 +411,7 @@ export interface Model<
       true
     >
   ): Promise<ModifyResultOf<S, V, R, P, Pop>>
-  findOneAndDelete<
+  'findOneAndDelete'<
     const F extends FilterCheck<S, F>,
     const Sort extends SortCheck<S, Sort>,
     const P extends ProjectionCheck<S, P, V>,
@@ -415,7 +426,7 @@ export interface Model<
   ): Promise<ReadDocument<S, V, R, P, Pop> | null>
 
   /** Replaces the first document that matches the filter, validated like `replaceOne`. */
-  findOneAndReplace<
+  'findOneAndReplace'<
     const F extends FilterCheck<S, F>,
     const Sort extends SortCheck<S, Sort>,
     const P extends ProjectionCheck<S, P, V>,
@@ -432,7 +443,7 @@ export interface Model<
       true
     >
   ): Promise<ModifyResultOf<S, V, R, P, Pop>>
-  findOneAndReplace<
+  'findOneAndReplace'<
     const F extends FilterCheck<S, F>,
     const Sort extends SortCheck<S, Sort>,
     const P extends ProjectionCheck<S, P, V>,
@@ -449,7 +460,7 @@ export interface Model<
   ): Promise<ReadDocument<S, V, R, P, Pop> | null>
 
   /** Updates the first document that matches the filter and returns it. */
-  findOneAndUpdate<
+  'findOneAndUpdate'<
     const F extends FilterCheck<S, F>,
     const U extends UpdateCheck<S, U, F, O, N>,
     const O extends UpdateOptionsBase<FindOneAndUpdateOptions> &
@@ -465,7 +476,7 @@ export interface Model<
       true
     >
   ): Promise<ModifyResultOf<S, V, R, ProjectionOf<O>, PopulateOf<O>>>
-  findOneAndUpdate<
+  'findOneAndUpdate'<
     const F extends FilterCheck<S, F>,
     const U extends UpdateCheck<S, U, F, O, N>,
     const O extends UpdateOptionsBase<FindOneAndUpdateOptions> &
@@ -481,7 +492,7 @@ export interface Model<
    * Validates the documents with the schema and inserts them. Returns the driver's result plus the
    * stored `documents`, with their defaults and transforms applied.
    */
-  insertMany<T extends false | undefined = false | undefined>(
+  'insertMany'<T extends false | undefined = false | undefined>(
     documents: ReadonlyArray<TimestampedInput<S, N, T>>,
     ...options: OptionsArg<PL, 'insert', BulkWriteOptions & TimestampsOperationOption<N, T>>
   ): Promise<InsertManyResult<Output<S>> & { documents: Array<WithId<Output<S>>> }>
@@ -490,7 +501,7 @@ export interface Model<
    * Validates the document with the schema and inserts it. Returns the driver's result plus the
    * stored `document`, with its defaults and transforms applied.
    */
-  insertOne<T extends false | undefined = false | undefined>(
+  'insertOne'<T extends false | undefined = false | undefined>(
     document: TimestampedInput<S, N, T>,
     ...options: OptionsArg<PL, 'insert', InsertOneOptions & TimestampsOperationOption<N, T>>
   ): Promise<InsertOneResult<Output<S>> & { document: WithId<Output<S>> }>
@@ -500,7 +511,7 @@ export interface Model<
    * insert, and its `_id` is written only when given: the one a `.default()` generates is dropped,
    * because the `_id` of a document cannot change.
    */
-  replaceOne<
+  'replaceOne'<
     const F extends FilterCheck<S, F>,
     const Sort extends SortCheck<S, Sort>,
     T extends false | undefined = false | undefined
@@ -520,10 +531,10 @@ export interface Model<
    * the declared fails with the driver's error, and the undeclared ones are returned in
    * `extraIndexes`. Call it when deploying, not on each operation.
    */
-  sync(): Promise<SyncResult>
+  'sync'(): Promise<SyncResult>
 
   /** Updates every document that matches the filter. */
-  updateMany<
+  'updateMany'<
     const F extends FilterCheck<S, F>,
     const U extends UpdateCheck<S, U, F, O, N>,
     const O extends UpdateOptionsBase<UpdateOptions> &
@@ -536,7 +547,7 @@ export interface Model<
   ): Promise<UpdateResult<Output<S>>>
 
   /** Updates the first document that matches the filter. */
-  updateOne<
+  'updateOne'<
     const F extends FilterCheck<S, F>,
     const U extends UpdateCheck<S, U, F, O, N>,
     const O extends UpdateOptionsBase<UpdateOptions> &
