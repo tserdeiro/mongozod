@@ -718,7 +718,8 @@
   - Con un sub-namespace (`export * as query`), un bundle que usa `mz.query.sort` pesa 3.611 bytes,
     sin `filter`, lo mismo que plano.
   - npm instala los peers obligatorios desde la 7 y no los opcionales; pnpm, con
-    `autoInstallPeers` (activo por defecto), instala los obligatorios que faltan.
+    `autoInstallPeers` (activo por defecto), instala los obligatorios que faltan. Yarn no: su léxico
+    dice que el paquete que depende de otro tiene que proveer él mismo sus peers.
   - Con el build en un archivo por entry, un cliente que usa `mz.sort` y `mz.date` cargaba `bson`
     (108.800 bytes): el codec de `mz.decimal128()` se arma al cargar el módulo, con un `.refine()`
     que el bundler no puede quitar. Con `unbundle`, un archivo por módulo, pesa 4.698 bytes, sin
