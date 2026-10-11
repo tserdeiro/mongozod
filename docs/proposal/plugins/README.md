@@ -255,7 +255,9 @@ plugins definen el mismo método, o uno se llama como un miembro del modelo, com
   `UpdateOf<M, U, F>`, `ReadOptionsArg<M>` y `UpdateOptionsArg<M>`, para quien escribe plugins y
   para los services que le pasan un filtro o un update al modelo:
   `countNotes<const F extends FilterOf<typeof NotesModel, F>>(filter: F)`. Parten del modelo, y
-  reemplazan a `ModelFilter`, `ModelSort` y `ModelUpdate`, que partían del schema.
+  reemplazan a `ModelFilter`, `ModelSort` y `ModelUpdate`, que partían del schema. `UpdateOf` lee
+  los `timestamps` del modelo de una propiedad opcional, `~timestamps`, que solo existe en sus
+  tipos, como el `~standard` de Zod: inferir el modelo entero falla en los que tienen plugins.
 - **`watch`**: no pasa por los plugins y se usa con `.collection.watch()`. Los hooks corren en la
   escritura porque un change stream avisa cuando el cambio ya quedó guardado: no puede validar,
   cambiar ni cancelar la escritura, no dice quién la hizo y en un update no trae el filtro ni los
