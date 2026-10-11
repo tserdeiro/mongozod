@@ -109,7 +109,10 @@ manda `{ createdAt, _id }` del último elemento de la página.
      que no deja nombres sueltos como `filter`, `update` y `sort`, que chocan con variables comunes.
      Pero un bundler incluye el objeto entero: usar solo `mz.sort` sumaba 14 KB al cliente, y con
      exports con nombre suma 3,4 KB. Se eligió el tamaño, como Zod: el import se escribe una vez
-     por archivo, como el de `z`, y los nombres sueltos solo aparecen con `import { filter }`.
+     por archivo, como el de `z`, y los nombres sueltos solo aparecen con `import { filter }`. No se
+     exporta además `mz` con nombre, como el `z` de Zod (`import { z } from 'zod'`): con rolldown,
+     `import { mz }` incluye los seis constructores, 14,5 KB, y solo `import * as mz` deja afuera los
+     que no se usan.
    - **Subpath**: `mongozod/mzod`, que explica el alias: `mz` sale de `mzod` como `z` sale de
      `zod`, y se usa igual, `mz.filter` junto a `z.object`. Es un subpath aparte porque exponer la
      sintaxis de MongoDB a clientes es opcional, una idea inspirada en GraphQL. Se descartaron

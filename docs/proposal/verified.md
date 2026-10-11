@@ -654,7 +654,10 @@
 - **Estructura y tree shaking** (rolldown 1.2.13, Zod 4.6.5, Node 22):
   - Con el objeto `mz`, un bundle que usa solo `mz.sort` pesaba 14.031 bytes, lo mismo que uno que
     usa todo `mz`, con `filter` adentro. Con exports con nombre e `import * as mz`, el del `dist`
-    pesa 3.434 bytes, sin `filter`.
+    pesa 3.434 bytes, sin `filter`. Exportar además el namespace con nombre, como hace Zod
+    (`export * as mz`), no sirve: `import { mz }` pesa 14.468 bytes, con `filter`, porque rolldown
+    arma el objeto del namespace. Zod exporta `z` así en `zod` (`export { z, z as default }`, junto
+    a `export *`), y su README importa con `import * as z`.
   - En un proyecto sin `bson`, `mongozod/codecs/date` funciona y `mongozod/codecs/bson` falla al
     importarse con `ERR_MODULE_NOT_FOUND: Cannot find package 'bson'`; solo `dist/codecs/bson.mjs`
     importa `bson`. Con npm, el `bson` del driver queda arriba en `node_modules` y suele
