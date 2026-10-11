@@ -82,7 +82,9 @@ la raíz.
 Con `upsert`, el servidor inserta el reemplazo con el `_id` del filtro, y no copia ningún otro campo
 del filtro. Sin `_id` en el filtro, inserta un `ObjectId`, y un reemplazo no tiene `$setOnInsert`
 para poner el del `.default()` solo al insertar. Por eso, si el schema declara `_id`, un reemplazo
-con `upsert` necesita el `_id` por igualdad en el filtro, o lanza un `ZodError`.
+con `upsert` necesita el `_id` por igualdad en el filtro, o lanza un `ZodError`. El documento que se
+valida es el que se insertaría, el reemplazo con ese `_id`, así que un `_id` del filtro que el schema
+no acepta, o que es `null`, lanza un `ZodError`.
 
 ## Paginación
 

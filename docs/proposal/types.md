@@ -141,7 +141,18 @@ runtime o código sin tipos. Cada problema se junta en un solo `ZodError`, con e
   se valida con el schema; sus errores llevan el path del documento. Los defaults que le faltan se
   agregan con `$setOnInsert`, en el path más profundo que no choca con lo que deciden el filtro o el
   update: con `$set: { 'settings.theme': 'dark' }` se agrega `'settings.layout'`. Así el `_id` del
-  `.default()` llega también a los documentos que crea un upsert.
+  `.default()` llega también a los documentos que crea un upsert. Del filtro se copia lo que copia
+  el servidor (verificado con MongoDB 8.2.6): una regex suelta o en un `$in` no se copia, porque
+  compara por patrón, pero la de un `$eq` sí; y un `undefined` se copia como el `null` que manda el
+  driver.
+  - **`_id` nulo**: un upsert cuyo filtro deja el `_id` en `null`, o en un `undefined`, lanza un
+    `ZodError`, también en los reemplazos: insertaría un documento con `_id: null`, el caso de
+    Mongoose [#9201](https://github.com/Automattic/mongoose/issues/9201).
+  - **Valores que el schema cambia**: el servidor copia el valor del filtro tal cual, sin pasar por
+    Zod. Si el schema lo guardaría distinto, como un email que un transform pasa a minúsculas o un
+    objeto al que le falta un default, el upsert lanza un `ZodError` en ese path: filtrar por el
+    valor que guarda el schema. Un path que el update también escribe no se compara, porque lo
+    decide el update.
 - **Pipeline**: un update que no es un objeto lanza un `ZodError`.
 
 ## Sugerencias del editor
