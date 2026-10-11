@@ -2,6 +2,8 @@ import type { BSONTypeAlias, Document } from 'mongodb'
 
 import * as core from 'zod/v4/core'
 
+import { uniqueValues } from '../mzod/fields/set'
+
 declare module 'zod/v4/core' {
   interface GlobalMeta {
     /**
@@ -104,8 +106,12 @@ function describe(schema: core.$ZodType, seen: ReadonlySet<core.$ZodType>): Docu
 
   if (schema instanceof core.$ZodArray) {
     const items = walk(schema._zod.def.element, seen)
+    const array: Document = isAny(items) ? { bsonType: 'array' } : { bsonType: 'array', items }
 
-    return isAny(items) ? { bsonType: 'array' } : { bsonType: 'array', items }
+    // A set of `mz.set()`: the server also rejects a repeated value, even one that `$push` adds.
+    if ((schema._zod.def.checks ?? []).includes(uniqueValues)) array.uniqueItems = true
+
+    return array
   }
 
   if (schema instanceof core.$ZodTuple) {

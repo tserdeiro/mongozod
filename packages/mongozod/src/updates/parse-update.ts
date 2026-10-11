@@ -6,7 +6,7 @@ import { z } from 'zod'
 
 import { safeParseWritten } from '../model/parse-document'
 import { schemaAt } from '../schema/schema-at'
-import { elementsOf, isInteger, isNumber, isOptional } from '../schema/schema-kinds'
+import { elementsOf, isInteger, isNumber, isOptional, isSet } from '../schema/schema-kinds'
 import { isPlainObject } from '../utils/is-plain-object'
 
 import { resolveUpdatePath } from './update-path'
@@ -120,6 +120,24 @@ function parseField(
   }
 
   const { schemas } = resolved
+  const segments = path.split('.')
+
+  // An element of a set is written only by the operators that keep it a set.
+  for (let end = 1; end < segments.length; end++) {
+    const above = segments.slice(0, end).join('.')
+
+    if (schemaAt(schema, above, 'update').some(isSet)) {
+      return fail(
+        at,
+        `"${above}" is a set: write it whole, or use $addToSet, $pull, $pullAll or $pop`,
+        value
+      )
+    }
+  }
+
+  if (operator === '$push' && schemas.some(isSet)) {
+    return fail(at, `"${path}" is a set: use $addToSet`, value)
+  }
 
   switch (operator) {
     case '$max':

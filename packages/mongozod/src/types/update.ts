@@ -1,5 +1,6 @@
 import type { ModelSchema, None } from '../model/model'
 import type { LockedFields, NoTimestamps, TimestampNames } from '../model/timestamps'
+import type { SetMarker } from '../mzod/fields/set'
 import type { PopulateCheck } from '../references/references'
 import type { Def, ExtraKey, IsIdentifier, NotAPath, SchemaAt } from '../schema/schema-at'
 import type { Unwrap } from '../schema/unwrap-schema'
@@ -232,6 +233,20 @@ type IsDate<Sub> = NonNullable<core.output<Sub>> extends Date ? true : false
 
 type IsArray<Sub> = NonNullable<core.output<Sub>> extends ReadonlyArray<unknown> ? true : false
 
+/** Whether a schema is a set of `mz.set()`, under its wrappers. */
+type IsSet<Sub> = Unwrap<Sub> extends SetMarker ? true : false
+
+/** The first set a path goes through to reach an element of it, or `never`. */
+type SetAbove<
+  S,
+  P extends string,
+  Prefix extends string = ''
+> = P extends `${infer Seg}.${infer Rest}`
+  ? true extends IsSet<SchemaAt<S, `${Prefix}${Seg}`, 'update'>>
+    ? `${Prefix}${Seg}`
+    : SetAbove<S, Rest, `${Prefix}${Seg}.`>
+  : never
+
 type AllAre<T, Is extends 'array' | 'date' | 'number' | 'optional'> = false extends (
   T extends [infer Sub]
     ? Is extends 'array'
@@ -294,18 +309,20 @@ type FieldCheck<S, Op, K extends string, T, C> = [T] extends [string]
               ? true | { $type: 'date' } | undefined
               : `"${K}" is not a date`
             : Op extends '$push'
-              ? ArrayOnly<
-                  T,
-                  K,
-                  | ElementInputOf<T>
-                  | {
-                      $each: ReadonlyArray<ElementInputOf<T>>
-                      $position?: number
-                      $slice?: number
-                      $sort?: -1 | 1 | Readonly<Record<string, -1 | 1>>
-                    }
-                  | undefined
-                >
+              ? true extends (T extends [infer Sub] ? IsSet<Sub> : never)
+                ? `"${K}" is a set: use $addToSet`
+                : ArrayOnly<
+                    T,
+                    K,
+                    | ElementInputOf<T>
+                    | {
+                        $each: ReadonlyArray<ElementInputOf<T>>
+                        $position?: number
+                        $slice?: number
+                        $sort?: -1 | 1 | Readonly<Record<string, -1 | 1>>
+                      }
+                    | undefined
+                  >
               : Op extends '$addToSet'
                 ? ArrayOnly<
                     T,
@@ -353,7 +370,9 @@ type OperatorCheck<S, Op, Fields, F, AF, Locked> = {
   [K in keyof Fields]: K extends string
     ? K extends Locked
       ? `"${K}" is set by timestamps: pass timestamps: false to write it`
-      : FieldCheck<S, Op, K, Targets<S, K, F, AF, Op>, Fields[K]>
+      : [SetAbove<S, K>] extends [never]
+        ? FieldCheck<S, Op, K, Targets<S, K, F, AF, Op>, Fields[K]>
+        : `"${SetAbove<S, K>}" is a set: write it whole, or use $addToSet, $pull, $pullAll or $pop`
     : never
 }
 

@@ -1,6 +1,8 @@
 import { z } from 'zod'
 import * as core from 'zod/v4/core'
 
+import { uniqueValues } from '../mzod/fields/set'
+
 import { unwrapSchema } from './unwrap-schema'
 
 function isNullish(schema: core.$ZodType) {
@@ -54,4 +56,12 @@ export function elementsOf(schema: core.$ZodType): core.$ZodType[] | undefined {
   }
 
   return elements
+}
+
+/** Whether a variant is a set of `mz.set()`, known by its check. */
+export function isSet(schema: core.$ZodType): boolean {
+  return variants(schema).some(
+    (variant) =>
+      variant instanceof core.$ZodArray && (variant._zod.def.checks ?? []).includes(uniqueValues)
+  )
 }

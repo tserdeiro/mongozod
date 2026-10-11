@@ -3,7 +3,7 @@
  * like Zod, so a bundler keeps only what a client uses:
  *
  * - **Field types** for a document's schema: `objectId()`, `decimal128()`, `binary()`, `uuid()`,
- *   `date()` and GeoJSON, which take what a JSON client sends and return the BSON value.
+ *   `date()`, `set()` and GeoJSON, which take what a JSON client sends and return the BSON value.
  * - **Builders of endpoint inputs**, from a document's schema: `filter`, `update`, `sort`,
  *   `projection`, `after` and `populate`, MongoDB syntax restricted to what each endpoint
  *   declares.
@@ -37,6 +37,7 @@ export { sort } from './mzod/sort'
 export { update } from './mzod/update'
 export { binary, decimal128, objectId, uuid } from './mzod/fields/bson'
 export { date } from './mzod/fields/date'
+export { set } from './mzod/fields/set'
 export {
   geometryCollection,
   lineString,

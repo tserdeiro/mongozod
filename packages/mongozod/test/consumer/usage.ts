@@ -306,7 +306,8 @@ const brandSchema = z.object({
   office: mz.point().optional(),
   launchedAt: mz.date().optional(),
   owner: mz.objectId().optional(),
-  sessionId: mz.uuid().optional()
+  sessionId: mz.uuid().optional(),
+  tags: mz.set(z.string()).default([])
 })
 
 export async function brands() {
@@ -324,6 +325,9 @@ export async function brands() {
 
   // @ts-expect-error a number is not an ObjectId
   await BrandsModel.insertOne({ owner: 42 })
+  await BrandsModel.updateOne({ _id: document._id }, { $addToSet: { tags: 'new' } })
+  // @ts-expect-error a set takes $addToSet, not $push
+  await BrandsModel.updateOne({ _id: document._id }, { $push: { tags: 'new' } })
 
   return {
     found: await BrandsModel.findOne({ _id: document._id }),

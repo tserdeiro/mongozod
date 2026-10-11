@@ -1,6 +1,8 @@
 import { describe, expect, test } from 'vitest'
 import { z } from 'zod'
 
+import { set } from '../mzod/fields/set'
+
 import { parseUpdate } from './parse-update'
 
 const accountSchema = z.object({
@@ -168,6 +170,33 @@ describe('operators', () => {
       ['$rename title', '"title" is required, so it cannot be renamed'],
       ['$unset title', '"title" is required, so it cannot be unset'],
       ['$unset views', '"views" is required, so it cannot be unset']
+    ])
+  })
+
+  test('keep a set: no $push, and no write to one of its elements', () => {
+    const postSchema = z.object({
+      sections: z.array(z.object({ _id: z.string(), labels: set(z.string()) })),
+      tags: set(z.string())
+    })
+    const filter = { 'sections._id': 's1' }
+    const whole = 'write it whole, or use $addToSet, $pull, $pullAll or $pop'
+
+    expect(parseUpdate(postSchema, filter, { $addToSet: { 'sections.$.labels': 'x' } })).toEqual({
+      $addToSet: { 'sections.$.labels': 'x' }
+    })
+    expect(
+      issuesOf(() =>
+        parseUpdate(postSchema, filter, {
+          $inc: { 'tags.$': 1 },
+          $push: { tags: 'a' },
+          $set: { 'sections.$.labels.$[]': 'b', 'tags.0': 'b' }
+        })
+      )
+    ).toEqual([
+      ['$inc tags.$', `"tags" is a set: ${whole}`],
+      ['$push tags', '"tags" is a set: use $addToSet'],
+      ['$set sections.$.labels.$[]', `"sections.$.labels" is a set: ${whole}`],
+      ['$set tags.0', `"tags" is a set: ${whole}`]
     ])
   })
 
