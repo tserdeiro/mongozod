@@ -15,7 +15,6 @@ documents of the topics you touch and the roadmap for the order of the work.
 - Every solution is backed by official documentation. Integrate each library as its current docs
   say, and check the source when an API doesn't match what you expect.
 - No over-engineering: prefer simple solutions that cover the normal cases and the edge cases well.
-- Ask through short quizzes, with your recommendation first. Give pros and cons when asked.
 - Verify before recording: compile types with TypeScript and check behavior against MongoDB, then
   write the decision down.
 - Record each decision in the proposal document of its topic, and mark roadmap phases as done, in
