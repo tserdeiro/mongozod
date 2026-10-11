@@ -32,6 +32,8 @@ jobs:
       - run: pnpm build
       # Compiles a consumer of the published declarations with TypeScript 5.5, the minimum, and 7.
       - run: pnpm check-dist-types
+      # The type instantiations of a typical project, within test/type-cost/budget.json.
+      - run: pnpm check-type-cost
 
   test-node:
     name: Test on Node.js ${{ matrix.node }}

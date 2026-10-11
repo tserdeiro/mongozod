@@ -1,0 +1,16 @@
+{
+  // A typical project that uses mongozod from dist/, whose type cost `check-type-cost` measures.
+  "compilerOptions": {
+    "strict": true,
+    "target": "ES2022",
+    // The driver's declarations use `Symbol.asyncDispose` and Node.js modules.
+    "lib": ["ES2022", "ESNext.Disposable"],
+    "types": ["node"],
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "noEmit": true,
+    // As most projects: it measures the code that uses mongozod, not the declarations.
+    "skipLibCheck": true
+  },
+  "files": ["project.ts"]
+}

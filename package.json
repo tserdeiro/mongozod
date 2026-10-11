@@ -5,6 +5,7 @@
   "scripts": {
     "build": "turbo run build",
     "check-dist-types": "turbo run check-dist-types",
+    "check-type-cost": "turbo run check-type-cost",
     "check-types": "turbo run check-types",
     "format": "oxfmt",
     "format:check": "oxfmt --check",

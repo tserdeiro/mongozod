@@ -32,6 +32,9 @@ The [tooling](docs/proposal/structure.md#herramientas) runs from the root with p
 - `pnpm build`, `pnpm check-types` and `pnpm test` run each package's task through Turborepo.
 - `pnpm check-dist-types` builds the package and compiles a consumer of its declarations with
   TypeScript 5.5, the minimum, and 7.
+- `pnpm check-type-cost` builds the package and fails when the type instantiations of a typical
+  project, `packages/mongozod/test/type-cost/`, go over its `budget.json`. A change that raises the
+  cost on purpose raises the budget in the same commit.
 - `pnpm lint` and `pnpm format` run oxlint and oxfmt over the whole repo.
 - Tests get a MongoDB 8.2 replica set from `inject('mongoUri')`.
 - A change to the published package adds a changeset with `pnpm changeset`.

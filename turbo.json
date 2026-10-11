@@ -20,6 +20,11 @@
       "dependsOn": ["build"],
       "outputs": []
     },
+    // Measures the type instantiations of a typical project against its budget, after the build.
+    "check-type-cost": {
+      "dependsOn": ["build"],
+      "outputs": []
+    },
     "test": {
       "dependsOn": ["transit"],
       "outputs": []

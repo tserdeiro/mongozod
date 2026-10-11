@@ -31,6 +31,7 @@
   "scripts": {
     "build": "tsdown",
     "check-dist-types": "tsc -p test/consumer && node node_modules/typescript-5.5/bin/tsc -p test/consumer",
+    "check-type-cost": "node scripts/check-type-cost.ts",
     "check-types": "tsc --noEmit",
     "test": "vitest run"
   },
