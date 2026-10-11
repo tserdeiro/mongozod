@@ -350,7 +350,8 @@
     `$and`, y no copia ningún otro campo del filtro. Sin `_id` en el filtro, el servidor genera un
     `ObjectId`.
   - `_zod.bag` está vacío en los números enteros, y el formato vive en `def.format` o en un check
-    interno. `0.5` da `invalid_type` con `expected: 'int'` en `z.number().int()`, `z.int()`,
+    interno. Zod clásico lo expone en el `format` de `z.number()`, calculado con `aggregateChecks`,
+    que `zod/v4/core` no exporta; Zod Mini no lo expone (Zod 4.6.5). `0.5` da `invalid_type` con `expected: 'int'` en `z.number().int()`, `z.int()`,
     `z.int32()`, Mini y un entero opcional; un `.min()` sin `.int()` da otro error.
   - `_zod.optout` es `'optional'` en `.optional()`, y no en `.default()`, `.nullable()` ni un campo
     obligatorio.

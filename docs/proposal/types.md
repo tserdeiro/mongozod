@@ -107,8 +107,10 @@ runtime o código sin tipos. Cada problema se junta en un solo `ZodError`, con e
   entero; `$currentDate` en campos que aceptan una `Date`; los operadores de array en arrays, y
   `$push` y `$addToSet` parsean cada elemento, también en `$each`. Que el destino de `$rename` tenga
   el mismo tipo solo lo chequean los tipos: en runtime no se conoce el valor sin leer el documento.
-- **Enteros**: Zod no expone si un campo es entero, así que se prueba con `0.5`: un campo entero lo
-  rechaza con `expected: 'int'`, en todas las formas (`.int()`, `z.int()`, `z.int32()` y Mini).
+- **Enteros**: Zod clásico expone si un campo es entero, con el `format` de `z.number()`, pero Zod
+  Mini no, y el `aggregateChecks` que lo calcula no se exporta desde `zod/v4/core`. Así que se prueba
+  con `0.5`, que sirve para los dos: un campo entero lo rechaza con `expected: 'int'`, en todas las
+  formas (`.int()`, `z.int()`, `z.int32()` y Mini).
 - **Upserts**: además, se arma el documento que insertaría el servidor, como lo hace MongoDB 8.2, y
   se valida con el schema; sus errores llevan el path del documento. Los defaults que le faltan se
   agregan con `$setOnInsert`, en el path más profundo que no choca con lo que deciden el filtro o el

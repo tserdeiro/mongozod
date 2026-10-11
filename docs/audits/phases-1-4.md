@@ -384,7 +384,8 @@ En orden de prioridad. Los que dicen «decidir» cambian algo registrado en la p
 14. **Juntar los helpers repetidos** en un solo lugar cada uno (hallazgo 6). Hecho.
 15. **Derivar `SortDirection`** del tipo del driver (hallazgo 10). Hecho.
 16. **Propuesta**: precisar que es Zod Mini el que no expone los enteros; opcional, usar `format`
-    cuando existe (hallazgo 8).
+    cuando existe (hallazgo 8). Hecho, sin `format`: la prueba con `0.5` ya sirve para los dos sabores
+    de Zod, y un segundo camino no cambia el resultado.
 
 ### Documentación (fase 7)
 

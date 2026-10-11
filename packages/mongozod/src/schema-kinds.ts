@@ -26,7 +26,10 @@ export function isNumber(schema: core.$ZodType): boolean {
   )
 }
 
-/** Zod rejects a fraction in an integer field with `expected: 'int'`. */
+/**
+ * Zod rejects a fraction in an integer field with `expected: 'int'`. Zod Classic also tells it with
+ * `format`, but Zod Mini does not, so the probe works for both.
+ */
 export function isInteger(schema: core.$ZodType): boolean {
   const result = z.safeParse(schema, 0.5)
 
