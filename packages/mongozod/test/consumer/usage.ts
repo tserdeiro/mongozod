@@ -6,7 +6,7 @@ import { MongoClient } from 'mongodb'
 import { definePlugin, mongozod } from 'mongozod'
 import { objectId } from 'mongozod/codecs/bson'
 import { date } from 'mongozod/codecs/date'
-import * as mz from 'mongozod/mz'
+import * as mz from 'mongozod/mzod'
 import { softDelete } from 'mongozod/plugins/soft-delete'
 import { z } from 'zod'
 

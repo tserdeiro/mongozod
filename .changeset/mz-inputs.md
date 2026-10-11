@@ -2,7 +2,7 @@
 'mongozod': minor
 ---
 
-Add `mz`, from `mongozod/mz`: builders of endpoint inputs, which are Zod schemas whose values are
+Add `mz`, from `mongozod/mzod`: builders of endpoint inputs, which are Zod schemas whose values are
 MongoDB syntax restricted to what each endpoint declares. `mz.filter` takes the operators each
 field declares, `$elemMatch` included; `mz.update` takes `$set`, `$unset` and `$inc` on the paths
 each one declares; `mz.sort` and `mz.projection` take a mask of paths, like `.pick()`; `mz.cursor`

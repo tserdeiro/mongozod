@@ -9,7 +9,7 @@
  *
  * @example
  *   ;```ts
- *   import * as mz from 'mongozod/mz'
+ *   import * as mz from 'mongozod/mzod'
  *   import { z } from 'zod'
  *
  *   export const listBrandsSchema = z.object({
@@ -21,9 +21,9 @@
  *   })
  *   ```
  */
-export { cursor } from './mz/cursor'
-export { filter } from './mz/filter'
-export { populate } from './mz/populate'
-export { projection } from './mz/projection'
-export { sort } from './mz/sort'
-export { update } from './mz/update'
+export { cursor } from './mzod/cursor'
+export { filter } from './mzod/filter'
+export { populate } from './mzod/populate'
+export { projection } from './mzod/projection'
+export { sort } from './mzod/sort'
+export { update } from './mzod/update'

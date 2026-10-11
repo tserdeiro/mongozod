@@ -13,7 +13,7 @@ import { z } from 'zod'
 
 import { toJsonSchema } from '../model/json-schema'
 import { mongozod } from '../mongozod'
-import { filter } from '../mz/filter'
+import { filter } from '../mzod/filter'
 
 import { date } from './date'
 
