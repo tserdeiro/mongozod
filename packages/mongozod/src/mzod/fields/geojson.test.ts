@@ -14,7 +14,15 @@ import { z } from 'zod'
 import { toJsonSchema } from '../../model/json-schema'
 import { mongozod } from '../../mongozod'
 
-import { lineString, multiLineString, multiPoint, multiPolygon, point, polygon } from './geojson'
+import {
+  geometryCollection,
+  lineString,
+  multiLineString,
+  multiPoint,
+  multiPolygon,
+  point,
+  polygon
+} from './geojson'
 
 const client = new MongoClient(inject('mongoUri'))
 const db = client.db('mongozod-geojson')
@@ -122,6 +130,33 @@ describe('the geometries', () => {
       'a MultiPoint has 1 position at least'
     ])
     expect(messages(point(), { coordinates: [0, 0], type: 'Polygon' })).toHaveLength(1)
+  })
+
+  test('take a GeometryCollection of the other types, not empty nor nested', () => {
+    const collection = geometryCollection()
+    const where = { coordinates: [0, 0], type: 'Point' }
+
+    expect(
+      collection.safeParse({
+        geometries: [where, { coordinates: [triangle], type: 'Polygon' }],
+        type: 'GeometryCollection'
+      }).success
+    ).toBe(true)
+    expect(messages(collection, { geometries: [], type: 'GeometryCollection' })).toEqual([
+      'a GeometryCollection has 1 geometry at least'
+    ])
+    expect(
+      collection.safeParse({
+        geometries: [{ geometries: [where], type: 'GeometryCollection' }],
+        type: 'GeometryCollection'
+      }).success
+    ).toBe(false)
+    expect(
+      messages(collection, {
+        geometries: [{ coordinates: [200, 0], type: 'Point' }],
+        type: 'GeometryCollection'
+      })
+    ).toEqual(['longitude goes from -180 to 180'])
   })
 
   test('are objects and arrays in the $jsonSchema', () => {

@@ -38,6 +38,7 @@ export { update } from './mzod/update'
 export { binary, decimal128, objectId } from './mzod/fields/bson'
 export { date } from './mzod/fields/date'
 export {
+  geometryCollection,
   lineString,
   multiLineString,
   multiPoint,

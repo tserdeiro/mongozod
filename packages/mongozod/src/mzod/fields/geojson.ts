@@ -95,3 +95,23 @@ export function multiPolygon() {
     type: z.literal('MultiPolygon')
   })
 }
+
+/**
+ * A GeoJSON `GeometryCollection`: one geometry at least, of the types above. MongoDB rejects an
+ * empty one and one inside another, which RFC 7946 also advises against.
+ */
+export function geometryCollection() {
+  const geometry = z.discriminatedUnion('type', [
+    point(),
+    lineString(),
+    polygon(),
+    multiPoint(),
+    multiLineString(),
+    multiPolygon()
+  ])
+
+  return z.object({
+    geometries: z.array(geometry).min(1, 'a GeometryCollection has 1 geometry at least'),
+    type: z.literal('GeometryCollection')
+  })
+}
