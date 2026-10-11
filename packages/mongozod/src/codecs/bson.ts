@@ -77,18 +77,27 @@ function isDecimal128(value: string) {
   }
 }
 
-/** The string of a `Decimal128`, as a JSON client sends it, decoded to one. */
-const stringToDecimal128 = z.codec(z.string().refine(isDecimal128), decimal128Instance, {
-  decode: (value) => Decimal128.fromString(value),
-  encode: (value) => value.toString()
-})
+/**
+ * Whether a number is the decimal it was written as: a double keeps 15 significant digits exact,
+ * and a safe integer whole. `0.1 + 0.2`, `0.30000000000000004`, is not.
+ */
+function isExact(value: number) {
+  const [mantissa = ''] = String(Math.abs(value)).split('e')
+  const digits = mantissa.replace('.', '').replace(/^0+/, '').replace(/0+$/, '')
+
+  return Number.isSafeInteger(value) || digits.length <= 15
+}
+
+const DECIMAL128_ERROR =
+  'Invalid Decimal128: expected a Decimal128, its string such as "10.50", or a number'
 
 /**
  * A `Decimal128` field, the BSON type for money: it takes a `Decimal128`, which the server passes,
- * or its string, such as `'10.50'`, which a JSON client sends, and returns a `Decimal128`. A
- * number is not taken, because JSON loses its precision, and neither is a string that would round,
- * with more than 34 digits. `z.encode` turns it back into the string, and the `$jsonSchema` of
- * `sync()` checks it as a `decimal`.
+ * its string, such as `'10.50'`, or a number, as a JSON client sends them, and returns a
+ * `Decimal128`. A string that bson would round, with more than 34 digits, fails, and so does a
+ * number that is not the decimal it was written as, with more than 15 significant digits, such as
+ * the `0.30000000000000004` of `0.1 + 0.2`: it asks for the string instead. `z.encode` turns it
+ * back into the string, and the `$jsonSchema` of `sync()` checks it as a `decimal`.
  *
  * @example
  *   ;```ts
@@ -98,8 +107,22 @@ const stringToDecimal128 = z.codec(z.string().refine(isDecimal128), decimal128In
  *   ```
  */
 export function decimal128() {
-  // The codec goes first: with the `Decimal128` first, `z.encode` would return it unchanged.
-  return z.union([stringToDecimal128, decimal128Instance], {
-    error: 'Invalid Decimal128: expected a Decimal128 or its string, such as "10.50"'
+  const input = z.union(
+    [
+      z.string().refine(isDecimal128, DECIMAL128_ERROR),
+      z
+        .number()
+        .refine(
+          isExact,
+          'has more than 15 significant digits, which a number cannot keep: send it as a string'
+        ),
+      decimal128Instance
+    ],
+    { error: DECIMAL128_ERROR }
+  )
+
+  return z.codec(input, decimal128Instance, {
+    decode: (value) => (typeof value === 'object' ? value : Decimal128.fromString(String(value))),
+    encode: (value) => value.toString()
   })
 }
