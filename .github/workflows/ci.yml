@@ -61,8 +61,9 @@ jobs:
       - uses: pnpm/setup@v3
         with:
           require-lockfile: true
-      # The driver of Mongoose 8, the lowest in the peer range, in place of the locked 7.x.
-      - run: pnpm --filter mongozod add -D mongodb@6.20.0
+      # The driver of Mongoose 8, the lowest in the peer range, and its bson major, in place of the
+      # locked 7.x: bson only serializes the values of its own major.
+      - run: pnpm --filter mongozod add -D mongodb@6.20.0 bson@6.10.4
       - run: pnpm check-types
         working-directory: packages/mongozod
       - run: pnpm test

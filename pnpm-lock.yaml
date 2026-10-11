@@ -201,6 +201,9 @@ importers:
       '@types/node':
         specifier: 22.20.5
         version: 22.20.5
+      bson:
+        specifier: 7.3.3
+        version: 7.3.3
       mongodb:
         specifier: 7.7.0
         version: 7.7.0

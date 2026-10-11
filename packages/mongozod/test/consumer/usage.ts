@@ -1,8 +1,10 @@
 // Compiles against the published declarations, as a project that installs mongozod would.
 import type { AnyModel, FilterOf, ReadOptionsArg } from 'mongozod'
 
+import { ObjectId } from 'bson'
 import { MongoClient } from 'mongodb'
 import { definePlugin, mongozod } from 'mongozod'
+import { objectId } from 'mongozod/bson'
 import { mz } from 'mongozod/mz'
 import { softDelete } from 'mongozod/plugins/soft-delete'
 import { z } from 'zod'
@@ -297,4 +299,21 @@ export async function usage() {
     titles,
     total
   }
+}
+
+const brandSchema = z.object({
+  _id: objectId().default(() => new ObjectId()),
+  owner: objectId().optional()
+})
+
+export async function brands() {
+  const BrandsModel = mongozod({ collection: 'brands', db, schema: brandSchema })
+  const { document } = await BrandsModel.insertOne({ owner: '65c3b9b4f1d2a34b5c6d7e8f' })
+  const owner: ObjectId | undefined = document.owner
+  const byId = mz.filter(brandSchema, { _id: ['$eq', '$in'] })
+
+  // @ts-expect-error a number is not an ObjectId
+  await BrandsModel.insertOne({ owner: 42 })
+
+  return { found: await BrandsModel.findOne({ _id: document._id }), owner, byId }
 }

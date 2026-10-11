@@ -2,6 +2,8 @@ import type { Document } from 'mongodb'
 
 import * as core from 'zod/v4/core'
 
+import { bsonTypes } from './bson-types'
+
 /**
  * The `jsonSchema` option of `mongozod()`: `true` for MongoDB's defaults, `strict` and `error`, or
  * the validation level and action. `moderate` does not validate the updates of documents that
@@ -41,6 +43,10 @@ function walk(schema: core.$ZodType, seen: ReadonlySet<core.$ZodType>): Document
   ) {
     return walk(schema._zod.def.innerType, seen)
   }
+
+  const known = bsonTypes.get(schema)
+
+  if (known) return { bsonType: known.bsonType }
 
   // A recursive schema leads back to itself, and `$jsonSchema` has no `$ref`.
   if (schema instanceof core.$ZodLazy) {
@@ -133,8 +139,8 @@ function walk(schema: core.$ZodType, seen: ReadonlySet<core.$ZodType>): Document
 /**
  * The `$jsonSchema` of a model's schema, for the documents as stored: the BSON type of each field,
  * the required ones, nested objects and arrays, enums and literals, `null` and unions. Refinements
- * stay in the app, and transforms, customs and recursive schemas have no rules. Without an `_id` in
- * the schema, the driver's `ObjectId` passes.
+ * stay in the app, and transforms, customs and recursive schemas have no rules, except the
+ * `objectId()` of `mongozod/bson`. Without an `_id` in the schema, the driver's `ObjectId` passes.
  */
 export function toJsonSchema(schema: core.$ZodType): Document {
   const jsonSchema = walk(schema, new Set())
