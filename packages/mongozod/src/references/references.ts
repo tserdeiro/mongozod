@@ -152,8 +152,23 @@ type ExcludedBy<P, K> = {
     : never
 }[keyof P & string]
 
+/**
+ * What a reference stores, which decides whether it takes a `limit`: one id, an array of them, or
+ * nothing, for a one-to-many reference.
+ */
+type Holds = 'array' | 'foreign' | 'one'
+
+/** The `limit` of a populated reference: for arrays, and with a `sort` in a one-to-many one. */
+type LimitCheck<H extends Holds, X> = H extends 'one'
+  ? 'limit takes a reference that stores an array'
+  : H extends 'foreign'
+    ? X extends { sort: object }
+      ? number
+      : 'a limit needs a sort: without one, the documents it keeps are arbitrary'
+    : number
+
 /** The options of a populated reference, named like the driver's, checked like the target's. */
-type PopulateOptionsCheck<T, X> = {
+type PopulateOptionsCheck<T, X, H extends Holds> = {
   [K in keyof X]: K extends 'projection'
     ? ProjectionCheck<TargetSchema<T>, X[K], TargetVirtuals<T>>
     : K extends 'filter'
@@ -167,21 +182,23 @@ type PopulateOptionsCheck<T, X> = {
               X[K],
               X extends { projection: infer P } ? P : None
             >
-          : `"${K & string}" is not an option of populate: use projection, filter, sort or populate`
+          : K extends 'limit'
+            ? LimitCheck<H, X>
+            : `"${K & string}" is not an option of populate: use projection, filter, sort, limit or populate`
 }
 
-type PopulateValueCheck<T, X> = X extends true
+type PopulateValueCheck<T, X, H extends Holds> = X extends true
   ? true
   : X extends object
-    ? PopulateOptionsCheck<T, X>
-    : 'populate takes true, or { projection, filter, sort, populate }'
+    ? PopulateOptionsCheck<T, X, H>
+    : 'populate takes true, or { projection, filter, sort, limit, populate }'
 
 /**
  * Checks a `populate`: each key is a reference of the model, whose field stores the `_id` of its
  * target, and the projection of the read does not exclude it. Each value is `true`, for the whole
  * document, or the options of its query, named like the driver's: a `projection`, a `filter` that
- * leaves out the documents that do not match, a `sort` for the arrays of references, and the
- * `populate` of the target model, checked against its references.
+ * leaves out the documents that do not match, a `sort` and a `limit` for the arrays of references,
+ * per document, and the `populate` of the target model, checked against its references.
  */
 export type PopulateCheck<S extends ModelSchema, R, Pop, P> = {
   [K in keyof Pop]: K extends keyof R
@@ -191,7 +208,15 @@ export type PopulateCheck<S extends ModelSchema, R, Pop, P> = {
         ? ForeignCheck<S, R[K], K, FF, LocalField<R[K]>, Pop[K], P>
         : [FieldIds<S, K>] extends [TargetDocument<R[K]>['_id']]
           ? [ExcludedBy<P, K>] extends [never]
-            ? PopulateValueCheck<R[K], Exclude<Pop[K], undefined>>
+            ? PopulateValueCheck<
+                R[K],
+                Exclude<Pop[K], undefined>,
+                NonNullable<
+                  core.output<SchemaAt<S, K & string, 'filter'>>
+                > extends ReadonlyArray<unknown>
+                  ? 'array'
+                  : 'one'
+              >
             : `populate needs "${K & string}": the projection excludes it`
           : `"${K & string}" stores another type than the _id of its target`
     : `"${K & string}" is not a reference of the model`
@@ -225,8 +250,8 @@ type ForeignCheck<S extends ModelSchema, T, K, FF extends string, L extends stri
         ? Exclude<X, undefined> extends { populate: infer NP }
           ? FF extends keyof NP
             ? `"${K & string}" cannot populate "${FF}", its foreignField: it points back to this document`
-            : PopulateValueCheck<T, Exclude<X, undefined>>
-          : PopulateValueCheck<T, Exclude<X, undefined>>
+            : PopulateValueCheck<T, Exclude<X, undefined>, 'foreign'>
+          : PopulateValueCheck<T, Exclude<X, undefined>, 'foreign'>
         : `populate needs "${L}" for "${K & string}": the projection excludes it`
       : `"${K & string}": "${FF}" stores another type than "${L}"`
 
@@ -236,6 +261,7 @@ export type SuggestedPopulate<R> = {
     | true
     | {
         filter?: SuggestedFilter<TargetSchema<R[K]>>
+        limit?: number
         projection?: SuggestedProjection<TargetSchema<R[K]>, TargetVirtuals<R[K]>>
         populate?: SuggestedPopulate<TargetReferences<R[K]>>
         sort?: SuggestedSort<TargetSchema<R[K]>>
@@ -396,6 +422,7 @@ export function checkReferences(schema: core.$ZodType, references: object = {}):
 /** The options of a populated reference, named like the driver's, and its nested `populate`. */
 export interface PopulateOptions {
   filter?: Document
+  limit?: number
   populate?: Document
   projection?: Document
   sort?: Document
@@ -412,7 +439,7 @@ export function storedPath([field, target]: PopulateEntry): string {
   return isForeign(target) ? (target.localField ?? '_id') : field
 }
 
-const POPULATE_OPTIONS = new Set(['filter', 'populate', 'projection', 'sort'])
+const POPULATE_OPTIONS = new Set(['filter', 'limit', 'populate', 'projection', 'sort'])
 
 /**
  * Validates a `populate` at runtime, like its types: each key is a reference of the model, and each
@@ -468,7 +495,7 @@ export function populateEntries(
           issues.push({
             code: 'custom',
             input: option,
-            message: `"${name}" is not an option of populate: use projection, filter, sort or populate`,
+            message: `"${name}" is not an option of populate: use projection, filter, sort, limit or populate`,
             path: ['populate', field, name]
           })
         } else if (
@@ -491,6 +518,17 @@ export function populateEntries(
             message: `"${field}" points to a collection without a model, which has no references`,
             path: ['populate', field, name]
           })
+        } else if (name === 'limit') {
+          if (typeof option === 'number' && Number.isInteger(option) && option > 0) {
+            options.limit = option
+          } else {
+            issues.push({
+              code: 'custom',
+              input: option,
+              message: 'the limit of populate is a positive integer',
+              path: ['populate', field, name]
+            })
+          }
         } else if (isPlainObject(option)) {
           if (name === 'filter') options.filter = option
           if (name === 'populate') options.populate = option
@@ -506,12 +544,21 @@ export function populateEntries(
         }
       }
 
+      if (isForeign(target) && options.limit !== undefined && !options.sort) {
+        issues.push({
+          code: 'custom',
+          input: options.limit,
+          message: 'a limit needs a sort: without one, the documents it keeps are arbitrary',
+          path: ['populate', field, 'limit']
+        })
+      }
+
       entries.push([field, target, options])
     } else {
       issues.push({
         code: 'custom',
         input: value,
-        message: 'populate takes true, or { projection, filter, sort, populate }',
+        message: 'populate takes true, or { projection, filter, sort, limit, populate }',
         path: ['populate', field]
       })
     }
@@ -547,6 +594,11 @@ function eachHolder(
 /** An id as a key of a map: two ids are the same key when MongoDB finds one with the other. */
 function idKey(id: unknown) {
   return BSON.EJSON.stringify(id)
+}
+
+/** Each id once, by its key: many documents of a batch may point to the same one. */
+function distinctIds(ids: readonly unknown[]): unknown[] {
+  return [...new Map(ids.map((id) => [idKey(id), id])).values()]
 }
 
 /** The values a path holds in a document, through its arrays, with the elements of arrays of them. */
@@ -603,40 +655,57 @@ function keepingField(projection: Document | undefined, path: string) {
 /**
  * Adds to each document the documents of the target model whose `foreignField` stores one of the
  * values of its `localField`, with one `$in` query for the batch: an array in the order of the
- * query, empty when none match.
+ * query, empty when none match. With a `limit`, one query per document, in parallel, since a
+ * query's limit counts the results of the whole batch.
  */
 async function populateForeign(
   documents: readonly Document[],
   key: string,
   target: ForeignReference,
-  { filter, populate, projection, sort }: PopulateOptions,
+  { filter, limit, populate, projection, sort }: PopulateOptions,
   session: ClientSession | undefined
 ): Promise<void> {
   const localField = target.localField ?? '_id'
   const { foreignField } = target
-  const values = [
-    ...new Map(
-      documents.flatMap((document) => valuesAt(document, localField)).map((v) => [idKey(v), v])
-    ).values()
-  ]
-
-  for (const document of documents) document[key] = []
-
-  if (values.length === 0) return
-
   const kept = keepingField(projection, foreignField)
   const options: Document = {}
+  const find = finderOf(target.model, key)
 
   if (kept.projection) options.projection = kept.projection
   if (session) options.session = session
   if (sort) options.sort = sort
   if (populate) options.populate = populate
 
-  const condition = { [foreignField]: { $in: values } }
-  const found = await finderOf(target.model, key)(
-    filter ? { $and: [condition, filter] } : condition,
-    options
-  )
+  const query = (values: unknown[]) => {
+    const condition = { [foreignField]: { $in: values } }
+
+    return filter ? { $and: [condition, filter] } : condition
+  }
+
+  for (const document of documents) document[key] = []
+
+  if (limit !== undefined) {
+    const found = await Promise.all(
+      documents.map(async (document) => {
+        const values = distinctIds(valuesAt(document, localField))
+        const own = values.length > 0 ? await find(query(values), { ...options, limit }) : []
+
+        document[key] = own
+
+        return own
+      })
+    )
+
+    if (kept.strip) for (const document of found.flat()) removePath(document, foreignField)
+
+    return
+  }
+
+  const values = distinctIds(documents.flatMap((document) => valuesAt(document, localField)))
+
+  if (values.length === 0) return
+
+  const found = await find(query(values), options)
   const byValue = new Map<string, Document[]>()
 
   for (const document of found) {
@@ -674,14 +743,13 @@ export async function populateDocuments(
     entries.map(async ([key, target, options]) => {
       if (isForeign(target)) return populateForeign(documents, key, target, options, session)
 
-      const { filter, populate, projection, sort } = options
+      const { filter, limit, populate, projection, sort } = options
       const segments = key.split('.')
       const stored: unknown[] = []
 
       eachHolder(documents, segments, (holder, field) => stored.push(holder[field] ?? []))
 
-      // Each id once, by its key: many documents of a batch may point to the same one.
-      const ids = [...new Map(stored.flat().map((id) => [idKey(id), id])).values()]
+      const ids = distinctIds(stored.flat())
 
       if (ids.length === 0) return
 
@@ -726,7 +794,8 @@ export async function populateDocuments(
 
           if (sort) populated.sort((a, b) => (position.get(a) ?? 0) - (position.get(b) ?? 0))
 
-          holder[field] = populated
+          // The limit of each array: the query brings every id, which the arrays already bound.
+          holder[field] = limit === undefined ? populated : populated.slice(0, limit)
         } else if (value !== null && value !== undefined) {
           holder[field] = byId.get(idKey(value)) ?? null
         }

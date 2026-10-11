@@ -197,14 +197,15 @@ describe('populate', () => {
     await expect(
       TransactionsModel.findOne(
         { _id: 't1' },
-        // @ts-expect-error limit is not an option of populate
-        { populate: { approvers: { limit: 1 }, createdBy: { projection: 1 } } }
+        // @ts-expect-error skip is not an option of populate
+        { populate: { approvers: { skip: 1 }, createdBy: { projection: 1 } } }
       )
     ).rejects.toMatchObject({
       issues: [
         {
-          message: '"limit" is not an option of populate: use projection, filter, sort or populate',
-          path: ['populate', 'approvers', 'limit']
+          message:
+            '"skip" is not an option of populate: use projection, filter, sort, limit or populate',
+          path: ['populate', 'approvers', 'skip']
         },
         {
           message: 'the projection of populate is an object',
@@ -365,6 +366,32 @@ describe('with a projection', () => {
         // @ts-expect-error the projection excludes createdBy
         .project({ createdBy: 0 })
     ).toBeFunction()
+  })
+})
+
+describe('the limit of populate', () => {
+  test('keeps the first ones of each array of references, in its order or in the sort', async () => {
+    await TransactionsModel.updateOne({ _id: 't2' }, { $set: { approvers: ['a2', 'a1'] } })
+
+    const transactions = await TransactionsModel.find(
+      {},
+      { populate: { approvers: { limit: 1, projection: { firstName: 1 } } } }
+    ).sort({ _id: 1 })
+    const sorted = await TransactionsModel.findOne(
+      { _id: 't2' },
+      {
+        populate: { approvers: { limit: 1, projection: { firstName: 1 }, sort: { firstName: 1 } } }
+      }
+    )
+
+    // A missing one does not count: the limit applies to the documents found.
+    expect(transactions.map((transaction) => transaction.approvers)).toEqual([
+      [{ _id: 'a2', firstName: 'Luis' }],
+      [{ _id: 'a2', firstName: 'Luis' }]
+    ])
+    expect(sorted?.approvers).toEqual([{ _id: 'a1', firstName: 'Ana' }])
+    // @ts-expect-error limit takes a reference that stores an array
+    expectTypeOf(() => TransactionsModel.find({}, { populate: { createdBy: { limit: 1 } } }))
   })
 })
 
@@ -819,6 +846,48 @@ describe('a one-to-many reference', () => {
         schema: authorSchema
       })
     ).toThrow('references: "posts" needs its localField "nickname" in the schema')
+  })
+
+  test('takes a limit per document, with one query per document', async () => {
+    const queries: CommandStartedEvent[] = []
+    const listener = (event: CommandStartedEvent) => {
+      if (event.commandName === 'find' && event.command.find === 'posts') queries.push(event)
+    }
+
+    client.on('commandStarted', listener)
+
+    try {
+      const [ana, luis] = await AuthorsModel.find(
+        {},
+        { populate: { posts: { limit: 1, projection: { title: 1 }, sort: { title: -1 } } } }
+      ).sort({ _id: 1 })
+
+      // A limit for the whole batch would leave one of them without posts.
+      expect(ana?.posts).toEqual([{ _id: 'p2', title: 'Beta' }])
+      expect(luis?.posts).toEqual([{ _id: 'p3', title: 'Gamma' }])
+      expect(queries).toHaveLength(2)
+    } finally {
+      client.off('commandStarted', listener)
+    }
+
+    await expect(
+      AuthorsModel.findOne(
+        { _id: 'u1' },
+        // @ts-expect-error a limit needs a sort
+        { populate: { comments: { limit: 1 }, posts: { limit: 0, sort: { title: 1 } } } }
+      )
+    ).rejects.toMatchObject({
+      issues: [
+        {
+          message: 'a limit needs a sort: without one, the documents it keeps are arbitrary',
+          path: ['populate', 'comments', 'limit']
+        },
+        {
+          message: 'the limit of populate is a positive integer',
+          path: ['populate', 'posts', 'limit']
+        }
+      ]
+    })
   })
 
   test('needs a foreignField of the target that stores what the localField does', async () => {
