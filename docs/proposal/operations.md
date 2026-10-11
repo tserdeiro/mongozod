@@ -67,6 +67,10 @@ Los inserts son la única diferencia, y no rompen el código escrito para el dri
 
 ## Reemplazos
 
+`insertMany` y `bulkWrite` validan todo el lote antes de escribir: si un documento o una operación
+falla, no escriben nada y lanzan un solo `ZodError` con los issues de todos los que fallan, cada uno
+bajo su índice, como `[1, 'title']` o `[1, '$set', 'title']`.
+
 `replaceOne` y `findOneAndReplace` validan el reemplazo como un insert: reciben el `z.input` del
 schema y aplican sus defaults, transforms y refinements, también los de la raíz. El `_id` se escribe
 solo si se pasa. El `_id` de un documento no puede cambiar (el servidor responde con el código 66),
