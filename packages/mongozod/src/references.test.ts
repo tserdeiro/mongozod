@@ -350,6 +350,21 @@ describe('the option', () => {
     ).toThrow('references needs the field "owner" in the schema')
   })
 
+  test('takes top-level fields, not paths', () => {
+    expect(() =>
+      mongozod({
+        collection: 'orders',
+        db,
+        // @ts-expect-error items.product is a path
+        references: { 'items.product': () => AccountsModel },
+        schema: z.object({
+          _id: z.string(),
+          items: z.array(z.object({ product: z.string(), qty: z.number() }))
+        })
+      })
+    ).toThrow('references takes top-level fields, and "items.product" is a path')
+  })
+
   test('points to a function that returns a model, or to a collection and its schema', () => {
     const options = {
       collection: 'transactions',

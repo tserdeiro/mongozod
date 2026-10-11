@@ -355,7 +355,7 @@ En orden de prioridad. Los que dicen «decidir» cambian algo registrado en la p
    (error 2). Hecho.
 3. **`mz.filter`**: exigir `$regex` cuando viene `$options` (error 3), con un test contra MongoDB. Hecho.
 4. **`references`**: rechazar en runtime una referencia que no es un campo de primer nivel, como
-   hacen los tipos (error 4), con un test.
+   hacen los tipos (error 4), con un test. Hecho.
 
 ### Antes de publicar la 0.x (fase 6)
 

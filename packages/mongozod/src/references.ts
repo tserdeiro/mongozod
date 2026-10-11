@@ -151,13 +151,18 @@ export type Populated<T, R, Pop> = [keyof Pop] extends [never]
     : never
 
 /**
- * Checks that each reference is a field of the schema, in one or more types of document, and points
- * to a function or to `{ collection, schema }`. Throws an `Error` when it does not.
+ * Checks that each reference is a top-level field of the schema, in one or more types of document,
+ * and points to a function or to `{ collection, schema }`. Throws an `Error` when it does not.
  */
 export function checkReferences(schema: core.$ZodType, references: object = {}): void {
   const types = documentTypes(schema)
 
   for (const [name, target] of Object.entries(references)) {
+    // `populate` reads the top-level field, so a path would leave its ids untouched.
+    if (name.includes('.')) {
+      throw new Error(`references takes top-level fields, and "${name}" is a path`)
+    }
+
     if (!types.some((type) => schemaAt(type, name, 'filter').length > 0)) {
       throw new Error(`references needs the field "${name}" in the schema`)
     }
