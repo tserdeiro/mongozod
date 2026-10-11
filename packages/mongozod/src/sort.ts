@@ -1,15 +1,14 @@
 import type { PathSuggestions } from './path-suggestions'
 import type { FieldAt, NotAPath } from './schema-at'
+import type { SortDirection as DriverSortDirection } from 'mongodb'
 
-/** The directions of a sort, and `{ $meta: 'textScore' }` to sort by text search relevance. */
-export type SortDirection =
-  | -1
-  | 1
-  | 'asc'
-  | 'ascending'
-  | 'desc'
-  | 'descending'
-  | { readonly $meta: 'textScore' }
+/** `{ $meta: 'textScore' }`, which sorts by text search relevance. */
+interface TextScore {
+  readonly $meta: 'textScore'
+}
+
+/** The driver's directions of a sort, with its `$meta` narrowed to `textScore`. */
+export type SortDirection = Exclude<DriverSortDirection, { readonly $meta: string }> | TextScore
 
 /**
  * Checks a sort key by key: each one must be a path of the document, except one that sorts by text
@@ -18,7 +17,7 @@ export type SortDirection =
 export type SortCheck<S, Sort> = {
   [K in keyof Sort]: K extends string
     ? Sort[K] extends { $meta: unknown }
-      ? { readonly $meta: 'textScore' }
+      ? TextScore
       : string extends K
         ? 'a sort key must be a literal path'
         : [FieldAt<S, K, 'filter'>] extends [never]
