@@ -27,7 +27,7 @@ El orden de implementación. Al cerrar una fase, se marca acá en el mismo cambi
    1. El contrato: `definePlugin`, los hooks, el `middleware`, las opciones, el contexto y los
       métodos (hecho).
    2. [`softDelete`](./plugins/soft-delete.md), en `mongozod/plugins/soft-delete` (hecho).
-4. **Inputs** (hecho): `mz`, en `mongozod/mz`. Ver [Inputs de los endpoints](./inputs.md).
+4. **Inputs** (hecho): `mz`, en `mongozod/mzod`. Ver [Inputs de los endpoints](./inputs.md).
 5. **Reemplazo de Mongoose** (hecho): lo que falta para que mongozod reemplace a Mongoose en sus funciones
    principales, que es el [criterio de la v1](./README.md#objetivo). Sale de la
    [auditoría de las fases 1 a 4](../audits/phases-1-4.md#decidir), con los puntos ya decididos, en

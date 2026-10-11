@@ -107,7 +107,7 @@ existían, y la segunda era mucho más simple. Los plugins y `mz` son otro 29%.
    [documentación de plugins](../proposal/plugins/README.md#hooks) los dejan sin grupo, que es lo
    correcto: no tienen filtro.
 3. **`mz.filter` acepta un `$options` sin `$regex`.** Un campo con `['$regex']` suma `$options` a su
-   schema ([mz/filter.ts](../../packages/mongozod/src/mz/filter.ts#L235)), y los dos son opcionales.
+   schema ([mz/filter.ts](../../packages/mongozod/src/mzod/filter.ts#L235)), y los dos son opcionales.
    Lo probé con el build:
    - `{ name: { $options: 'i' } }` pasa la validación.
    - MongoDB 8.2 lo rechaza con el código 2: `$options needs a $regex`.

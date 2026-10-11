@@ -43,7 +43,7 @@ export const BrandsModel = mongozod({
 ```ts
 // schemas/validations.ts: client-safe, no model imported.
 
-import * as mz from 'mongozod/mz'
+import * as mz from 'mongozod/mzod'
 import { z } from 'zod'
 
 /** The project's own search, here MongoDB's text index. */
@@ -99,8 +99,8 @@ manda `{ createdAt, _id }` del último elemento de la página.
 
 ## Decisiones de los inputs
 
-1. **`mz`.** `mongozod/mz` exporta cada constructor con su nombre, y se importa como namespace,
-   como el `import * as z` de Zod: `import * as mz from 'mongozod/mz'`, y después `mz.filter`,
+1. **`mz`.** `mongozod/mzod` exporta cada constructor con su nombre, y se importa como namespace,
+   como el `import * as z` de Zod: `import * as mz from 'mongozod/mzod'`, y después `mz.filter`,
    `mz.update`, `mz.sort`, `mz.projection`, `mz.cursor` y `mz.populate`.
    - **Junto a `z`**: no reexporta Zod, así que cada archivo conserva su `z` y suma un import, sin
      chocar. Cada constructor devuelve un schema de Zod que se anida en `z.object` como cualquier
@@ -110,9 +110,13 @@ manda `{ createdAt, _id }` del último elemento de la página.
      Pero un bundler incluye el objeto entero: usar solo `mz.sort` sumaba 14 KB al cliente, y con
      exports con nombre suma 3,4 KB. Se eligió el tamaño, como Zod: el import se escribe una vez
      por archivo, como el de `z`, y los nombres sueltos solo aparecen con `import { filter }`.
-   - **Subpath**: `mongozod/mz`, igual que lo único que exporta. `/zod` hacía esperar un `z`, y
-     `/inputs` no coincidía con `mz`. No importa el driver, así los schemas de validación siguen
-     sirviendo en web y en native.
+   - **Subpath**: `mongozod/mzod`, que explica el alias: `mz` sale de `mzod` como `z` sale de
+     `zod`, y se usa igual, `mz.filter` junto a `z.object`. Es un subpath aparte porque exponer la
+     sintaxis de MongoDB a clientes es opcional, una idea inspirada en GraphQL. Se descartaron
+     `/mz`, que no se entendía, `/zod`, que hacía esperar un `z` reexportado, `/schemas` y
+     `/validations`, que no dicen qué valida, y `/query-syntax`, el nombre de Feathers, que no
+     convenció. No importa el driver, así los schemas de validación siguen sirviendo en web y en
+     native.
 2. **Sin fallbacks en el router, con la API de Zod.** Los constructores no tienen props propias
    para lo que pasa cuando el cliente no manda algo: lo decide el proyecto con Zod. Una lista usa
    `.default({})` en `mz.filter` y `mz.cursor`, así el router solo junta filtros con `$and`, sin
