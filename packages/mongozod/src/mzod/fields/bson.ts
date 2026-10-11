@@ -29,15 +29,16 @@ const hexToObjectId = z.codec(z.hex().length(24), objectIdInstance, {
  * hex string, and the `$jsonSchema` of `sync()` checks it as an `objectId`.
  *
  * It imports `bson`, never the driver, so the schemas that use it also run in web and native
- * clients. Install the `bson` major of your driver: 7 for `mongodb` 7, 6 for `mongodb` 6.
+ * clients. `bson` is a peer dependency, of the major of your driver: 7 for `mongodb` 7, 6 for
+ * `mongodb` 6.
  *
  * @example
  *   ;```ts
  *   import { Binary, BSONError, Decimal128, ObjectId } from 'bson'
- *   import { objectId } from 'mongozod/codecs/bson'
+ *   import * as mz from 'mongozod/mzod'
  *
  *   const brandSchema = z.object({
- *     _id: objectId().default(() => new ObjectId()),
+ *     _id: mz.objectId().default(() => new ObjectId()),
  *     owner: objectId()
  *   })
  *   ```
@@ -101,9 +102,9 @@ const DECIMAL128_ERROR =
  *
  * @example
  *   ;```ts
- *   import { decimal128 } from 'mongozod/codecs/bson'
+ *   import * as mz from 'mongozod/mzod'
  *
- *   const invoiceSchema = z.object({ total: decimal128() })
+ *   const invoiceSchema = z.object({ total: mz.decimal128() })
  *   ```
  */
 export function decimal128() {
@@ -153,9 +154,9 @@ const BINARY_ERROR =
  *
  * @example
  *   ;```ts
- *   import { binary } from 'mongozod/codecs/bson'
+ *   import * as mz from 'mongozod/mzod'
  *
- *   const fileSchema = z.object({ name: z.string(), data: binary() })
+ *   const fileSchema = z.object({ name: z.string(), data: mz.binary() })
  *   ```
  */
 // The return type is written out: TypeScript 7 would emit `Uint8Array<ArrayBufferLike>`, which

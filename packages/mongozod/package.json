@@ -24,9 +24,6 @@
   "sideEffects": false,
   "exports": {
     ".": "./dist/index.mjs",
-    "./codecs/bson": "./dist/codecs/bson.mjs",
-    "./codecs/date": "./dist/codecs/date.mjs",
-    "./geojson": "./dist/geojson.mjs",
     "./mzod": "./dist/mzod.mjs",
     "./plugins/soft-delete": "./dist/plugins/soft-delete.mjs",
     "./package.json": "./package.json"
@@ -55,11 +52,6 @@
     "bson": "^6.10.0 || ^7.0.0",
     "mongodb": "^6.20.0 || ^7.0.0",
     "zod": "^4.5.0"
-  },
-  "peerDependenciesMeta": {
-    "bson": {
-      "optional": true
-    }
   },
   "config": {
     "mongodbMemoryServer": {

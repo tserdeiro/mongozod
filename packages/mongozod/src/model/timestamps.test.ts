@@ -11,8 +11,8 @@ import {
 } from 'vitest'
 import { z } from 'zod'
 
-import { date } from '../codecs/date'
 import { mongozod } from '../mongozod'
+import { date } from '../mzod/fields/date'
 
 const client = new MongoClient(inject('mongoUri'))
 const db = client.db('mongozod-timestamps')

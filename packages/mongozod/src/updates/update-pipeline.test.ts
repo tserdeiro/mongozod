@@ -2,8 +2,8 @@ import { MongoClient, MongoServerError } from 'mongodb'
 import { afterAll, beforeAll, beforeEach, describe, expect, inject, test } from 'vitest'
 import { z } from 'zod'
 
-import { date } from '../codecs/date'
 import { mongozod } from '../mongozod'
+import { date } from '../mzod/fields/date'
 import { softDelete } from '../plugins/soft-delete'
 
 const client = new MongoClient(inject('mongoUri'))

@@ -119,9 +119,13 @@ export interface MongozodOptions<
    * gives them. Off by default.
    *
    * @example
-   *   import { date } from 'mongozod/codecs/date'
+   *   import * as mz from 'mongozod/mzod'
    *
-   *   const noteSchema = z.object({ title: z.string(), createdAt: date(), updatedAt: date() })
+   *   const noteSchema = z.object({
+   *     title: z.string(),
+   *     createdAt: mz.date(),
+   *     updatedAt: mz.date()
+   *   })
    */
   timestamps?: T
 

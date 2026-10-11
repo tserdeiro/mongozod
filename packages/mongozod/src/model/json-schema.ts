@@ -163,7 +163,7 @@ function describe(schema: core.$ZodType, seen: ReadonlySet<core.$ZodType>): Docu
  * The `$jsonSchema` of a model's schema, for the documents as stored: the BSON type of each field,
  * the required ones, nested objects and arrays, enums and literals, `null` and unions. Refinements
  * stay in the app, and transforms, customs and recursive schemas have no rules, unless their
- * metadata declares a `bsonType`, as the `objectId()` of `mongozod/codecs/bson` does. Without an
+ * metadata declares a `bsonType`, as the `mz.objectId()` of `mongozod/mzod` does. Without an
  * `_id` in the schema, the driver's `ObjectId` passes.
  */
 export function toJsonSchema(schema: core.$ZodType): Document {

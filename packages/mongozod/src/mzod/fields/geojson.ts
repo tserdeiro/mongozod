@@ -48,9 +48,9 @@ const rings = z.array(ring).min(1, 'a polygon has its exterior ring')
  *
  * @example
  *   ;```ts
- *   import { point } from 'mongozod/geojson'
+ *   import * as mz from 'mongozod/mzod'
  *
- *   const storeSchema = z.object({ name: z.string(), location: point() })
+ *   const storeSchema = z.object({ name: z.string(), location: mz.point() })
  *   // { name: 'Centro', location: { type: 'Point', coordinates: [-58.38, -34.6] } }
  *   ```
  */

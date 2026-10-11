@@ -11,9 +11,10 @@ import {
 } from 'vitest'
 import { z } from 'zod'
 
+import { toJsonSchema } from '../../model/json-schema'
+import { mongozod } from '../../mongozod'
+
 import { lineString, multiLineString, multiPoint, multiPolygon, point, polygon } from './geojson'
-import { toJsonSchema } from './model/json-schema'
-import { mongozod } from './mongozod'
 
 const client = new MongoClient(inject('mongoUri'))
 const db = client.db('mongozod-geojson')

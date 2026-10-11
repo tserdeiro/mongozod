@@ -11,9 +11,9 @@ import {
 } from 'vitest'
 import { z } from 'zod'
 
-import { toJsonSchema } from '../model/json-schema'
-import { mongozod } from '../mongozod'
-import { filter } from '../mzod/filter'
+import { toJsonSchema } from '../../model/json-schema'
+import { mongozod } from '../../mongozod'
+import { filter } from '../filter'
 
 import { date } from './date'
 

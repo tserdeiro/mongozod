@@ -1,9 +1,15 @@
 /**
- * The builders of endpoint inputs: Zod schemas whose values are MongoDB syntax, restricted to what
- * each endpoint declares. They nest in `z.object` like any other schema, and they never import the
- * driver, so the validation schemas that use them also run in web and native clients.
+ * The Zod of MongoDB: what Zod does not bring for MongoDB, in one namespace. Import it as one,
+ * like Zod, so a bundler keeps only what a client uses:
  *
- * Import them as a namespace, like Zod: a bundler keeps only the builders a client uses.
+ * - **Field types** for a document's schema: `objectId()`, `decimal128()`, `binary()`, `date()` and
+ *   GeoJSON, which take what a JSON client sends and return the BSON value.
+ * - **Builders of endpoint inputs**, from a document's schema: `filter`, `update`, `sort`,
+ *   `projection`, `cursor` and `populate`, MongoDB syntax restricted to what each endpoint
+ *   declares.
+ *
+ * It never imports the driver, so the schemas that use it also run in web and native clients. It
+ * imports `bson`, a peer dependency, which a bundler leaves out unless a field needs it.
  *
  * @module
  *
@@ -11,6 +17,8 @@
  *   ;```ts
  *   import * as mz from 'mongozod/mzod'
  *   import { z } from 'zod'
+ *
+ *   const brandSchema = z.object({ _id: mz.objectId(), name: z.string(), createdAt: mz.date() })
  *
  *   export const listBrandsSchema = z.object({
  *     cursor: mz.cursor(brandSchema, { createdAt: -1, _id: -1 }).default({}),
@@ -27,3 +35,13 @@ export { populate } from './mzod/populate'
 export { projection } from './mzod/projection'
 export { sort } from './mzod/sort'
 export { update } from './mzod/update'
+export { binary, decimal128, objectId } from './mzod/fields/bson'
+export { date } from './mzod/fields/date'
+export {
+  lineString,
+  multiLineString,
+  multiPoint,
+  multiPolygon,
+  point,
+  polygon
+} from './mzod/fields/geojson'

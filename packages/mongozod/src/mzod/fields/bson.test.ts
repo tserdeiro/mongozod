@@ -17,10 +17,10 @@ import {
 } from 'vitest'
 import { z } from 'zod'
 
-import { toJsonSchema } from '../model/json-schema'
-import { mongozod } from '../mongozod'
-import { filter } from '../mzod/filter'
-import { update } from '../mzod/update'
+import { toJsonSchema } from '../../model/json-schema'
+import { mongozod } from '../../mongozod'
+import { filter } from '../filter'
+import { update } from '../update'
 
 import { binary, decimal128, objectId } from './bson'
 

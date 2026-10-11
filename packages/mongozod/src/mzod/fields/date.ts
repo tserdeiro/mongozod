@@ -19,9 +19,9 @@ const isoToDate = z.codec(z.iso.datetime({ offset: true }), z.date(), {
  *
  * @example
  *   ;```ts
- *   import { date } from 'mongozod/codecs/date'
+ *   import * as mz from 'mongozod/mzod'
  *
- *   const noteSchema = z.object({ createdAt: date(), scheduledFor: date().optional() })
+ *   const noteSchema = z.object({ createdAt: mz.date(), scheduledFor: mz.date().optional() })
  *   ```
  */
 export function date() {

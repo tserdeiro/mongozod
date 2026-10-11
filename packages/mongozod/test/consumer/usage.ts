@@ -4,9 +4,6 @@ import type { AnyModel, FilterOf, ReadOptionsArg } from 'mongozod'
 import { Decimal128, ObjectId } from 'bson'
 import { MongoClient } from 'mongodb'
 import { definePlugin, mongozod } from 'mongozod'
-import { binary, decimal128, objectId } from 'mongozod/codecs/bson'
-import { date } from 'mongozod/codecs/date'
-import { point } from 'mongozod/geojson'
 import * as mz from 'mongozod/mzod'
 import { softDelete } from 'mongozod/plugins/soft-delete'
 import { z } from 'zod'
@@ -45,7 +42,7 @@ const EventsModel = mongozod({
   ])
 })
 
-const timestampSchema = date()
+const timestampSchema = mz.date()
 
 const PostsModel = mongozod({
   collection: 'posts',
@@ -302,13 +299,13 @@ export async function usage() {
 }
 
 const brandSchema = z.object({
-  _id: objectId().default(() => new ObjectId()),
+  _id: mz.objectId().default(() => new ObjectId()),
   budget: z.instanceof(Decimal128).meta({ bsonType: 'decimal' }).optional(),
-  fee: decimal128().optional(),
-  logo: binary().optional(),
-  office: point().optional(),
-  launchedAt: date().optional(),
-  owner: objectId().optional()
+  fee: mz.decimal128().optional(),
+  logo: mz.binary().optional(),
+  office: mz.point().optional(),
+  launchedAt: mz.date().optional(),
+  owner: mz.objectId().optional()
 })
 
 export async function brands() {
