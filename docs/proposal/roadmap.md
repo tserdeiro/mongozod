@@ -83,10 +83,11 @@ El orden de implementación. Al cerrar una fase, se marca acá en el mismo cambi
          [#12916](https://github.com/Automattic/mongoose/issues/12916)). Devuelve un array y no un
          `Set`, porque las lecturas no se parsean. Ver
          [Inputs](./inputs.md#decisiones-de-los-inputs).
-      6. El `limit` de `populate` por documento, no para todos juntos como en Mongoose
-         ([Automattic/mongoose#15863](https://github.com/Automattic/mongoose/issues/15863)). Se
-         verifica si sale en una consulta con `$setWindowFields`, particionando por el
-         `foreignField`.
+      6. El `limit` de `populate` por documento (hecho), no para todos juntos como en Mongoose
+         ([Automattic/mongoose#15863](https://github.com/Automattic/mongoose/issues/15863)): corta
+         cada array de ids, y en una uno a muchos, que exige un `sort`, hace una consulta por
+         documento. Una sola con `$setWindowFields` no alcanza: el `aggregate` no pasa por los
+         plugins del destino. Ver [Referencias](./model.md#referencias).
       7. Una referencia con `localField` que devuelve un documento y no un array, para poblar
          `capital` desde `capitalId`
          ([Automattic/mongoose#3225](https://github.com/Automattic/mongoose/issues/3225) y

@@ -202,6 +202,12 @@ await TransactionsModel.find(
     referencias en vez de reemplazarlas, y pasa por los plugins del destino;
   - `sort` ordena los arrays con el orden de la consulta; sin `sort`, un array conserva el orden en
     que guarda los ids;
+  - `limit` deja los primeros N de cada documento, no N para todo el lote: el `limit` de Mongoose
+    cuenta los del lote
+    ([Automattic/mongoose#15863](https://github.com/Automattic/mongoose/issues/15863)). Solo toma
+    referencias que guardan un array, o las de uno a muchos; en una que guarda un id no compila. En
+    un array de ids, la consulta ya trae cada id, así que se corta cada array, en su orden o en el
+    de `sort`, después del `filter`;
   - `populate` puebla las referencias del destino, en los niveles que se pidan: el `find` de su
     modelo lo recibe y lo resuelve con sus plugins y sus virtuals, y lo valida contra sus
     referencias. Una colección sin modelo no tiene referencias, así que no lo toma.
@@ -209,9 +215,7 @@ await TransactionsModel.find(
   Una opción desconocida no compila y lanza un `ZodError`, con el issue en
   `['populate', key, option]`.
 
-  `limit`, `skip` y `perDocumentLimit` quedan afuera: con una consulta `$in` por lote, `limit` no
-  es por documento, la trampa que documenta Mongoose, y `perDocumentLimit` hace una consulta por
-  documento.
+  `skip` queda afuera.
 
 - **Uno a muchos**: una referencia con `foreignField` trae los documentos del destino que apuntan
   a este, sin guardar sus ids, como el virtual populate de Mongoose:
@@ -229,6 +233,13 @@ await TransactionsModel.find(
   - **Proyecciones**: si la de la lectura deja afuera el `localField`, incluido un `_id: 0`, se pide
     igual y se quita después; una exclusión que lo deja afuera no compila y lanza un `ZodError`.
     Con el `foreignField` del destino pasa lo mismo, para ubicar cada documento.
+  - **`limit`**: exige un `sort`, porque sin uno MongoDB no garantiza qué documentos deja; si no,
+    no compila y lanza un `ZodError`. Hace una consulta por documento, en paralelo, cada una con su
+    `limit`, como el `perDocumentLimit` de Mongoose: una sola consulta no alcanza. Un `aggregate`
+    con `$setWindowFields` o `$topN` traería N por documento en una, pero no pasa por los plugins
+    del destino (un `softDelete` contaría los borrados), ni por sus virtuals ni por el `populate`
+    anidado. Traer todos y cortar sería exacto, pero cargaría todos los que apuntan al documento,
+    lo que el `limit` tiene que evitar.
   - **`populate` anidado**: no toma el `foreignField`, que apunta de vuelta al mismo documento, y
     poblarlo reemplazaría los valores que ubican cada documento.
   - **Después de la v1**: la opción `count` de Mongoose y las referencias dinámicas con `refPath`.
@@ -236,7 +247,8 @@ await TransactionsModel.find(
   como en Mongoose, y un array guarda los que encuentra. El tipo es `Ref | null`, así que el código
   lo maneja con `?.` sin chequear `typeof`. MongoModel dejaba el id.
 - **Consultas**: una `$in` por referencia y por lote del servidor, con cada id una vez y la sesión
-  de la lectura, así ve las escrituras de su transacción. Las referencias de un lote se consultan
+  de la lectura, así ve las escrituras de su transacción, salvo una uno a muchos con `limit`, que
+  hace una por documento. Las referencias de un lote se consultan
   en paralelo.
 - **Con una proyección**: una inclusión trae igual las referencias que se populan, como trae los
   campos de un virtual, salvo que ya incluya la referencia o un objeto de arriba, como `items`: pedir
