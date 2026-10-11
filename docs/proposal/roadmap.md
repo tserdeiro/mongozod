@@ -60,6 +60,49 @@ El orden de implementación. Al cerrar una fase, se marca acá en el mismo cambi
          `mz.geometryCollection()`,
          con las reglas de MongoDB para los índices `2dsphere` (`[longitud, latitud]`, sus rangos
          y los anillos cerrados). No son codecs: validan la forma, sin convertir valores.
+   2. Lo que Mongoose no resolvió, de un repaso de sus issues abiertos y de los más votados:
+      1. `exactOptionalPropertyTypes` (hecho): lo que devuelve un schema de `mz` se pasa al modelo
+         con esa opción, el problema de
+         [Automattic/mongoose#16273](https://github.com/Automattic/mongoose/issues/16273).
+      2. Los discriminators de varios niveles: una `z.discriminatedUnion` dentro de otra. En runtime
+         ya funcionan; falta que los tipos del modelo la acepten. Es el issue abierto más votado,
+         [Automattic/mongoose#2851](https://github.com/Automattic/mongoose/issues/2851), con
+         [#8361](https://github.com/Automattic/mongoose/issues/8361) y
+         [#9756](https://github.com/Automattic/mongoose/issues/9756).
+      3. El costo de los tipos como garantía: un job de CI con un límite de instanciaciones y de
+         tiempo de chequeo, porque Mongoose vuelve lento al editor
+         ([Automattic/mongoose#10349](https://github.com/Automattic/mongoose/issues/10349)).
+      4. `mz.uuid()`: un string ↔ un `Binary` de subtipo 4, la mitad de espacio que un string
+         ([Automattic/mongoose#3208](https://github.com/Automattic/mongoose/issues/3208)). Antes se
+         verifica con qué tipo lo lee el driver.
+      5. `mz.set(item)`: un array sin repetidos ↔ un `Set`, cuyos updates solo aceptan
+         `$addToSet`, ni `$push` ni un `$set` por índice, así la unicidad queda garantizada dentro
+         del documento sin un índice
+         ([Automattic/mongoose#3347](https://github.com/Automattic/mongoose/issues/3347),
+         [#8082](https://github.com/Automattic/mongoose/issues/8082) y
+         [#12916](https://github.com/Automattic/mongoose/issues/12916)).
+      6. El `limit` de `populate` por documento, no para todos juntos como en Mongoose
+         ([Automattic/mongoose#15863](https://github.com/Automattic/mongoose/issues/15863)). Se
+         verifica si sale en una consulta con `$setWindowFields`, particionando por el
+         `foreignField`.
+      7. Una referencia con `localField` que devuelve un documento y no un array, para poblar
+         `capital` desde `capitalId`
+         ([Automattic/mongoose#3225](https://github.com/Automattic/mongoose/issues/3225) y
+         [#9034](https://github.com/Automattic/mongoose/issues/9034)).
+      8. Un `sort` por defecto en el modelo, para las lecturas que no mandan uno
+         ([Automattic/mongoose#16577](https://github.com/Automattic/mongoose/issues/16577)).
+      9. Los codecs de Temporal ↔ `Date`, si la versión mínima de Node lo trae sin flag
+         ([Automattic/mongoose#11462](https://github.com/Automattic/mongoose/issues/11462)).
+      10. Generar el schema de Zod de una colección, desde su `$jsonSchema` o una muestra de
+          documentos, como `prisma db pull`, y desde un schema de Mongoose para migrar
+          ([Automattic/mongoose#14570](https://github.com/Automattic/mongoose/issues/14570)).
+      11. El cifrado de campos (CSFLE y Queryable Encryption): `sync()` arma los `encryptedFields`
+          desde `.meta({ encrypt })`, como `bsonType`
+          ([Automattic/mongoose#13412](https://github.com/Automattic/mongoose/issues/13412)).
+      12. Un plugin de integridad de las `references`: el borrado en cascada y la validación de que
+          el documento referenciado existe
+          ([Automattic/mongoose#15417](https://github.com/Automattic/mongoose/issues/15417) y
+          [#8163](https://github.com/Automattic/mongoose/issues/8163)).
 
    Con ella van:
    1. El README del paquete y de la raíz: qué es, cómo se instala, un ejemplo mínimo y que la API
@@ -69,7 +112,41 @@ El orden de implementación. Al cerrar una fase, se marca acá en el mismo cambi
       filtros) y las recetas, como el virtual `id` y `__v`. Deja claro que Mongoose y mongozod
       conviven sobre la misma conexión mientras se migra, modelo por modelo, con el driver 6 de
       Mongoose 8 o el 7 de Mongoose 9. Trae un «Copy prompt» para que cada equipo le pase la
-      migración a su agente.
+      migración a su agente. También lista los issues de Mongoose que mongozod resuelve:
+      - **Validar los updates:**
+        - un upsert sin los campos obligatorios
+          ([#7037](https://github.com/Automattic/mongoose/issues/7037));
+        - los subdocumentos
+          ([#5234](https://github.com/Automattic/mongoose/issues/5234));
+        - todos los errores juntos
+          ([#3037](https://github.com/Automattic/mongoose/issues/3037)).
+      - **Tipar:**
+        - las proyecciones con paths con punto
+          ([#16575](https://github.com/Automattic/mongoose/issues/16575));
+        - las funciones genéricas sobre modelos
+          ([#14459](https://github.com/Automattic/mongoose/issues/14459));
+        - `populate`
+          ([#16010](https://github.com/Automattic/mongoose/issues/16010));
+        - `timestamps`
+          ([#12069](https://github.com/Automattic/mongoose/issues/12069)).
+      - **Filtrar sin castear:**
+        - un `$match` con un string en vez de un `ObjectId` no compila
+          ([#1399](https://github.com/Automattic/mongoose/issues/1399));
+        - un valor que no está en el enum tampoco
+          ([#15581](https://github.com/Automattic/mongoose/issues/15581)).
+      - **Ya incluidos:**
+        - GeoJSON
+          ([#6606](https://github.com/Automattic/mongoose/issues/6606));
+        - el soft delete
+          ([#7304](https://github.com/Automattic/mongoose/issues/7304)).
+      - **`sync()` explícito:** los índices y las colecciones no se crean solos
+        ([#15803](https://github.com/Automattic/mongoose/issues/15803) y
+        [#13546](https://github.com/Automattic/mongoose/issues/13546)).
+
+      Antes de listarlos se verifican contra MongoDB dos que se suponen resueltos: que un objeto
+      vacío se guarda
+      ([#8505](https://github.com/Automattic/mongoose/issues/8505)) y que un upsert con
+      `_id: null` falla ([#9201](https://github.com/Automattic/mongoose/issues/9201)).
 
 7. **Después**: [`audit`](./plugins/audit.md), [`logger`](./plugins/logger.md) y
    [`history`](./plugins/history.md); `mz.from(schema)`, que ata los constructores de inputs a un
