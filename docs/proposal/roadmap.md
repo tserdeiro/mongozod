@@ -74,9 +74,8 @@ El orden de implementación. Al cerrar una fase, se marca acá en el mismo cambi
          de instanciaciones; el tiempo de chequeo se informa sin fallar, porque varía entre
          corridas. Ver [Herramientas](./structure.md#herramientas). Mongoose vuelve lento al editor
          ([Automattic/mongoose#10349](https://github.com/Automattic/mongoose/issues/10349)).
-      4. `mz.uuid()`: un string ↔ un `Binary` de subtipo 4, la mitad de espacio que un string
-         ([Automattic/mongoose#3208](https://github.com/Automattic/mongoose/issues/3208)). Antes se
-         verifica con qué tipo lo lee el driver.
+      4. `mz.uuid()` (hecho): el string de un UUID ↔ un `UUID`, el `Binary` de subtipo 4 con el que
+         lee el driver. Ver [Inputs](./inputs.md#decisiones-de-los-inputs).
       5. `mz.set(item)`: un array sin repetidos ↔ un `Set`, cuyos updates solo aceptan
          `$addToSet`, ni `$push` ni un `$set` por índice, así la unicidad queda garantizada dentro
          del documento sin un índice

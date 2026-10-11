@@ -103,7 +103,7 @@ manda `{ createdAt, _id }` del último elemento de la página.
    namespace, que se importa como el `import * as z` de Zod: `import * as mz from 'mongozod/mzod'`.
    - **Dos grupos**: los constructores de inputs, `mz.filter`, `mz.update`, `mz.sort`,
      `mz.projection`, `mz.after` y `mz.populate`, que reciben un schema; y los tipos de campo,
-     `mz.objectId()`, `mz.decimal128()`, `mz.binary()`, `mz.date()` y los de GeoJSON, que van en el
+     `mz.objectId()`, `mz.decimal128()`, `mz.binary()`, `mz.uuid()`, `mz.date()` y los de GeoJSON, que van en el
      schema del documento. Los nombres los separan: los primeros son los de las opciones del driver
      (`find(filter)`, `updateOne(filter, update)`, `sort`, `projection`), y los segundos, tipos BSON.
      Están planos, como `z.string()` y `z.object()` en Zod: un sub-namespace como `mz.query` no
@@ -328,6 +328,20 @@ manda `{ createdAt, _id }` del último elemento de la página.
     - **Altitud**: MongoDB acepta un tercer valor, y hasta un cuarto; el RFC 7946 permite la altitud
       y desaconseja más, así que toman tres como máximo.
     - **Sin `bson`**: importan solo Zod, así sirven en el cliente.
+
+18. **UUID**: se declaran con `mz.uuid()`, que los guarda como un `Binary` de subtipo 4: 16 bytes,
+    donde su string ocupa 36
+    ([Automattic/mongoose#3208](https://github.com/Automattic/mongoose/issues/3208)). Toma el
+    string de un UUID, que manda un cliente JSON, o un `UUID`, y devuelve un `UUID`. `z.encode`
+    lo vuelve al string, y `JSON.stringify` también, por el `toJSON()` de bson.
+    - **Devuelve un `UUID`**: el driver lee el subtipo 4 como un `UUID`, una subclase de `Binary`,
+      con bson 6.10 y con bson 7 (verificado). Así el tipo de las lecturas es el que llega, y un
+      documento leído vuelve a escribirse. Un `Binary` de subtipo 4 pasa a ser un `UUID`; uno de
+      otro subtipo se rechaza.
+    - **El string**: el de `z.uuid()`, con guiones, en mayúsculas o minúsculas. Sin guiones se
+      rechaza, aunque bson lo acepta, porque no es la forma que manda un cliente.
+    - **Filtros**: el modelo no castea, así que un filtro escrito a mano pide un `UUID`; el string
+      que manda un cliente lo convierte `mz.filter`.
 
 ## Qué reemplaza
 
