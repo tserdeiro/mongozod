@@ -73,7 +73,8 @@ objeto por campo. Está apagada por defecto.
   `new Date()` por operación: todos los documentos de un `insertMany` tienen la misma fecha.
 - **Updates**: `updatedAt` va en `$set` y, en un upsert, `createdAt` va en `$setOnInsert`, como en
   Mongoose. En un upsert, `updatedAt` es la fecha de la escritura, porque `$set` y `$setOnInsert` no
-  pueden escribir el mismo campo.
+  pueden escribir el mismo campo. Un [pipeline](./types.md#updates) recibe una última etapa `$set`
+  con las dos fechas, `createdAt` con `$ifNull` y solo en un upsert.
 - **Escribirlos**: un update que escribe `updatedAt`, o `createdAt` fuera de `$setOnInsert`, no
   compila y lanza un `ZodError`: `"updatedAt" is set by timestamps: pass timestamps: false to write
   it`. Mongoose los descarta o pisa en silencio. `$setOnInsert` sí puede dar `createdAt`, que es la

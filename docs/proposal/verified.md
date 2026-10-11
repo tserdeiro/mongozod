@@ -605,6 +605,13 @@
   - Mongoose 9 rechaza por defecto los updates con pipeline y pide `updatePipeline: true`, por
     query o global (guía de migración a la 9). En un pipeline, su `applyTimestampsToUpdate` agrega
     `{ $set: { [updatedAt]: now } }` y no escribe `createdAt`.
+  - Updates con pipeline (MongoDB 8.2.6, TypeScript 5.5.4 y 7.0.2, 6 tests): `$add` calcula un
+    campo con `updatePipeline: true`; sin la opción no compila y lanza un `ZodError`, también en
+    `bulkWrite`; un `$match` no compila y el servidor lo rechaza con un `MongoServerError`;
+    `timestamps` actualiza `updatedAt`, y en un upsert el documento existente conserva su
+    `createdAt` y el insertado recibe uno igual a su `updatedAt`; `softDelete` deja afuera los
+    borrados (`modifiedCount` 1 de 2); y funcionan en `findOneAndUpdate` y `bulkWrite`. Los
+    mensajes de los tipos nombran la opción o las etapas que se aceptan.
   - Populate de Mongoose (su documentación): `match` deja en `null` una referencia que no cumple y
     saca las de un array; `limit` no es por documento, porque consulta con `numDocuments * limit`;
     `perDocumentLimit` hace una consulta por documento; `refPath` elige el modelo con otro campo del

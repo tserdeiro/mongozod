@@ -95,15 +95,25 @@ valor tiene que servir para su operador y su campo. Se aplica en `updateOne`, `u
 - **Lo que queda en el servidor o en el driver**: dos operadores sobre el mismo path, o un objeto y
   uno de sus campos, los rechaza el servidor con el código 40. Un update vacío lo rechaza el driver
   antes de mandarlo.
-- **Pipeline**: desde la fase 5, un update con pipeline de agregación pide `updatePipeline: true`,
-  como Mongoose 9, que los rechaza por defecto; hasta entonces no compila (`use .collection`). Los
-  tipos aceptan solo las etapas que MongoDB permite en un update (`$addFields` o `$set`, `$project`
-  o `$unset`, y `$replaceRoot` o `$replaceWith`), y el filtro sigue tipado. Sus valores no se
-  validan: son expresiones que calcula el servidor, y lo que no se ve lo cubre el `$jsonSchema`
-  opcional. Pasan por los plugins, así que `softDelete` filtra igual, y `timestamps` agrega una
-  etapa `{ $set: { updatedAt } }`, como Mongoose. La opción deja escrito en el código que ese
-  update no se valida. `.collection` también los acepta, pero se saltea los plugins, `timestamps`
-  y el filtro tipado.
+- **Pipeline**: un update con pipeline de agregación pide `updatePipeline: true`, como Mongoose 9,
+  que los rechaza por defecto. Sin la opción no compila y lanza un `ZodError`
+  (`an update with a pipeline needs updatePipeline: true`).
+  - **Dónde**: en las opciones de `updateOne`, `updateMany` y `findOneAndUpdate`, y en las de la
+    llamada de `bulkWrite`, como `timestamps: false`. Solo por operación, no en el modelo: así cada
+    update sin validar queda escrito donde se hace.
+  - **Etapas**: los tipos aceptan solo las que MongoDB permite en un update (`$set` o `$addFields`,
+    `$unset` o `$project`, y `$replaceWith` o `$replaceRoot`), con un mensaje que las nombra; en
+    runtime las chequea el servidor. El filtro sigue tipado.
+  - **Valores**: no se validan, porque son expresiones que calcula el servidor; lo que no se ve lo
+    cubre el `$jsonSchema` opcional. Un upsert tampoco agrega los defaults que le faltan al
+    documento: no se puede saber qué escribe el pipeline.
+  - **Plugins y `timestamps`**: pasan por los plugins, así que `softDelete` deja afuera los borrados,
+    y `timestamps` agrega una última etapa con `updatedAt`, como Mongoose. En un upsert, esa etapa
+    también pone `createdAt: { $ifNull: ['$createdAt', now] }`: el documento que existe conserva el
+    suyo, y el que inserta el upsert lo recibe. Mongoose no lo pone, y el documento queda sin
+    `createdAt`.
+  - **`.collection`** también los acepta, pero se saltea los plugins, `timestamps` y el filtro
+    tipado.
 
 ## Updates en runtime
 

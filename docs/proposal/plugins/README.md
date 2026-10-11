@@ -140,8 +140,10 @@ Si un `before` devuelve `{ result }`, la operación se resuelve como en capas: n
 respondió y de los anteriores. Con `[logger, softDelete, audit]`, el `after` de `logger` ve el
 borrado que `softDelete` convirtió en update, y `audit` no ve un borrado que no pasó.
 
-Desde la fase 5, el `update` de una operación con `updatePipeline: true` es un pipeline, un array
-de etapas: un hook que lee o cambia el update tiene que contemplarlo.
+El `update` de una operación con `updatePipeline: true` es un pipeline, un array de etapas: un hook
+que lee o cambia el update tiene que contemplarlo, por ejemplo agregando una etapa `$set` en vez de
+escribir en el `$set` del update. Por eso `update` se tipa como `Document | Document[]`, y
+`updatePipeline` es una opción de mongozod, que ningún plugin puede declarar.
 
 En un hook de grupo, `args` y `result` son la unión de las operaciones del grupo. Un `before` que
 solo cambia el filtro funciona tal cual, porque todas las operaciones del grupo lo tienen. Para
