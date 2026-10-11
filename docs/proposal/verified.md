@@ -566,6 +566,30 @@
     `TS2589`, y el chequeo queda entre 0,12 y 0,16 s. Unos 11 mil son el recorrido de los paths
     para las sugerencias, el mismo que hace el modelo.
 
+- **Reemplazo de Mongoose** (driver 6.20.0 y 7.7.0, bson 7.3.3, Zod 4.6.5, y la documentación y
+  el código de Mongoose):
+  - Con el driver 6.20.0, el que usa Mongoose 8 (`mongodb ~6.20.0`), mongozod compila sin errores y
+    pasan los 194 tests, el build, attw, publint y el consumidor de los `.d.ts` con TS 5.5 y 7. Los
+    tipos que importa del driver tienen la misma forma en los dos majors; en 6.20, `findOne` además
+    acepta `limit`, `batchSize` y `noCursorTimeout`. Cada driver trae su bson: 6.10.4 el 6.20, y el
+    serializador de bson lanza `Unsupported BSON version` con un valor de otro major.
+  - Formas de validar un `ObjectId`: `z.instanceof(ObjectId)` rechaza el hex; un regex con
+    `.transform()` rechaza un `ObjectId` y tipa el insert como `string`; la unión con
+    `.transform()` acepta los dos y `mz.filter` convierte el hex. Con transform, `z.encode` lanza
+    `Encountered unidirectional transform during encode`, y las tres generan `{}` en el
+    `$jsonSchema`. La página de codecs de Zod no trae uno de `ObjectId`.
+  - bson 7 rechaza un string de 12 caracteres en `new ObjectId()`, y `ObjectId.isValid` le da
+    `false`. Su símbolo público `bsonType` es `Symbol.for('@@mdb.bson.type')`, así que vale entre
+    copias de bson. `mongodb` reexporta el `ObjectId` de `bson`.
+  - Mongoose 9 rechaza por defecto los updates con pipeline y pide `updatePipeline: true`, por
+    query o global (guía de migración a la 9). En un pipeline, su `applyTimestampsToUpdate` agrega
+    `{ $set: { [updatedAt]: now } }` y no escribe `createdAt`.
+  - Populate de Mongoose (su documentación): `match` deja en `null` una referencia que no cumple y
+    saca las de un array; `limit` no es por documento, porque consulta con `numDocuments * limit`;
+    `perDocumentLimit` hace una consulta por documento; `refPath` elige el modelo con otro campo del
+    documento; el virtual populate usa `localField` y `foreignField`, y `count` devuelve la
+    cantidad.
+
 - **Herramientas del repo** (pnpm 12.11.2, Node 22.23.2, Bun 1.4.3):
   - Vitest 5, tsdown 0.23 y Changesets 3 piden Node 22.12 o superior, y Node 20 llegó al final de su
     vida el 2026-04-30. El driver 7 todavía acepta Node 20.19.

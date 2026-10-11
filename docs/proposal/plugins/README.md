@@ -140,6 +140,9 @@ Si un `before` devuelve `{ result }`, la operación se resuelve como en capas: n
 respondió y de los anteriores. Con `[logger, softDelete, audit]`, el `after` de `logger` ve el
 borrado que `softDelete` convirtió en update, y `audit` no ve un borrado que no pasó.
 
+Desde la fase 5, el `update` de una operación con `updatePipeline: true` es un pipeline, un array
+de etapas: un hook que lee o cambia el update tiene que contemplarlo.
+
 En un hook de grupo, `args` y `result` son la unión de las operaciones del grupo. Un `before` que
 solo cambia el filtro funciona tal cual, porque todas las operaciones del grupo lo tienen. Para
 devolver un `result`, o argumentos propios de una operación, hay que acotar `operation`:

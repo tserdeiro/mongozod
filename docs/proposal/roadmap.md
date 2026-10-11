@@ -30,8 +30,20 @@ El orden de implementación. Al cerrar una fase, se marca acá en el mismo cambi
 4. **Inputs** (hecho): `mz`, en `mongozod/mz`. Ver [Inputs de los endpoints](./inputs.md).
 5. **Reemplazo de Mongoose**: lo que falta para que mongozod reemplace a Mongoose en sus funciones
    principales, que es el [criterio de la v1](./README.md#objetivo). Sale de la
-   [auditoría de las fases 1 a 4](../audits/phases-1-4.md#decidir): primero se decide cada punto y
-   después se implementa.
+   [auditoría de las fases 1 a 4](../audits/phases-1-4.md#decidir), con los puntos ya decididos, en
+   este orden:
+   1. El driver 6.20 en el peer (`^6.20.0 || ^7.0.0`), con un job de CI. Ver
+      [Decisiones acordadas](./README.md#decisiones-acordadas).
+   2. `objectId()`, en `mongozod/bson`. Ver [Inputs](./inputs.md#decisiones-de-los-inputs).
+   3. `timestamps` sin `.default()`. Ver [Timestamps](./model.md#timestamps).
+   4. Los updates con pipeline, con `updatePipeline: true`. Ver [Updates](./types.md#updates).
+   5. `populate`, en este orden: el valor como objeto, con `filter` y `sort`; las referencias en
+      subdocumentos y arrays; el `populate` anidado; y el uno a muchos con `foreignField`. Ver
+      [Referencias](./model.md#referencias).
+
+   El casting de los filtros no se implementa: se documenta como diferencia con Mongoose (ver
+   [Filtros](./types.md#filtros)).
+
 6. **Primera versión**: una 0.x en npm y un primer módulo de adsgpt migrado. Publicarla confirma el
    nombre, y su número no puede repetir ninguno de los que usó el autor anterior (ver
    [Qué se verificó](./verified.md)). Antes, adsgpt arregla wortise/adsgpt#230 y wortise/adsgpt#231,

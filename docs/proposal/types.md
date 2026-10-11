@@ -43,6 +43,13 @@ tipo del campo y `E` el de sus elementos, si es un array:
   el campo o con `null`, y con `ignoreUndefined` la key desaparece y coincide con todos. Para eso
   se escribe `null` o `$exists: false`. En runtime no se toca. Un filtro armado con tipos que tienen
   keys opcionales, como la salida de `mz.filter`, sigue compilando.
+- **Sin casting**: Mongoose convierte cada valor del filtro según el schema, como `'42'` a `42` o
+  un hex a `ObjectId`, y lanza un `CastError` si no puede
+  ([Query Casting](https://mongoosejs.com/docs/tutorials/query_casting.html)). mongozod no toca
+  los filtros en runtime: un valor del tipo equivocado no compila, y lo que llega sin tipos, como un
+  `req.params.id`, se parsea en los inputs, donde `mz.filter` convierte cada valor con el schema de
+  su campo y [`objectId()`](./inputs.md#decisiones-de-los-inputs) el hex. Castear en el modelo
+  repetiría a `mz.filter` en cada consulta. En JavaScript, un valor de otro tipo no encuentra nada.
 - **Errores**: cada uno nombra su motivo, como `"author.nam" is not a path of the document` o
   `"$regex" only applies to strings`.
 - **`$match`**: se chequean los del principio del pipeline, hasta la primera etapa que cambia la
@@ -88,8 +95,15 @@ valor tiene que servir para su operador y su campo. Se aplica en `updateOne`, `u
 - **Lo que queda en el servidor o en el driver**: dos operadores sobre el mismo path, o un objeto y
   uno de sus campos, los rechaza el servidor con el código 40. Un update vacío lo rechaza el driver
   antes de mandarlo.
-- **Pipeline**: un update con pipeline de agregación no compila: `an update with a pipeline does not
-  compile: use .collection`.
+- **Pipeline**: desde la fase 5, un update con pipeline de agregación pide `updatePipeline: true`,
+  como Mongoose 9, que los rechaza por defecto; hasta entonces no compila (`use .collection`). Los
+  tipos aceptan solo las etapas que MongoDB permite en un update (`$addFields` o `$set`, `$project`
+  o `$unset`, y `$replaceRoot` o `$replaceWith`), y el filtro sigue tipado. Sus valores no se
+  validan: son expresiones que calcula el servidor, y lo que no se ve lo cubre el `$jsonSchema`
+  opcional. Pasan por los plugins, así que `softDelete` filtra igual, y `timestamps` agrega una
+  etapa `{ $set: { updatedAt } }`, como Mongoose. La opción deja escrito en el código que ese
+  update no se valida. `.collection` también los acepta, pero se saltea los plugins, `timestamps`
+  y el filtro tipado.
 
 ## Updates en runtime
 

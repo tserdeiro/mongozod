@@ -48,9 +48,12 @@ objeto por campo. Está apagada por defecto.
 - **Configurables**: cada una se puede renombrar o apagar, como
   `{ createdAt: 'created_at', updatedAt: false }` en una colección cuyos documentos no cambian.
 - **En el schema**: los campos se declaran en el schema, que sigue siendo la única fuente de verdad,
-  y siguen a la opción, renombrados o apagados. Tienen que estar en todos los tipos de documento,
-  tomar y devolver una `Date` y tener un `.default()` o ser opcionales, así los inserts no los
-  piden. Si no, `mongozod()` no compila, y en runtime lanza un `Error`. La forma documentada acepta
+  y siguen a la opción, renombrados o apagados. Tienen que estar en todos los tipos de documento y
+  tomar y devolver una `Date`. Si no, `mongozod()` no compila, y en runtime lanza un `Error`.
+- **Sin `.default()`** (fase 5; hasta entonces lo necesitan, o ser opcionales): el schema declara
+  lo que se guarda, y mientras `timestamps` está activo el tipo del insert y del reemplazo los deja
+  opcionales, porque el núcleo los completa antes de validar. Así funciona la opción de Mongoose,
+  que agrega los campos sola. Un `.default()` sigue funcionando. La forma documentada acepta
   una `Date` o un ISO, para los inputs que llegan en JSON, y un codec convierte el ISO en `Date`:
 
   ```ts
@@ -59,7 +62,7 @@ objeto por campo. Está apagada por defecto.
     encode: (date) => date.toISOString()
   })
 
-  const timestampSchema = z.union([z.date(), isoToDate]).default(() => new Date())
+  const timestampSchema = z.union([z.date(), isoToDate])
   ```
 
   Es el ejemplo `isoDatetimeToDate` de la documentación de Zod, que tiene codecs desde la 4.1. Un
@@ -80,7 +83,9 @@ objeto por campo. Está apagada por defecto.
   it`. Mongoose los descarta o pisa en silencio. `$setOnInsert` sí puede dar `createdAt`, que es la
   fecha de creación de un upsert, como en un insert.
 - **Por operación**: una operación puede saltearlos con la opción `timestamps: false`, como en
-  Mongoose; sus campos vuelven a ser campos comunes, que se pueden escribir para corregirlos. En
+  Mongoose; sus campos vuelven a ser campos comunes, que se pueden escribir para corregirlos. Un
+  insert o un reemplazo con `timestamps: false` pide las fechas, salvo que el schema les dé un
+  `.default()` (fase 5). En
   `bulkWrite` va en las opciones de la llamada y vale para todas sus operaciones. Solo existe en los
   modelos con timestamps, y mongozod la quita antes de llamar al driver.
 - **Borrados**: un borrado de `softDelete` es un update, así que también completa `updatedAt`.
@@ -162,22 +167,41 @@ export const TransactionsModel = mongozod({
   }
 })
 
-await TransactionsModel.find({}, { populate: { createdBy: { fullName: 1 }, organization: true } })
+await TransactionsModel.find(
+  {},
+  { populate: { createdBy: { projection: { fullName: 1 } }, organization: true } }
+)
 ```
 
 - **Destinos**: una función que devuelve otro modelo, así se aplican sus plugins y sus virtuals, o
   una colección con su schema, para las que no tienen modelo, como las de Better Auth. Dos modelos
   pueden referenciarse entre sí, y un modelo a sí mismo, como el `parent` de las cuentas de
   wortise-dashboard-monorepo.
-- **Campos**: un campo de primer nivel que guarda un id o un array de ids, en uno o más tipos de
-  documento. Todas las referencias de los tres proyectos guardan un id; el único array es
-  `advertisers`, en las cuentas de wortise-dashboard-monorepo, como lo soporta hoy MongoModel. Ni
-  paths con punto, ni otro campo que el `_id` del destino, ni `populate` dentro de `populate`:
-  nadie los usa, y wortise-dashboard-monorepo resuelve `organization.owner` con una segunda
-  consulta.
+- **Campos**: un campo que guarda el `_id` del destino o un array de ids, en uno o más tipos de
+  documento. Desde la fase 5 también dentro de subdocumentos y arrays de subdocumentos, como el
+  `items.product` de un pedido, lo más común en quien viene de Mongoose; hasta entonces, solo de
+  primer nivel. Todas las referencias de los tres proyectos guardan un id; el único array es
+  `advertisers`, en las cuentas de wortise-dashboard-monorepo.
 - **Valores**: `true` trae el documento entero, como el `include: { author: true }` de Prisma y el
-  `with` de Drizzle. Una proyección trae esos campos y se chequea como la del modelo referenciado,
-  con sus virtuals.
+  `with` de Drizzle. Un objeto lo acota con los nombres de `FindOptions` del driver (fase 5; hasta
+  entonces, el valor es la proyección):
+  - `projection` trae esos campos y se chequea como la del modelo referenciado, con sus virtuals;
+  - `filter` deja en `null`, o fuera del array, los documentos que no cumplen, como el `match` de
+    Mongoose;
+  - `sort` ordena los arrays;
+  - `populate` puebla las referencias del destino, en varios niveles, a través de su modelo.
+
+  `limit`, `skip` y `perDocumentLimit` quedan afuera: con una consulta `$in` por lote, `limit` no
+  es por documento, la trampa que documenta Mongoose, y `perDocumentLimit` hace una consulta por
+  documento.
+
+- **Uno a muchos** (fase 5): una referencia con `foreignField` trae los documentos del destino que
+  apuntan a este, sin guardar sus ids, como el virtual populate de Mongoose:
+  `posts: { model: () => PostsModel, foreignField: 'author' }`. `localField` es `_id` si no se
+  pasa; son los nombres del `$lookup` de MongoDB. Devuelve un array, y su key no es un campo del
+  schema, porque no se guarda. Va en `references` y no en `virtuals` porque se pide por lectura y
+  va a la base, como el resto de `populate`. La opción `count` de Mongoose y las referencias
+  dinámicas con `refPath` quedan para después de la v1.
 - **Faltantes**: un documento que no existe, o que un plugin del destino filtra, queda en `null`,
   como en Mongoose, y un array guarda los que encuentra. El tipo es `Ref | null`, así que el código
   lo maneja con `?.` sin chequear `typeof`. MongoModel dejaba el id.
@@ -192,8 +216,8 @@ await TransactionsModel.find({}, { populate: { createdBy: { fullName: 1 }, organ
   que guarda otro tipo que el `_id` de su destino, porque el `$in` no encontraría nada. En runtime,
   una key que no es una referencia lanza un `ZodError`, con el issue en `['populate', key]`. Una
   referencia que no es un campo de primer nivel del schema no compila y lanza un `Error` al definir
-  el modelo. Un path como `items.product` también lo lanza: `populate` lee el campo de primer nivel
-  y dejaría los ids sin avisar.
+  el modelo. Hasta la fase 5, un path como `items.product` también lo lanza: `populate` lee el
+  campo de primer nivel y dejaría los ids sin avisar.
 - **Dónde se chequea el destino**: al pedir el `populate`, no al declarar la referencia. Chequearlo
   al declararla hace circulares los tipos de dos modelos que se referencian, de un modelo que se
   referencia a sí mismo y de uno con dos referencias al mismo modelo (`TS7022`). Por eso el tipo de

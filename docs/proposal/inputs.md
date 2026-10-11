@@ -226,6 +226,21 @@ manda `{ createdAt, _id }` del último elemento de la página.
 12. **Schemas**: los constructores aceptan schemas de Zod y de Zod Mini, y uniones discriminadas
     en la raíz, que buscan cada campo en sus tipos. Construyen schemas de Zod clásico. El `_id` se
     filtra si el schema lo declara: sin el driver no hay `ObjectId`.
+13. **`ObjectId`** (fase 5): se declara con `objectId()`, de `mongozod/bson`, como
+    `_id: objectId().default(() => new ObjectId())`. Es la unión de un `ObjectId` y un codec de su
+    hex, como la forma de las fechas: el servidor pasa un `ObjectId`, el cliente manda el hex de 24
+    caracteres (`z.hex().length(24)`), los constructores de `mz` lo convierten con
+    `ObjectId.createFromHexString` y `z.encode` lo vuelve a hex.
+    - **Importa `bson`, nunca el driver**: `bson` no tiene dependencias y publica builds para browser
+      y React Native, así que sirve en un schema compartido con el cliente. Es un peer opcional, del
+      mismo major que el driver, porque su serializador rechaza los valores de otro major.
+    - **Sin `instanceof`**: reconoce un `ObjectId` por el símbolo público `bsonType` de bson, que es
+      global y vale entre dos copias de bson; `instanceof` falla entre copias.
+    - **Codec y no `.transform()`**: un transform no se puede encodear, y mongozod reconoce
+      `objectId()` para generar `bsonType: 'objectId'` en el `$jsonSchema`.
+    - **Frente a las otras formas**: `z.instanceof(ObjectId)` rechaza el hex de un cliente, y un
+      regex con `.transform()` rechaza el `ObjectId` del servidor y tipa el insert como `string`.
+      Zod no trae un codec de `ObjectId` entre sus ejemplos.
 
 ## Qué reemplaza
 
