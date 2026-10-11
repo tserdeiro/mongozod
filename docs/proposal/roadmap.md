@@ -70,8 +70,9 @@ El orden de implementación. Al cerrar una fase, se marca acá en el mismo cambi
          [Automattic/mongoose#2851](https://github.com/Automattic/mongoose/issues/2851), con
          [#8361](https://github.com/Automattic/mongoose/issues/8361) y
          [#9756](https://github.com/Automattic/mongoose/issues/9756).
-      3. El costo de los tipos como garantía: un job de CI con un límite de instanciaciones y de
-         tiempo de chequeo, porque Mongoose vuelve lento al editor
+      3. El costo de los tipos como garantía (hecho): `pnpm check-type-cost` en CI, con un límite
+         de instanciaciones; el tiempo de chequeo se informa sin fallar, porque varía entre
+         corridas. Ver [Herramientas](./structure.md#herramientas). Mongoose vuelve lento al editor
          ([Automattic/mongoose#10349](https://github.com/Automattic/mongoose/issues/10349)).
       4. `mz.uuid()`: un string ↔ un `Binary` de subtipo 4, la mitad de espacio que un string
          ([Automattic/mongoose#3208](https://github.com/Automattic/mongoose/issues/3208)). Antes se

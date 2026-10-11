@@ -74,7 +74,13 @@
   (el mínimo), 24 y 26, y en Bun con `bun --bun vitest run`. Un job instala el driver 6.20, el más
   bajo del peer, con bson 6, y corre con ellos los tipos, los tests y el build. Después del build,
   `pnpm check-dist-types` compila con TS 5.5 y 7 un consumidor de los `.d.ts` publicados
-  (`packages/mongozod/test/consumer/`), con `skipLibCheck: false`.
+  (`packages/mongozod/test/consumer/`), con `skipLibCheck: false`, y `pnpm check-type-cost` mide
+  con TS 5.5 y 7 las instanciaciones de tipos de un proyecto típico
+  (`packages/mongozod/test/type-cost/`): falla si pasan su `budget.json`, que tiene un margen de
+  alrededor del 7 % sobre lo medido. Son lo que paga el editor en cada chequeo, y el mismo código
+  con las mismas versiones da siempre el mismo número. El tiempo de chequeo se informa pero no
+  falla, porque en CI varía de una corrida a otra. Un cambio que sube el costo a propósito sube el
+  límite en el mismo commit.
 - **Releases** con Changesets y el workflow de trusted publishing de su guía: cada push a `main`
   abre o actualiza el PR de versión, y al mergearlo publica en npm. El trusted publisher se
   configura en npm después de la primera publicación (fase 6).
