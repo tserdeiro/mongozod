@@ -311,6 +311,13 @@ describe('discriminated unions', () => {
   })
 })
 
+/** The issues of an upsert of the plugins with a filter, which stamps the required createdAt. */
+function upsertIssues(filter: Record<string, unknown>) {
+  return issuesOf(() =>
+    parseUpdate(pluginSchema, filter, { $currentDate: { createdAt: true } }, { upsert: true })
+  )
+}
+
 describe('upserts', () => {
   test('validate the document the server would insert', () => {
     expect(
@@ -348,5 +355,51 @@ describe('upserts', () => {
         'views': 0
       }
     })
+  })
+
+  test('copy the filter as the server does: a regex matches, and undefined is null', () => {
+    // The regex is not copied, so only the missing title fails.
+    expect(upsertIssues({ title: /^Ads/ })).toEqual([
+      ['title', 'Invalid input: expected string, received undefined']
+    ])
+    expect(upsertIssues({ title: 'Ads', nickname: undefined })).toEqual([
+      ['nickname', 'Invalid input: expected string, received null']
+    ])
+    for (const _id of [null, undefined]) {
+      expect(upsertIssues({ _id, title: 'Ads' })).toEqual([
+        ['_id', 'an upsert whose filter has a null _id would insert a document with a null _id']
+      ])
+    }
+  })
+
+  test("reject a filter's value that the schema stores differently, unless the update writes it", () => {
+    const schema = z.object({
+      email: z.string().toLowerCase(),
+      settings: z.object({ layout: z.string().default('grid'), theme: z.string() }).optional()
+    })
+    const message =
+      'as it is, which the schema stores differently: filter by the value the schema stores'
+
+    expect(
+      issuesOf(() =>
+        parseUpdate(
+          schema,
+          { email: 'Ana@Example.com', settings: { theme: 'dark' } },
+          { $setOnInsert: {} },
+          { upsert: true }
+        )
+      )
+    ).toEqual([
+      ['email', `the upsert would insert the filter's "email" ${message}`],
+      ['settings', `the upsert would insert the filter's "settings" ${message}`]
+    ])
+    expect(
+      parseUpdate(
+        schema,
+        { email: 'ana@example.com', settings: { theme: 'dark' } },
+        { $set: { 'settings.layout': 'list' } },
+        { upsert: true }
+      )
+    ).toEqual({ $set: { 'settings.layout': 'list' } })
   })
 })

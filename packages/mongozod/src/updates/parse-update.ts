@@ -10,7 +10,13 @@ import { elementsOf, isInteger, isNumber, isOptional, isSet } from '../schema/sc
 import { isPlainObject } from '../utils/is-plain-object'
 
 import { resolveUpdatePath } from './update-path'
-import { decidedPaths, insertDefaults, insertedDocument } from './upsert'
+import {
+  decidedPaths,
+  insertDefaults,
+  insertedDocument,
+  nullIdIssue,
+  storedAsFilteredIssues
+} from './upsert'
 
 const OPERATORS = new Set([
   '$addToSet',
@@ -266,11 +272,17 @@ export function parseUpdate(
     given[operator] = kept
   }
 
+  const nullId = options.upsert ? nullIdIssue(filter) : undefined
+
+  if (nullId) issues.push(nullId)
+
   if (issues.length === 0 && options.upsert) {
     const result = safeParseWritten(schema, insertedDocument(filter, given))
 
     if (!result.success) issues.push(...result.issues)
     else if (isPlainObject(result.data)) {
+      issues.push(...storedAsFilteredIssues(filter, given, result.data))
+
       const defaults = insertDefaults(result.data, decidedPaths(filter, given))
 
       if (Object.keys(defaults).length > 0)

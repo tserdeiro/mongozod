@@ -43,7 +43,7 @@ import { checkReferences, registerFind } from './references/references'
 import { virtualsOf } from './references/virtuals'
 import { schemaAt } from './schema/schema-at'
 import { parseUpdate } from './updates/parse-update'
-import { filterEqualities } from './updates/upsert'
+import { filterEqualities, nullIdIssue } from './updates/upsert'
 
 /** The options of `mongozod()`. */
 export interface MongozodOptions<
@@ -255,7 +255,10 @@ export function mongozod(
     }
   }
 
-  /** Validates a replacement like an insert, keeping the `_id` only when it is given. */
+  /**
+   * Validates a replacement like an insert, keeping the `_id` only when it is given. An upsert
+   * validates the document it would insert: the replacement with the `_id` of the filter.
+   */
   function parseReplacement(
     filter: Document,
     replacement: Document,
@@ -263,13 +266,14 @@ export function mongozod(
     stamps: Timestamps,
     now: Date
   ) {
+    const nullId = upsert ? nullIdIssue(filter) : undefined
+
+    if (nullId) throw new z.ZodRealError([nullId])
+
+    const filterId = filterEqualities(filter).get('_id')
+
     // An upsert inserts the replacement with the `_id` of the filter, or the server's ObjectId.
-    if (
-      upsert &&
-      declaresId &&
-      replacement._id === undefined &&
-      !filterEqualities(filter).has('_id')
-    ) {
+    if (upsert && declaresId && replacement._id === undefined && filterId === undefined) {
       throw new z.ZodRealError([
         {
           code: 'custom',
@@ -281,10 +285,14 @@ export function mongozod(
       ])
     }
 
-    const document = parseDocument(options.schema, stampDocument(replacement, stamps, now))
+    const inserted =
+      upsert && replacement._id === undefined && filterId !== undefined
+        ? { ...replacement, _id: filterId }
+        : replacement
+    const document = parseDocument(options.schema, stampDocument(inserted, stamps, now))
 
-    // The `_id` of a document cannot change, so the one a `.default()` generates is dropped, as
-    // Mongoose skips it on replacements.
+    // The `_id` of a document cannot change, so the one a `.default()` generates, or the filter's,
+    // is dropped, as Mongoose skips it on replacements.
     if (replacement._id === undefined) delete document._id
 
     return document

@@ -369,6 +369,18 @@ describe('runtime validation of updates', () => {
     await NotesModel.replaceOne({ _id }, { title: 'Two' }, { upsert: true })
 
     expect(await NotesModel.findOne({ _id })).toMatchObject({ _id, title: 'Two' })
+
+    // The filter's _id goes into the document it inserts, which the schema validates.
+    await Promise.all(
+      [{ _id: null }, { _id: undefined }, { _id: 'not a uuid' }].map((filter) =>
+        expect(
+          // @ts-expect-error the _id of the notes is a UUID
+          NotesModel.replaceOne(filter, { title: 'Three' }, { upsert: true })
+        ).rejects.toBeInstanceOf(z.ZodError)
+      )
+    )
+
+    expect(await db.collection('notes').countDocuments({ title: 'Three' })).toBe(0)
   })
 
   test('rejects keys no path can reach, such as those of a record', async () => {
