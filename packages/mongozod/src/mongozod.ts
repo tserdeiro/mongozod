@@ -515,6 +515,7 @@ export function mongozod(
     },
     name: options.collection,
     schema: options.schema,
+    references: options.references ?? {},
     virtuals: options.virtuals ?? {},
 
     aggregate,

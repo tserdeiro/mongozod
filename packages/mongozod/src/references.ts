@@ -1,13 +1,13 @@
 import type { FieldsOf } from './document-types'
 import type { FilterCheck, SuggestedFilter } from './filter'
 import type { Leaf } from './loose'
-import type { ModelSchema, None, Output } from './model'
+import type { ModelSchema, None, Output, ReadDocument } from './model'
 import type { PathSuggestions } from './path-suggestions'
 import type { Entries, IsLiteral, Mode, ProjectionCheck, SuggestedProjection } from './projection'
 import type { SchemaAt } from './schema-at'
 import type { SortCheck, SuggestedSort } from './sort'
 import type { Simplify } from './type-helpers'
-import type { Read, Virtuals } from './virtuals'
+import type { Virtuals } from './virtuals'
 import type { ClientSession, Db, Document, FindOptions, Flatten, WithId } from 'mongodb'
 
 import { BSON } from 'mongodb'
@@ -19,10 +19,11 @@ import { isPlainObject } from './is-plain-object'
 import { schemaAt } from './schema-at'
 
 /**
- * What the types of `populate` use of a referenced model: its schema and its virtuals. Its `find`
- * would make two models that reference each other circular types.
+ * What the types of `populate` use of a referenced model: its schema, its virtuals and its
+ * references. Its `find` would make two models that reference each other circular types.
  */
 export interface ReferencedModel {
+  readonly references: object
   readonly schema: ModelSchema
   readonly virtuals: Virtuals
 }
@@ -30,13 +31,13 @@ export interface ReferencedModel {
 /** The `find` of each model, which `populate` reads the referenced documents with. */
 const finders = new WeakMap<
   ReferencedModel,
-  (filter: Document, options: FindOptions) => PromiseLike<Document[]>
+  (filter: Document, options: Document) => PromiseLike<Document[]>
 >()
 
 /** Registers the `find` of a model, so that `populate` goes through it. */
 export function registerFind(
   model: ReferencedModel,
-  find: (filter: Document, options: FindOptions) => PromiseLike<Document[]>
+  find: (filter: Document, options: Document) => PromiseLike<Document[]>
 ): void {
   finders.set(model, find)
 }
@@ -73,6 +74,9 @@ type TargetSchema<T> = T extends () => { readonly schema: infer TS extends Model
 
 type TargetVirtuals<T> = T extends () => { readonly virtuals: infer TV } ? TV : None
 
+/** The references of a target model, which a nested `populate` takes; a collection has none. */
+type TargetReferences<T> = T extends () => { readonly references: infer TR } ? TR : None
+
 type TargetDocument<T> = WithId<Output<TargetSchema<T>>>
 
 /**
@@ -100,20 +104,28 @@ type PopulateOptionsCheck<T, X> = {
       ? FilterCheck<TargetSchema<T>, X[K]>
       : K extends 'sort'
         ? SortCheck<TargetSchema<T>, X[K]>
-        : `"${K & string}" is not an option of populate: use projection, filter or sort`
+        : K extends 'populate'
+          ? PopulateCheck<
+              TargetSchema<T>,
+              TargetReferences<T>,
+              X[K],
+              X extends { projection: infer P } ? P : None
+            >
+          : `"${K & string}" is not an option of populate: use projection, filter, sort or populate`
 }
 
 type PopulateValueCheck<T, X> = X extends true
   ? true
   : X extends object
     ? PopulateOptionsCheck<T, X>
-    : 'populate takes true, or { projection, filter, sort }'
+    : 'populate takes true, or { projection, filter, sort, populate }'
 
 /**
  * Checks a `populate`: each key is a reference of the model, whose field stores the `_id` of its
  * target, and the projection of the read does not exclude it. Each value is `true`, for the whole
  * document, or the options of its query, named like the driver's: a `projection`, a `filter` that
- * leaves out the documents that do not match, and a `sort` for the arrays of references.
+ * leaves out the documents that do not match, a `sort` for the arrays of references, and the
+ * `populate` of the target model, checked against its references.
  */
 export type PopulateCheck<S extends ModelSchema, R, Pop, P> = {
   [K in keyof Pop]: K extends keyof R
@@ -134,6 +146,7 @@ export type SuggestedPopulate<R> = {
     | {
         filter?: SuggestedFilter<TargetSchema<R[K]>>
         projection?: SuggestedProjection<TargetSchema<R[K]>, TargetVirtuals<R[K]>>
+        populate?: SuggestedPopulate<TargetReferences<R[K]>>
         sort?: SuggestedSort<TargetSchema<R[K]>>
       }
 }
@@ -160,9 +173,16 @@ export type PopulatedProjection<P, Pop> = [keyof Pop] extends [never]
       : P
     : P
 
-type ReadOf<T, X> = X extends { projection: infer P }
-  ? Read<TargetDocument<T>, TargetVirtuals<T>, P>
-  : Read<TargetDocument<T>, TargetVirtuals<T>, None>
+/** A populated document, as its model reads it with the options of the `populate`. */
+type ReadOf<T, X> = X extends unknown
+  ? ReadDocument<
+      TargetSchema<T>,
+      TargetVirtuals<T>,
+      TargetReferences<T>,
+      X extends { projection: infer P } ? P : None,
+      X extends { populate: infer Pop } ? Exclude<Pop, undefined> : None
+    >
+  : never
 
 /** A populated field: the document, or `null` when it is missing; an array keeps the ones found. */
 type PopulatedValue<F, T, X> =
@@ -232,9 +252,10 @@ export function checkReferences(schema: core.$ZodType, references: object = {}):
   }
 }
 
-/** The options of a populated reference, named like the driver's. */
+/** The options of a populated reference, named like the driver's, and its nested `populate`. */
 export interface PopulateOptions {
   filter?: Document
+  populate?: Document
   projection?: Document
   sort?: Document
 }
@@ -242,7 +263,7 @@ export interface PopulateOptions {
 /** A reference to populate: its field, its target and the options of its query. */
 export type PopulateEntry = [field: string, target: ReferenceTarget, options: PopulateOptions]
 
-const POPULATE_OPTIONS = new Set(['filter', 'projection', 'sort'])
+const POPULATE_OPTIONS = new Set(['filter', 'populate', 'projection', 'sort'])
 
 /**
  * Validates a `populate` at runtime, like its types: each key is a reference of the model, and each
@@ -287,11 +308,19 @@ export function populateEntries(
           issues.push({
             code: 'custom',
             input: option,
-            message: `"${name}" is not an option of populate: use projection, filter or sort`,
+            message: `"${name}" is not an option of populate: use projection, filter, sort or populate`,
+            path: ['populate', field, name]
+          })
+        } else if (name === 'populate' && typeof target !== 'function') {
+          issues.push({
+            code: 'custom',
+            input: option,
+            message: `"${field}" points to a collection without a model, which has no references`,
             path: ['populate', field, name]
           })
         } else if (isPlainObject(option)) {
           if (name === 'filter') options.filter = option
+          if (name === 'populate') options.populate = option
           if (name === 'projection') options.projection = option
           if (name === 'sort') options.sort = option
         } else {
@@ -309,7 +338,7 @@ export function populateEntries(
       issues.push({
         code: 'custom',
         input: value,
-        message: 'populate takes true, or { projection, filter, sort }',
+        message: 'populate takes true, or { projection, filter, sort, populate }',
         path: ['populate', field]
       })
     }
@@ -360,7 +389,7 @@ export async function populateDocuments(
   session: ClientSession | undefined
 ): Promise<void> {
   await Promise.all(
-    entries.map(async ([key, target, { filter, projection, sort }]) => {
+    entries.map(async ([key, target, { filter, populate, projection, sort }]) => {
       const segments = key.split('.')
       const stored: unknown[] = []
 
@@ -391,7 +420,8 @@ export async function populateDocuments(
 
         if (!find) throw new Error(`references: "${key}" does not return a model of mongozod`)
 
-        found = await find(query, options)
+        // The target model populates its own references, which validates the nested `populate`.
+        found = await find(query, populate ? { ...options, populate } : options)
       } else {
         found = await db().collection(target.collection).find(query, options).toArray()
       }

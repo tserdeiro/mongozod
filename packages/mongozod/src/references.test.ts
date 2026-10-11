@@ -1,4 +1,4 @@
-import type { CommandStartedEvent } from 'mongodb'
+import type { CommandStartedEvent, WithId } from 'mongodb'
 
 import { MongoClient } from 'mongodb'
 import {
@@ -203,7 +203,7 @@ describe('populate', () => {
     ).rejects.toMatchObject({
       issues: [
         {
-          message: '"limit" is not an option of populate: use projection, filter or sort',
+          message: '"limit" is not an option of populate: use projection, filter, sort or populate',
           path: ['populate', 'approvers', 'limit']
         },
         {
@@ -211,6 +211,73 @@ describe('populate', () => {
           path: ['populate', 'createdBy', 'projection']
         }
       ]
+    })
+  })
+
+  test('populates the references of the referenced documents, through their models', async () => {
+    await AccountsModel.updateOne({ _id: 'a1' }, { $set: { lastTransaction: 't2' } })
+
+    const transaction = await TransactionsModel.findOne(
+      { _id: 't1' },
+      {
+        populate: {
+          createdBy: {
+            populate: { lastTransaction: { populate: { organization: true } } },
+            projection: { email: 1, lastTransaction: 1 }
+          }
+        }
+      }
+    )
+
+    expect(transaction?.createdBy).toEqual({
+      _id: 'a1',
+      email: 'ana@example.com',
+      lastTransaction: {
+        _id: 't2',
+        amount: 20,
+        approvers: [],
+        createdBy: 'gone',
+        organization: { _id: 'o1', name: 'Wortise', slug: 'wortise' },
+        reviewer: null
+      }
+    })
+    type Last = NonNullable<
+      NonNullable<NonNullable<typeof transaction>['createdBy']>['lastTransaction']
+    >
+
+    expectTypeOf<Last['organization']>().toEqualTypeOf<WithId<
+      z.output<typeof organizationSchema>
+    > | null>()
+    expectTypeOf<Last['amount']>().toEqualTypeOf<number>()
+    expectTypeOf<Last['reviewer']>().toEqualTypeOf<string | null | undefined>()
+    expectTypeOf<keyof Last>().toEqualTypeOf<
+      '_id' | 'amount' | 'approvers' | 'createdBy' | 'organization' | 'reviewer'
+    >()
+  })
+
+  test("checks a nested populate against the target's references", async () => {
+    await expect(
+      TransactionsModel.findOne(
+        { _id: 't1' },
+        // @ts-expect-error organization is a collection without a model
+        { populate: { organization: { populate: { owner: true } } } }
+      )
+    ).rejects.toMatchObject({
+      issues: [
+        {
+          message: '"organization" points to a collection without a model, which has no references',
+          path: ['populate', 'organization', 'populate']
+        }
+      ]
+    })
+    await expect(
+      TransactionsModel.findOne(
+        { _id: 't1' },
+        // @ts-expect-error email is not a reference of the accounts
+        { populate: { createdBy: { populate: { email: true } } } }
+      )
+    ).rejects.toMatchObject({
+      issues: [{ message: '"email" is not a reference of the model', path: ['populate', 'email'] }]
     })
   })
 

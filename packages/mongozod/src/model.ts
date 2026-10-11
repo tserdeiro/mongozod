@@ -278,6 +278,9 @@ export interface Model<
   /** The virtuals of the model, which reads compute and do not store. */
   readonly virtuals: V
 
+  /** The references of the model, which `populate` replaces with the documents. */
+  readonly references: R
+
   /** The name of the collection. */
   readonly name: string
 
