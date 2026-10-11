@@ -210,6 +210,25 @@ describe('aggregate', () => {
   })
 })
 
+describe('the strings of Mongoose', () => {
+  test('do not compile as a sort, a projection or a populate, and throw a ZodError', async () => {
+    await NotesModel.insertMany([{ title: 'B' }, { title: 'A' }])
+
+    const rejected = [
+      // @ts-expect-error sort takes an object such as { createdAt: -1 }, not a string
+      NotesModel.find({}, { sort: '-title' }),
+      // @ts-expect-error sort takes an object such as { createdAt: -1 }, not a string
+      NotesModel.find({}).sort('-title'),
+      // @ts-expect-error projection takes an object such as { name: 1 }, not a string
+      NotesModel.findOne({}, { projection: 'title' })
+    ]
+
+    for (const result of await Promise.allSettled(rejected)) {
+      expect(result).toMatchObject({ reason: expect.any(z.ZodError), status: 'rejected' })
+    }
+  })
+})
+
 describe('filters', () => {
   test('are checked against the schema in every operation', async () => {
     await NotesModel.insertMany([

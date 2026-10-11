@@ -15,3 +15,11 @@ export type UnionToIntersection<U> = (U extends unknown ? (value: U) => void : n
  */
 export type UndefinedIfOptional<T, K extends keyof T> =
   Partial<Pick<T, K>> extends Pick<T, K> ? undefined : never
+
+/**
+ * When `T` is a string, a property named after the problem, which the string lacks, so that the
+ * error shows it: a check in a generic's constraint cannot be conditional on it.
+ */
+export type NotAString<T, Problem extends string> = T extends string
+  ? { [K in Problem]: never }
+  : unknown

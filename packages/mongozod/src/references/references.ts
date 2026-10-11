@@ -12,7 +12,7 @@ import type {
   SuggestedProjection
 } from '../types/projection'
 import type { SortCheck, SuggestedSort } from '../types/sort'
-import type { Simplify } from '../utils/type-helpers'
+import type { NotAString, Simplify } from '../utils/type-helpers'
 import type { Virtuals } from './virtuals'
 import type { ClientSession, Db, Document, FindOptions, Flatten, WithId } from 'mongodb'
 
@@ -336,7 +336,13 @@ export type SuggestedPopulate<R> = {
 /** The `populate` option, on the models that have references. */
 export type PopulateOption<R, Pop> = [keyof R] extends [never]
   ? unknown
-  : { populate?: (Pop & SuggestedPopulate<R>) | undefined }
+  : {
+      populate?:
+        | (Pop &
+            SuggestedPopulate<R> &
+            NotAString<Pop, 'populate takes an object such as { author: true }, not a string'>)
+        | undefined
+    }
 
 /** Whether a path of the projection is the reference or an object above it. */
 type IncludedBy<P, K> = {

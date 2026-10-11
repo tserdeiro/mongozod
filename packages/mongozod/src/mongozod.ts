@@ -167,6 +167,9 @@ async function findOneAnd(
   return driverOptions.includeResultMetadata ? result : result.value
 }
 
+/** The read options that Mongoose takes as strings, with an example of the object they take. */
+const STRING_OPTIONS = { projection: '{ name: 1 }', sort: '{ createdAt: -1 }' }
+
 /**
  * Defines the model of a collection, with the schema as the single source of truth: it validates
  * what is written and types what is read.
@@ -249,6 +252,19 @@ export function mongozod(
   /** Plans a read and splits its options: `populate` is mongozod's, the rest go to the driver. */
   function readOptions(operationOptions: Document = {}) {
     const { populate, ...driverOptions } = operationOptions
+
+    // Mongoose takes these as strings; the driver would sort by a field named like the string.
+    const issues: core.$ZodIssue[] = Object.entries(STRING_OPTIONS)
+      .filter(([option]) => typeof driverOptions[option] === 'string')
+      .map(([option, example]) => ({
+        code: 'custom',
+        input: driverOptions[option],
+        message: `${option} takes an object such as ${example}, not a string`,
+        path: [option]
+      }))
+
+    if (issues.length > 0) throw new z.ZodRealError(issues)
+
     const plan = planRead(context, driverOptions.projection, populate, driverOptions.session)
 
     if (plan.projection) driverOptions.projection = plan.projection

@@ -20,6 +20,7 @@ import type {
   UpdateCheck,
   UpdateOptionsCheck
 } from '../types/update'
+import type { NotAString } from '../utils/type-helpers'
 import type { ModelCursor } from './model-cursor'
 import type { ModelFindCursor } from './model-find-cursor'
 import type {
@@ -88,7 +89,12 @@ export type Output<S extends ModelSchema> = Extract<core.output<S>, Document>
 export type Input<S extends ModelSchema> = core.input<S>
 
 /** Driver options whose `sort` is checked against the schema, with the keys the editor suggests. */
-type Sorted<S, O, Sort> = Omit<O, 'sort'> & { sort?: (Sort & SuggestedSort<S>) | undefined }
+type Sorted<S, O, Sort> = Omit<O, 'sort'> & {
+  sort?: (Sort & SuggestedSort<S> & NotAString<Sort, SortProblem>) | undefined
+}
+
+/** A sort in a string, as Mongoose takes it, which the driver takes as the name of a field. */
+export type SortProblem = 'sort takes an object such as { createdAt: -1 }, not a string'
 
 /**
  * Driver options whose `sort` and `projection` are checked against the schema, plus `populate` on
@@ -96,8 +102,12 @@ type Sorted<S, O, Sort> = Omit<O, 'sort'> & { sort?: (Sort & SuggestedSort<S>) |
  */
 type ReadOptions<S, O, Sort, P, V, R, Pop> = Omit<O, 'projection' | 'sort'> &
   PopulateOption<R, Pop> & {
-    projection?: (P & SuggestedProjection<S, V>) | undefined
-    sort?: (Sort & SuggestedSort<S>) | undefined
+    projection?:
+      | (P &
+          SuggestedProjection<S, V> &
+          NotAString<P, 'projection takes an object such as { name: 1 }, not a string'>)
+      | undefined
+    sort?: (Sort & SuggestedSort<S> & NotAString<Sort, SortProblem>) | undefined
   }
 
 /**

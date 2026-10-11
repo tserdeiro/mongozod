@@ -213,6 +213,10 @@ describe('populate', () => {
         }
       ]
     })
+    await expect(
+      // @ts-expect-error populate takes an object such as { author: true }, not a string
+      TransactionsModel.findOne({ _id: 't1' }, { populate: 'createdBy' })
+    ).rejects.toMatchObject({ issues: [{ message: 'populate is an object', path: ['populate'] }] })
   })
 
   test('populates the references of the referenced documents, through their models', async () => {

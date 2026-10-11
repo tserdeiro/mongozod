@@ -1,6 +1,7 @@
 import type { ProjectionCheck, SuggestedProjection } from '../types/projection'
 import type { SortCheck, SuggestedSort } from '../types/sort'
-import type { ModelSchema, None, ReadDocument } from './model'
+import type { NotAString } from '../utils/type-helpers'
+import type { ModelSchema, None, ReadDocument, SortProblem } from './model'
 import type { Document, Sort } from 'mongodb'
 
 import { ModelCursor } from './model-cursor'
@@ -55,7 +56,9 @@ export class ModelFindCursor<
   }
 
   /** Sets the sort order, with the keys checked against the schema. */
-  sort<const SortSpec extends SortCheck<S, SortSpec>>(sort: SortSpec & SuggestedSort<S>): this
+  sort<const SortSpec extends SortCheck<S, SortSpec>>(
+    sort: SortSpec & SuggestedSort<S> & NotAString<SortSpec, SortProblem>
+  ): this
   sort(sort: Sort): this {
     return this.#set('sort', sort)
   }
