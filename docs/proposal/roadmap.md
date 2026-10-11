@@ -93,8 +93,12 @@ El orden de implementación. Al cerrar una fase, se marca acá en el mismo cambi
          ([Automattic/mongoose#3225](https://github.com/Automattic/mongoose/issues/3225) y
          [#9034](https://github.com/Automattic/mongoose/issues/9034)). Ver
          [Referencias](./model.md#referencias).
-      8. Un `sort` por defecto en el modelo, para las lecturas que no mandan uno
-         ([Automattic/mongoose#16577](https://github.com/Automattic/mongoose/issues/16577)).
+      8. Un `sort` por defecto en el modelo (descartado,
+         [Automattic/mongoose#16577](https://github.com/Automattic/mongoose/issues/16577)): la lista
+         que pide un cliente ya tiene su orden por defecto con `mz.sort(…).default(…)`, visible en
+         el input del endpoint. Uno implícito haría que un `find` sin `sort` no haga lo que dice el
+         código, ordenaría en memoria las lecturas sin un índice que lo cubra y cambiaría qué
+         devuelve un `findOne`.
       9. Los codecs de Temporal ↔ `Date`, si la versión mínima de Node lo trae sin flag
          ([Automattic/mongoose#11462](https://github.com/Automattic/mongoose/issues/11462)).
       10. Generar el schema de Zod de una colección, desde su `$jsonSchema` o una muestra de
