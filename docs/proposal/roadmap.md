@@ -167,12 +167,35 @@ El orden de implementación. Al cerrar una fase, se marca acá en el mismo cambi
       Entre las recetas va la fecha sin hora, como un cumpleaños: un string con `z.iso.date()`, que
       se ordena bien y no se corre de día por la zona horaria, como un `Date` a medianoche.
 
+      Los [50 casos de uso](../audits/use-cases.md) suman estas recetas, que resuelven fricciones
+      sin cambiar la librería:
+      - el `_id` en sus tres formas: sin declarar, `mz.objectId().default(…)` y
+        `z.uuidv4().default(…)` (F25);
+      - comparar un `ObjectId` con `.equals()`, no con `instanceof` (F1);
+      - un multi-tenant con una base por tenant, con un `Db` guardado por tenant (F5);
+      - un repositorio o un `paginate` genérico con `ReadOf`, `FilterOf` e `InsertOf`, y la
+        consulta como callback (F6);
+      - el `pre('save')` de Mongoose como un `.transform(async)` del campo (F8), y un chequeo
+        contra la base dentro de una transacción en el `before` de un plugin (F12);
+      - agregar un campo con `.default()` o un virtual migrando los documentos viejos, y listar los
+        inválidos con `safeParse` antes de migrar (F15 y F16);
+      - un transform que no es idempotente, como un hash, y un campo derivado con `.overwrite()`
+        (F17);
+      - `z.prettifyError` para los logs (F19), y un GET con el filtro como JSON en un parámetro
+        `q` (F21);
+      - leer incluidos los borrados de `softDelete` (F29);
+      - recorrer con `for await` y `Readable.from` (F32), y los change streams con
+        `Model.collection.watch()` (F33);
+      - los schemas recursivos con getters de Zod 4 (F35);
+      - comparar un decimal con `Decimal128.fromString('9.99')` o con `mz.filter` (F18), y una key
+        dinámica de un record con un objeto que tipa el patrón (F4).
+
       Antes de listarlos se verifican contra MongoDB dos que se suponen resueltos: que un objeto
       vacío se guarda
       ([#8505](https://github.com/Automattic/mongoose/issues/8505)) y que un upsert con
       `_id: null` falla ([#9201](https://github.com/Automattic/mongoose/issues/9201)).
 
-7. **Después**: lo que dejó la [evaluación antes de la primera versión](../audits/evaluation.md): las sugerencias de los operadores de query en el editor, los tipos legibles al pasar el mouse por una lectura proyectada o poblada, los errores de configuración del modelo con el mensaje primero, las sugerencias de los updates filtradas por operador, y `select: false`, `immutable` y `alias` como plugins o recetas; [`audit`](./plugins/audit.md), [`logger`](./plugins/logger.md) y
+7. **Después**: lo que dejó la [evaluación antes de la primera versión](../audits/evaluation.md): las sugerencias de los operadores de query en el editor, y las de `arrayFilters`, que piden intersectar dos arrays ([casos de uso](../audits/use-cases.md), F23), los tipos legibles al pasar el mouse por una lectura proyectada o poblada, los errores de configuración del modelo con el mensaje primero, las sugerencias de los updates filtradas por operador, y `select: false`, `immutable` y `alias` como plugins o recetas; [`audit`](./plugins/audit.md), [`logger`](./plugins/logger.md) y
    [`history`](./plugins/history.md); `mz.from(schema)`, que ata los constructores de inputs a un
    schema para no repetirlo, `mz.from(brandSchema).filter({…})`, como la forma cómoda junto a los
    sueltos, que siguen siendo tree-shakeables (su objeto carga los seis); `mz.before`, la página anterior, como el

@@ -274,6 +274,46 @@ Ordenados por cuánto molestan a quien migra.
 | F35 | fricción | baja  | La recursión al estilo de Zod 3 (`z.ZodType<T>` + `z.lazy`) pierde los paths; con getters anda todo.                                                                                                                                | 44               | Guía: recomendar los getters de Zod 4 para los schemas recursivos.                                                                                                                                                                                                                                              |
 | F36 | hueco    | baja  | Time-series, capped y la collation por defecto se crean con el driver; en una time-series, `sync()` reporta como sobrante el índice que MongoDB crea solo.                                                                          | 47               | Que `sync()` no cuente en `extraIndexes` el índice que MongoDB crea en una colección time-series.                                                                                                                                                                                                               |
 
+## Correcciones
+
+El 2026-10-12 se corrigieron los 12 bugs, se decidieron los puntos marcados **Decidir** y se
+resolvieron las fricciones que piden código o JSDoc, cada una con su test, su changeset y su
+documento de la propuesta. Las recetas que resuelven el resto quedan en la guía «Desde Mongoose» del
+[roadmap](../proposal/roadmap.md).
+
+| Hallazgo  | Commit    | Cómo                                                                                                                                                                                   |
+| --------- | --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| B1        | `964145c` | `populate` reenvía el `context` de la lectura, como la `session`.                                                                                                                      |
+| B1 tipos  | `d9fd628` | Decidido: la lectura exige el `context` que piden los plugins de los modelos que puebla, también anidados, y el editor lo sugiere. +326 instanciaciones.                               |
+| B2        | `4d29c27` | Un `z.set()` o un `z.map()` lanza un `Error` al definir el modelo, con el path y la alternativa. Solo en runtime: rechazarlo en los tipos pide recorrer todo el schema.                |
+| B3 y B12  | `aad7089` | `$inc` y `$mul` sobre un decimal parsean el monto con el schema del campo sin sus checks, sin importar `bson` en `mz.update` (duplicaba un bundle web). La doc de Inputs quedó al día. |
+| B4        | `8f60567` | Un `_id: 1` sin otras inclusiones ni exclusiones es una inclusión, también con `$slice` o `$meta`, como en MongoDB 8.2; lo usan los tipos, el plan de lectura y `populate`.            |
+| B5        | `c5c7332` | `mz.after` rechaza un campo que guarda un array, en los tipos y al declararlo.                                                                                                         |
+| B6        | `942a8c1` | El `$jsonSchema` corta la recursión en un objeto repetido, así los getters de Zod 4 quedan sin regla como `z.lazy`.                                                                    |
+| B7        | `7d3376e` | `$unset` y `$rename` toman una key de un record sin un conjunto fijo de keys, de un `z.partialRecord` o de un catchall, con la regla de Zod.                                           |
+| B8        | `6b50a22` | Un schema que no es un objeto ni una unión discriminada lanza un `Error` al definir el modelo, que sugiere `.overwrite()`.                                                             |
+| B9        | `359714d` | Era cualquier lectura con una proyección `Document` o `any`, la primera de un archivo. Ahora compila con todos los campos opcionales.                                                  |
+| B10       | `2a639ef` | `$meta` en un campo del documento lo tipa `number`, y en un path con punto no compila.                                                                                                 |
+| B11       | `39913a5` | Solo `$setOnInsert` escribe el `_id`, en los tipos, las sugerencias y el runtime, también en `mz.update`.                                                                              |
+| Extra     | `004bb3b` | El `Error` de `useBigInt64` salía solo en la primera operación.                                                                                                                        |
+| C1        | `0646c67` | `VirtualValues`, `PopulatedValue` y `DocOf` ya no llevan la inferencia a los schemas ni a los modelos. El proyecto típico con tres `.map()` bajó de 272.784 a 65.138 instanciaciones.  |
+| C4        | `ff52185` | Anotado en [Costo de los tipos](../proposal/types.md#costo-de-los-tipos).                                                                                                              |
+| F4        | `c04b819` | Decidido: los índices de una `z.tuple` son paths. Las keys dinámicas compilan si el objeto tipa el patrón (microsoft/TypeScript#13948), documentado.                                   |
+| F5        | `392b4b1` | Decidido: la función de `db` se llama en cada operación, con la colección guardada por `Db`.                                                                                           |
+| F6        | —         | Decidido: un patrón documentado; un tipo para modelos genéricos costaba de 100.000 a 270.000 instanciaciones.                                                                          |
+| F7        | `65d8b6b` | `InsertOf<typeof Model>`.                                                                                                                                                              |
+| F9        | `2040236` | Decidido: `fills` en `definePlugin`, opcionales como los de `timestamps`.                                                                                                              |
+| F13       | `7f337c1` | Decidido: las lecturas devuelven los tipos que permite el filtro, con la regla de los updates.                                                                                         |
+| F14 y F24 | `783aa58` | El error de una proyección en una variable pide `as const`, y el de una key de más muestra los campos.                                                                                 |
+| F18       | `d482ffe` | Decidido: `mz.decimal128()` toma su Extended JSON; los filtros no comparan un decimal con un `number`.                                                                                 |
+| F23       | `2684ed7` | Sugiere `items.$.qty` y los campos del elemento en `$pull`; `arrayFilters` pasa a la fase 7.                                                                                           |
+| F24       | `8041af2` | Un campo de `mz` que falta dice `received undefined`, y `mz.populate` dice qué toma.                                                                                                   |
+| F27       | `ffff6ee` | Un campo que le falta al upsert apunta a `$setOnInsert`.                                                                                                                               |
+| F30       | `2adb920` | Los `.d.ts` de `mongozod/mzod` toman sus tipos de `bson`.                                                                                                                              |
+| F34       | `ae2877a` | `index({})` no compila, y los `weights` se chequean como paths.                                                                                                                        |
+| F36       | `2252220` | `sync()` no cuenta el índice automático de una time-series.                                                                                                                            |
+| JSDoc     | `ff52185` | F10, F11, F20, F26, F31 y `ReadOf` en `find`; F1 y F12 en `7528545`.                                                                                                                   |
+
 ## Lo que anduvo bien
 
 - **Validación de updates**: los mensajes son mejores que los de Mongoose, que hace casi todo esto
