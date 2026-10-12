@@ -229,6 +229,21 @@ describe('inclusion', () => {
     } | null>()
     expectTypeOf(matched).toEqualTypeOf<{ _id: string; connections?: Connection[] } | null>()
   })
+  test('an included _id makes an inclusion without other inclusions or exclusions', async () => {
+    const id = await PluginsModel.findOne({ _id: 'p' }, { projection: { _id: 1 } })
+    const sliced = await PluginsModel.find(
+      { _id: 'p' },
+      { projection: { _id: true, tags: { $slice: 1 } } }
+    )
+    const excluded = await PluginsModel.findOne({ _id: 'p' }, { projection: { _id: 1, tags: 0 } })
+
+    expect(id).toEqual({ _id: 'p' })
+    expect(sliced).toEqual([{ _id: 'p', tags: ['x'] }])
+    expect(excluded).toEqual({ ...stored, tags: undefined })
+    expectTypeOf(id).toEqualTypeOf<{ _id: string } | null>()
+    expectTypeOf(sliced).toEqualTypeOf<Array<{ _id: string; tags: string[] }>>()
+    expectTypeOf(excluded).toEqualTypeOf<Flat<Omit<Plugin, 'tags'>> | null>()
+  })
 })
 
 describe('exclusion', () => {

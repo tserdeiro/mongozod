@@ -227,7 +227,10 @@ Los tipos siguen la regla de [Tipos](#tipos). Además:
   usan con `aggregate`, salvo `{ $meta: 'textScore' }`, que agrega la relevancia de una búsqueda de
   texto como un campo `number`. La proyección va en las opciones de `find`, `findOne` y los
   `findOneAnd*`, o en `.project()`, que reemplaza a la de `find` como en el driver, y ajusta el tipo
-  de lo que devuelven. Una proyección vacía devuelve el documento entero.
+  de lo que devuelven. Una proyección vacía devuelve el documento entero. Si incluye o excluye se
+  decide como en MongoDB 8.2 (verificado): sin otras inclusiones ni exclusiones, un `_id: 1` la
+  vuelve una inclusión, así `{ _id: 1 }` devuelve solo el `_id` y `{ _id: 1, tags: { $slice: 1 } }`,
+  el `_id` y `tags`; con una exclusión, como `{ _id: 1, tags: 0 }`, sigue siendo una exclusión.
 - **Nombres de campo**: `mongozod()` lanza un `Error` si el schema tiene un campo con `.` o que
   empieza con `$`, porque ningún path llegaría a él. Al escribir, se rechaza cualquier key así en lo
   que se escribe: la de un record, un catchall, un `looseObject`, un `z.unknown()` o un `z.json()`,

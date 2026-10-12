@@ -20,6 +20,7 @@ import { BSON } from 'mongodb'
 import { z } from 'zod'
 import * as core from 'zod/v4/core'
 
+import { isInclusion, projectionEntries } from '../model/projection-entries'
 import { documentTypes } from '../schema/document-types'
 import { schemaAt } from '../schema/schema-at'
 import { variants } from '../schema/schema-kinds'
@@ -821,11 +822,7 @@ function keepingField(projection: Document | undefined, path: string) {
 
   if (value !== undefined) return { projection, strip: false }
 
-  const inclusion = Object.entries(projection).some(
-    ([key, kind]) => key !== '_id' && (kind === 1 || kind === true)
-  )
-
-  return inclusion
+  return isInclusion(projectionEntries(projection))
     ? { projection: { ...projection, [path]: 1 }, strip: true }
     : { projection, strip: false }
 }

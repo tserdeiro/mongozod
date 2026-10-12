@@ -1030,6 +1030,15 @@ describe('a one-to-many reference', () => {
         { _id: 'p2', title: 'Beta' }
       ]
     })
+
+    // `{ _id: 1 }` is an inclusion too: the foreignField is asked for and removed.
+    const ids = await AuthorsModel.findOne(
+      { _id: 'u1' },
+      { populate: { posts: { projection: { _id: 1 } } }, projection: { _id: 1 } }
+    )
+
+    expect(ids).toEqual({ _id: 'u1', posts: [{ _id: 'p1' }, { _id: 'p2' }] })
+    expectTypeOf(ids).toEqualTypeOf<{ _id: string; posts: Array<{ _id: string }> } | null>()
   })
 
   test('is a key that is not a field, with a localField of the schema', () => {

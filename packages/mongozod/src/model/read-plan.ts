@@ -12,7 +12,8 @@ import {
   storedPath
 } from '../references/references'
 import { computeVirtuals } from '../references/virtuals'
-import { isPlainObject } from '../utils/is-plain-object'
+
+import { isInclusion, projectionEntries } from './projection-entries'
 
 /** What a read asks the server for, and what it does with each batch the server returns. */
 export interface ReadPlan {
@@ -28,37 +29,6 @@ export interface ReadContext {
   db: () => Db
   references: Record<string, ReferenceTarget>
   virtuals: ReadonlyMap<string, Virtual>
-}
-
-type Kind = 'elemMatch' | 'exclude' | 'include' | 'meta' | 'positional' | 'slice'
-
-/** Every [path, kind] of a projection, dotted or nested, like the type `Entries`. */
-function entriesOf(projection: Document, prefix = ''): Array<[string, Kind]> {
-  return Object.entries(projection).flatMap(([key, value]): Array<[string, Kind]> => {
-    const path = prefix + key
-
-    if (value === undefined) return []
-    if (value === 0 || value === false) return [[path, 'exclude']]
-    if (!isPlainObject(value)) {
-      return path.endsWith('.$') ? [[path.slice(0, -2), 'positional']] : [[path, 'include']]
-    }
-
-    if ('$slice' in value) return [[path, 'slice']]
-    if ('$elemMatch' in value) return [[path, 'elemMatch']]
-    if ('$meta' in value) return [[path, 'meta']]
-
-    return entriesOf(value, `${path}.`)
-  })
-}
-
-/** Whether a projection includes or excludes, as MongoDB 8.2 reads it, like the type `Mode`. */
-function isInclusion(entries: ReadonlyArray<[string, Kind]>) {
-  const kinds = new Set(entries.filter(([path]) => path !== '_id').map(([, kind]) => kind))
-
-  if (kinds.has('include') || kinds.has('positional')) return true
-  if (kinds.has('exclude') || kinds.has('slice')) return false
-
-  return kinds.has('elemMatch')
 }
 
 /** Whether a path of the projection is a reference or an object above it. */
@@ -105,7 +75,7 @@ export function planRead(
     delete fields[name]
   }
 
-  const entries = entriesOf(fields)
+  const entries = projectionEntries(fields)
   const inclusion = isInclusion(entries) || [...asked.values()].includes(true)
   const computed = new Map<string, Virtual>()
   const strip = new Set<string>()

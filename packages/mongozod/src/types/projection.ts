@@ -262,15 +262,21 @@ type ExcludePaths<T, E> =
           }
         >
 
-/** Whether a projection includes or excludes, as MongoDB 8.2 reads it. */
+/**
+ * Whether a projection includes or excludes, as MongoDB 8.2 reads it: an included `_id` makes an
+ * inclusion of a projection without other inclusions or exclusions, such as `{ _id: 1 }` alone or
+ * with a `$slice`.
+ */
 export type Mode<E> = [Extract<KindsBesidesId<E>, 'include' | 'positional'>] extends [never]
   ? 'exclude' extends KindsBesidesId<E>
     ? 'exclusion'
-    : 'slice' extends KindsBesidesId<E>
-      ? 'exclusion'
-      : 'elemMatch' extends KindsBesidesId<E>
-        ? 'inclusion'
-        : 'exclusion'
+    : ['_id', 'include'] extends E
+      ? 'inclusion'
+      : 'slice' extends KindsBesidesId<E>
+        ? 'exclusion'
+        : 'elemMatch' extends KindsBesidesId<E>
+          ? 'inclusion'
+          : 'exclusion'
   : 'inclusion'
 
 /** The entries that shape the document: `$meta` adds a field of its own. */
