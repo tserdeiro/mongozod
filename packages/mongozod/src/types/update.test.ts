@@ -31,6 +31,7 @@ const pluginSchema = z.object({
   history: z.array(z.object({ at: z.date(), label: z.string() })).default([]),
   nickname: z.string().optional(),
   organization: z.uuidv4(),
+  pair: z.tuple([z.string(), z.number().int()]).optional(),
   publishedAt: z
     .union([z.date(), z.iso.datetime().transform((value) => new Date(value))])
     .optional(),
@@ -152,6 +153,27 @@ test('$unset and $rename take a key a record or a catchall may lack', () => {
   updateLabels({}, { $unset: { 'levels.low': '' } })
   // @ts-expect-error source is a required field of meta
   updateLabels({}, { $unset: { 'meta.source': '' } })
+  expect(true).toBe(true)
+})
+
+test('a key typed as a pattern under a record, and an index of a tuple', () => {
+  const key: string = 'clicks'
+  // An object literal widens a computed key to string (microsoft/TypeScript#13948): the pattern
+  // only lasts in a value whose type declares it.
+  const clicks: Record<`counters.${string}`, number> = { [`counters.${key}`]: 1 }
+  const decimals: Record<`counters.${string}`, string> = { [`counters.${key}`]: '1' }
+
+  update({}, { $inc: clicks, $set: { 'pair.0': 'a' } })
+  update({}, { $inc: { 'pair.1': 1 } })
+
+  // @ts-expect-error the counters are numbers
+  update({}, { $set: decimals })
+  // @ts-expect-error the key of an object literal widens to string, which could be any path
+  update({}, { $set: { [`counters.${key}`]: 1 } })
+  // @ts-expect-error the element 0 is a string
+  update({}, { $inc: { 'pair.0': 1 } })
+  // @ts-expect-error the tuple has two elements
+  update({}, { $set: { 'pair.2': 1 } })
   expect(true).toBe(true)
 })
 

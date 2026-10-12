@@ -664,6 +664,33 @@ describe('schemas', () => {
     >()
   })
 
+  test('takes the keys of a record typed as a pattern, and the indexes of a tuple', async () => {
+    const ItemsModel = mongozod({
+      collection: 'items',
+      db,
+      schema: z.object({
+        metadata: z.record(z.string(), z.number()),
+        pair: z.tuple([z.string(), z.number()])
+      })
+    })
+    const key: string = 'clicks'
+    const clicks: Record<`metadata.${string}`, number> = { [`metadata.${key}`]: 2 }
+
+    await ItemsModel.insertOne({ metadata: { clicks: 1 }, pair: ['a', 1] })
+    await ItemsModel.updateOne({ 'pair.0': 'a' }, { $inc: { ...clicks, 'pair.1': 2 } })
+
+    const found = await ItemsModel.findOne(
+      { 'metadata.clicks': { $gt: 2 }, 'pair.1': 3 },
+      { projection: { _id: 0 } }
+    )
+
+    expect(found).toEqual({ metadata: { clicks: 3 }, pair: ['a', 3] })
+    await expect(
+      // @ts-expect-error the element 0 is a string
+      ItemsModel.updateOne({}, { $set: { 'pair.0': 1 } })
+    ).rejects.toBeInstanceOf(z.ZodError)
+  })
+
   test('awaits async refinements in every write, such as one that checks the database', async () => {
     const handleSchema = z.object({
       handle: z

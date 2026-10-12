@@ -88,6 +88,16 @@ type ArrayStep<E, Seg extends string, M extends PathMode> = M extends 'projectio
       : Step<E, Seg, M>
 
 /**
+ * The schema at an index of a tuple: its item, or its rest past the items, and `never` out of
+ * range. Filters and updates take an index; a projection takes it as a field name.
+ */
+export type TupleStep<Items, Rest, Seg extends string> = Seg extends keyof Items & `${number}`
+  ? Items[Seg]
+  : Seg extends `${number}`
+    ? Exclude<Rest, null>
+    : never
+
+/**
  * The schema one segment leads to, or `never`. Anything goes under `z.unknown()` and `z.any()`,
  * and paths stop at transforms and `z.custom()`, which have no schema for what is inside. Objects,
  * the most common step, go first: each definition has its own `type`, so the order does not change
@@ -113,7 +123,11 @@ type Step<S, Seg extends string, M extends PathMode> =
                   ? Seg extends core.output<K>
                     ? V
                     : never
-                  : never
+                  : X extends { items: infer Items; rest: infer Rest; type: 'tuple' }
+                    ? M extends 'projection'
+                      ? never
+                      : TupleStep<Items, Rest, Seg>
+                    : never
     : never
 
 /**
@@ -175,6 +189,13 @@ export function step(schema: core.$ZodType, segment: string, mode: PathMode): Ne
     const { keyType, valueType } = unwrapped._zod.def
 
     return z.safeParse(keyType, segment).success ? [[valueType, false]] : []
+  }
+
+  if (unwrapped instanceof core.$ZodTuple) {
+    const { items, rest } = unwrapped._zod.def
+    const item = INDEX.test(segment) && mode !== 'projection' && (items[Number(segment)] ?? rest)
+
+    return item ? [[item, true]] : []
   }
 
   if (!(unwrapped instanceof core.$ZodArray)) return []

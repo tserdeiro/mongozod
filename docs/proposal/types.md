@@ -18,7 +18,12 @@
   tipa según los `$[id]` del update, y la proyección ajusta el tipo del resultado a lo que responde
   MongoDB. Las sugerencias del editor se calculan aparte desde el schema: hasta 6 niveles, con `$[]`
   en los arrays de los updates, y sin entrar en `z.custom`, records, `z.lazy` ni transforms. Una key
-  de tipo `string` no compila: tiene que ser literal.
+  de tipo `string` no compila: tiene que ser literal. Una key con patrón bajo un record o un
+  catchall, como `` `metadata.${string}` ``, sí compila, con el tipo de sus valores. Pero TypeScript
+  ensancha a `string` la key computada de un objeto literal
+  ([microsoft/TypeScript#13948](https://github.com/microsoft/TypeScript/issues/13948)), así que
+  ``{ [`metadata.${key}`]: 1 }`` no compila, y el objeto tiene que tipar el patrón:
+  ``const clicks: Record<`metadata.${string}`, number> = { [`metadata.${key}`]: 1 }``.
 - **Strings de Mongoose**: un `sort`, una `projection` o un `populate` en un string, como
   `sort: '-createdAt'`, no compilan, y el `sort` y la `projection` lanzan un `ZodError` en runtime:
   el driver ordenaba en silencio por un campo con ese nombre. El problema llega como una propiedad
@@ -225,7 +230,9 @@ Los tipos siguen la regla de [Tipos](#tipos). Además:
   reglas por operador se aplican por path.
 - **Hasta dónde llegan**: hasta donde acepta el schema, como Zod al validar. Además de los campos
   declarados, las keys de un record, las keys extra de un objeto con `.catchall()` o de un
-  `looseObject`, tipadas con su catchall, y cualquier cosa debajo de `z.unknown()` o `z.any()`. Se
+  `looseObject`, tipadas con su catchall, los índices de una `z.tuple`, con el schema de su posición
+  o de su `rest`, y cualquier cosa debajo de `z.unknown()` o `z.any()`. Un índice fuera de una tupla
+  sin `rest` no es un path, y la proyección no toma índices. Se
   frenan en los transforms y en `z.custom()`, que no tienen un schema para lo que hay adentro.
 - **Por operación**: los filtros atraviesan arrays y aceptan índices. Los updates no los
   atraviesan, porque el servidor responde con el código 28, y usan un índice, `$`, `$[]` o

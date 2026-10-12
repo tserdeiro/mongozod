@@ -11,6 +11,7 @@ const noteSchema = z.object({
   deletedAt: z.date().optional(),
   location: z.object({ coordinates: z.array(z.number()), type: z.literal('Point') }).optional(),
   metadata: z.record(z.string(), z.number()).optional(),
+  pair: z.tuple([z.string(), z.number()]).optional(),
   pinned: z.boolean(),
   scores: z.array(z.number()).default([]),
   status: z.enum(['draft', 'published']),
@@ -93,6 +94,30 @@ test('undefined does not compile, and string keys must be literal', () => {
   filter({ title: organization })
   // @ts-expect-error a string key could be any path
   filter({ [key]: 'x' })
+  expect(true).toBe(true)
+})
+
+test('a key typed as a pattern under a record takes its values, and a tuple its indexes', () => {
+  const key: string = 'clicks'
+  // An object literal widens a computed key to string (microsoft/TypeScript#13948): the pattern
+  // only lasts in a value whose type declares it.
+  const clicks: Record<`metadata.${string}`, { $gt: number }> = { [`metadata.${key}`]: { $gt: 1 } }
+  const wrong: Record<`metadata.${string}`, string> = { [`metadata.${key}`]: 'many' }
+  const notRecord: Record<`title.${string}`, string> = { [`title.${key}`]: 'x' }
+
+  filter(clicks)
+  filter({ 'pair.0': 'a', 'pair.1': { $gte: 2 } })
+
+  // @ts-expect-error the values of metadata are numbers
+  filter(wrong)
+  // @ts-expect-error title is not a record
+  filter(notRecord)
+  // @ts-expect-error the key of an object literal widens to string, which could be any path
+  filter({ [`metadata.${key}`]: 1 })
+  // @ts-expect-error the tuple has two elements
+  filter({ 'pair.2': 'a' })
+  // @ts-expect-error the element 1 is a number
+  filter({ 'pair.1': 'a' })
   expect(true).toBe(true)
 })
 

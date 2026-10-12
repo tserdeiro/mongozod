@@ -26,12 +26,14 @@ const schema = z.object({
   data: z.unknown(),
   extra: z.looseObject({ kind: z.string() }),
   metadata: z.record(z.string(), z.number()).optional(),
+  pair: z.tuple([z.string(), z.object({ count: z.number() })]),
   payment: z
     .discriminatedUnion('method', [
       z.object({ last4: z.string(), method: z.literal('card') }),
       z.object({ cbu: z.string(), method: z.literal('transfer') })
     ])
     .optional(),
+  scores: z.tuple([z.string()], z.number()),
   settings: z.object({ theme: z.string() }).catchall(z.json()),
   tree: nodeSchema
 })
@@ -90,6 +92,22 @@ describe('SchemaAt and schemaAt', () => {
     expect(schemaAt(schema, 'settings.layout.columns', 'update')).not.toHaveLength(0)
     expect(schemaAt(schema, 'extra.anything', 'filter')).toHaveLength(1)
     expect(schemaAt(schema, 'data.a.b', 'update')).toHaveLength(1)
+  })
+
+  test('take an index of a tuple in range, or of its rest, in filters and updates', () => {
+    expectTypeOf<At<'pair.0', 'filter'>>().toEqualTypeOf<string>()
+    expectTypeOf<At<'pair.1.count', 'update'>>().toEqualTypeOf<number>()
+    expectTypeOf<At<'scores.5', 'update'>>().toEqualTypeOf<number>()
+    expectTypeOf<SchemaAt<Schema, 'pair.2', 'filter'>>().toBeNever()
+    expectTypeOf<SchemaAt<Schema, 'pair.$', 'update'>>().toBeNever()
+    expectTypeOf<SchemaAt<Schema, 'pair.0', 'projection'>>().toBeNever()
+
+    expect(schemaAt(schema, 'pair.0', 'filter')).toEqual([schema.shape.pair.def.items[0]])
+    expect(schemaAt(schema, 'pair.1.count', 'update')).toHaveLength(1)
+    expect(schemaAt(schema, 'scores.5', 'update')).toEqual([schema.shape.scores.def.rest])
+    expect(schemaAt(schema, 'pair.2', 'filter')).toEqual([])
+    expect(schemaAt(schema, 'pair.$', 'update')).toEqual([])
+    expect(schemaAt(schema, 'pair.0', 'projection')).toEqual([])
   })
 
   test('look into every option of a union', () => {

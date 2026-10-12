@@ -32,6 +32,7 @@ const pluginSchema = z.object({
   data: z.unknown().optional(),
   history: z.array(z.object({ at: z.date(), label: z.string() })).default([]),
   nickname: z.string().optional(),
+  pair: z.tuple([z.string(), z.number().int()]).optional(),
   scores: z.array(z.number()).default([]),
   settings: z.object({ layout: z.string().default('grid'), theme: z.string() }).optional(),
   title: z.string().min(1),
@@ -221,6 +222,20 @@ describe('operators', () => {
     ).toEqual([
       ['$unset levels.low', '"levels.low" is required, so it cannot be unset'],
       ['$unset meta.source', '"meta.source" is required, so it cannot be unset']
+    ])
+  })
+
+  test('take an index of a tuple, with the schema of its position', async () => {
+    const update = { $inc: { 'pair.1': 1 }, $set: { 'pair.0': 'a' } }
+
+    expect(await parseUpdate(pluginSchema, {}, update)).toEqual(update)
+    expect(
+      await issuesOf(() =>
+        parseUpdate(pluginSchema, {}, { $inc: { 'pair.0': 1 }, $set: { 'pair.2': 'a' } })
+      )
+    ).toEqual([
+      ['$inc pair.0', '"pair.0" is not a number'],
+      ['$set pair.2', '"pair.2" is not a path of the document']
     ])
   })
 

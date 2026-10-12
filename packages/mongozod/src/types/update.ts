@@ -2,7 +2,14 @@ import type { ModelSchema, None } from '../model/model'
 import type { LockedFields, NoTimestamps, TimestampNames } from '../model/timestamps'
 import type { SetMarker } from '../mzod/fields/set'
 import type { PopulateCheck } from '../references/references'
-import type { Def, ExtraKey, IsIdentifier, NotAPath, SchemaAt } from '../schema/schema-at'
+import type {
+  Def,
+  ExtraKey,
+  IsIdentifier,
+  NotAPath,
+  SchemaAt,
+  TupleStep
+} from '../schema/schema-at'
 import type { Unwrap } from '../schema/unwrap-schema'
 import type { ConditionCheck, ElementConditionCheck, ElementSchema, KeyCheck } from './filter'
 import type { Loose } from './loose'
@@ -185,7 +192,11 @@ type Next<S, Seg extends string, Sc extends Scope, Path extends string> =
                   ? Next<Option, Seg, Sc, Path>
                   : never
                 : never
-              : never
+              : X extends { items: infer Items; rest: infer Rest; type: 'tuple' }
+                ? [TupleStep<Items, Rest, Seg>] extends [never]
+                  ? never
+                  : [TupleStep<Items, Rest, Seg>, { kind: 'none'; path: Path; prefix: '' }]
+                : never
     : never
 
 type Missing<Why extends string> = ['missing', Why]
