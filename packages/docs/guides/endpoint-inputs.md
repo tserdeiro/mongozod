@@ -14,35 +14,80 @@ Given a model of posts:
 import { ObjectId } from 'mongodb'
 import { mongozod } from 'mongozod'
 import * as mz from 'mongozod/mzod'
-import { z } from 'zod'
+import * as z from 'zod'
 
 const userSchema = z.object({
-  _id: mz.objectId().default(() => new ObjectId()),
-  name: z.string().min(1),
+
+  _id: mz.objectId()
+    .default(() => new ObjectId()),
+
+  name: z.string()
+    .min(1),
+
   email: z.email()
 })
 
 const postSchema = z.object({
-  _id: mz.objectId().default(() => new ObjectId()),
-  title: z.string().min(1),
-  body: z.string().default(''),
-  summary: z.string().optional(),
-  status: z.enum(['draft', 'published']).default('draft'),
-  tags: z.array(z.string()).default([]),
+
+  _id: mz.objectId()
+    .default(() => new ObjectId()),
+
+  title: z.string()
+    .min(1),
+
+  body: z.string()
+    .default(''),
+
+  summary: z.string()
+    .optional(),
+
+  status: z.enum(['draft', 'published'])
+    .default('draft'),
+
+  tags: z.string()
+    .array()
+    .default([]),
+
   authorId: mz.objectId(),
+
   createdAt: mz.date(),
+
   updatedAt: mz.date()
 })
 
-const UsersModel = mongozod({ collection: 'users', db, schema: userSchema })
+const UsersModel = mongozod({
+
+  collection: 'users',
+
+  db,
+
+  schema: userSchema
+})
 
 const PostsModel = mongozod({
+
   collection: 'posts',
+
   db,
+
   schema: postSchema,
+
   timestamps: true,
-  indexes: (index) => [index({ createdAt: -1, _id: -1 }), index({ title: 'text', body: 'text' })],
-  references: { author: { localField: 'authorId', model: () => UsersModel } }
+
+  indexes: (index) => [
+    index({ createdAt: -1, _id: -1 }),
+    index({ title: 'text', body: 'text' })
+  ],
+
+  references: {
+
+    author: {
+
+      localField: 'authorId',
+
+      model: () => UsersModel
+    }
+  }
 })
 ```
 
@@ -50,9 +95,26 @@ An endpoint that lists them declares what its client can send:
 
 ```ts
 const listPostsInput = z.object({
-  filter: mz.filter(postSchema, { tags: ['$in', '$all'], createdAt: ['$gte', '$lt'] }).default({}),
-  sort: mz.sort(postSchema, { createdAt: true, title: true }).default({ createdAt: -1 }),
-  limit: z.number().int().min(1).max(100).default(20)
+
+  filter: mz
+    .filter(postSchema, {
+      tags: ['$in', '$all'],
+      createdAt: ['$gte', '$lt']
+    })
+    .default({}),
+
+  sort: mz
+    .sort(postSchema, {
+      createdAt: true,
+      title: true
+    })
+    .default({ createdAt: -1 }),
+
+  limit: z.number()
+    .int()
+    .min(1)
+    .max(100)
+    .default(20)
 })
 
 // The body of a request
@@ -100,10 +162,20 @@ Import it as a namespace, next to Zod's `z`:
 
 ```ts separate
 import * as mz from 'mongozod/mzod'
-import { z } from 'zod'
+import * as z from 'zod'
+
+const tagsSchema = z.object({
+
+  tags: z.string()
+    .array()
+})
 
 const tagsFilter = z.object({
-  filter: mz.filter(z.object({ tags: z.array(z.string()) }), { tags: ['$in'] })
+
+  filter: mz.filter(tagsSchema, {
+
+    tags: ['$in']
+  })
 })
 ```
 
@@ -120,9 +192,13 @@ into the client's bundle. It doesn't re-export Zod either, so each file keeps it
 
 ```ts
 const postsFilter = mz.filter(postSchema, {
+
   _id: ['$eq', '$in'],
+
   title: ['$regex'],
+
   status: ['$eq', '$ne'],
+
   tags: ['$eq', '$all', '$size']
 })
 
@@ -161,18 +237,32 @@ elements, as in MongoDB:
 
 ```ts
 const commentSchema = z.object({
-  _id: mz.objectId().default(() => new ObjectId()),
+
+  _id: mz.objectId()
+    .default(() => new ObjectId()),
+
   postId: mz.objectId(),
+
   body: z.string(),
-  reactions: z
-    .array(z.object({ userId: mz.objectId(), kind: z.enum(['like', 'love']) }))
+
+  reactions: z.object({
+
+    userId: mz.objectId(),
+
+    kind: z.enum(['like', 'love'])
+  })
+    .array()
     .default([])
 })
 
 const commentsFilter = mz.filter(commentSchema, {
+
   'postId': ['$eq'],
+
   'reactions': ['$elemMatch'],
+
   'reactions.userId': ['$eq'],
+
   'reactions.kind': ['$eq', '$in']
 })
 
@@ -192,9 +282,17 @@ can write:
 
 ```ts
 const updatePostInput = z.object({
-  filter: mz.filter(postSchema, { _id: ['$eq'] }).required({ _id: true }),
+
+  filter: mz
+    .filter(postSchema, {
+      _id: ['$eq']
+    })
+    .required({ _id: true }),
+
   update: mz.update(postSchema, {
+
     $set: ['title', 'body', 'summary', 'tags', 'status'],
+
     $unset: ['summary']
   })
 })
@@ -237,7 +335,12 @@ mz.update(postSchema, { $inc: ['title'] })
 client sends `1` or `-1` for each:
 
 ```ts
-const postsSort = mz.sort(postSchema, { createdAt: true, title: true }).default({ createdAt: -1 })
+const postsSort = mz
+  .sort(postSchema, {
+    createdAt: true,
+    title: true
+  })
+  .default({ createdAt: -1 })
 
 postsSort.parse({ title: 1, createdAt: -1 })
 // { title: 1, createdAt: -1 }
@@ -252,7 +355,14 @@ and a string such as `'-createdAt'`, fail.
 and `0` or `false` to exclude, without mixing both, except for `_id`:
 
 ```ts
-const postsProjection = mz.projection(postSchema, { title: true, summary: true, tags: true })
+const postsProjection = mz.projection(postSchema, {
+
+  title: true,
+
+  summary: true,
+
+  tags: true
+})
 
 postsProjection.parse({ title: 1, summary: 1 })
 // { title: 1, summary: 1 }
@@ -271,7 +381,10 @@ of the model above, the user whose `_id` `authorId` stores (see
 [In another key](./populate.md#in-another-key)):
 
 ```ts
-const authorPopulate = mz.populate({ author: userSchema.pick({ _id: true, name: true }) })
+const authorPopulate = mz.populate({
+
+  author: userSchema.pick({ _id: true, name: true })
+})
 
 authorPopulate.parse({ author: true })
 // { author: { projection: { _id: 1, name: 1 } } }
@@ -308,14 +421,22 @@ client sends nothing:
 
 ```ts
 const findPostInput = z.object({
-  filter: mz.filter(postSchema, { _id: ['$eq'] }).required({ _id: true })
+
+  filter: mz
+    .filter(postSchema, {
+      _id: ['$eq']
+    })
+    .required({ _id: true })
 })
 
 findPostInput.parse({ filter: {} })
 // ZodError: Invalid input: expected nonoptional, received undefined, at filter._id
 
 const findByTitleOrId = mz
-  .filter(postSchema, { _id: ['$eq'], title: ['$eq'] })
+  .filter(postSchema, {
+    _id: ['$eq'],
+    title: ['$eq']
+  })
   .refine((filter) => Object.keys(filter).length > 0, 'pass _id or title')
 ```
 
@@ -331,14 +452,25 @@ work. `.pick()`, `.omit()` and `.partial()` throw: declare another `mz.filter` i
 the logical operators with `.extend()`, and the same allow list applies at every level:
 
 ```ts
-const usersFilter = mz.filter(userSchema, { name: ['$eq', '$regex'], email: ['$eq'] }).extend({
-  get $and() {
-    return z.array(usersFilter).optional()
-  },
-  get $or() {
-    return z.array(usersFilter).optional()
-  }
-})
+const usersFilter = mz
+  .filter(userSchema, {
+    name: ['$eq', '$regex'],
+    email: ['$eq']
+  })
+  .extend({
+
+    get $and() {
+      return usersFilter
+        .array()
+        .optional()
+    },
+
+    get $or() {
+      return usersFilter
+        .array()
+        .optional()
+    }
+  })
 
 usersFilter.parse({ $or: [{ name: { $regex: '^Ana' } }, { email: 'ana@example.com' }] })
 ```
@@ -370,25 +502,53 @@ In a project, the inputs go in a file that imports no model, so a client can use
 ```ts
 /** Turns the search term into MongoDB's text search, which needs a text index. */
 function textSearch(term?: string) {
+
   if (!term) return {}
 
   return { $text: { $search: term } }
 }
 
-const authorInput = mz.populate({ author: userSchema.pick({ _id: true, name: true }) }).optional()
+const authorInput = mz
+  .populate({
+    author: userSchema.pick({ _id: true, name: true })
+  })
+  .optional()
 
 export const listPostsSchema = z.object({
-  after: mz.after(postSchema, { createdAt: -1, _id: -1 }).default({}),
-  filter: mz
-    .filter(postSchema, { _id: ['$eq', '$in'], authorId: ['$eq'], tags: ['$in', '$all'] })
+
+  after: mz
+    .after(postSchema, { createdAt: -1, _id: -1 })
     .default({}),
-  limit: z.number().int().min(1).max(100).default(20),
+
+  filter: mz
+    .filter(postSchema, {
+      _id: ['$eq', '$in'],
+      authorId: ['$eq'],
+      tags: ['$in', '$all']
+    })
+    .default({}),
+
+  limit: z.number()
+    .int()
+    .min(1)
+    .max(100)
+    .default(20),
+
   populate: authorInput,
-  term: z.string().optional().transform(textSearch)
+
+  term: z.string()
+    .optional()
+    .transform(textSearch)
 })
 
 export const findOnePostSchema = z.object({
-  filter: mz.filter(postSchema, { _id: ['$eq'] }).required({ _id: true }),
+
+  filter: mz
+    .filter(postSchema, {
+      _id: ['$eq']
+    })
+    .required({ _id: true }),
+
   populate: authorInput
 })
 ```

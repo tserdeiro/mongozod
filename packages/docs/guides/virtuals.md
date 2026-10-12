@@ -11,26 +11,44 @@ fields it reads, and a `transform` that computes its value.
 import { ObjectId } from 'mongodb'
 import { mongozod } from 'mongozod'
 import * as mz from 'mongozod/mzod'
-import { z } from 'zod'
+import * as z from 'zod'
 
 const postSchema = z.object({
-  _id: mz.objectId().default(() => new ObjectId()),
+
+  _id: mz.objectId()
+    .default(() => new ObjectId()),
+
   title: z.string(),
+
   body: z.string(),
-  status: z.enum(['draft', 'published']).default('draft'),
-  tags: z.array(z.string()).default([]),
+
+  status: z.enum(['draft', 'published'])
+    .default('draft'),
+
+  tags: z.string()
+    .array()
+    .default([]),
+
   authorId: mz.objectId()
 })
 
 const PostsModel = mongozod({
+
   collection: 'posts',
+
   db,
+
   schema: postSchema,
+
   virtuals: {
+
     readingMinutes: postSchema
       .pick({ body: true })
       .transform(({ body }) => Math.max(1, Math.round(body.split(/\s+/).length / 200))),
-    path: postSchema.pick({ _id: true }).transform(({ _id }) => `/posts/${_id.toHexString()}`)
+
+    path: postSchema
+      .pick({ _id: true })
+      .transform(({ _id }) => `/posts/${_id.toHexString()}`)
   }
 })
 
@@ -55,15 +73,25 @@ With [Zod Mini](https://zod.dev/packages/mini), the same virtual is a `z.pipe` o
 
 ```ts separate
 import { mongozod } from 'mongozod'
-import { z } from 'zod/mini'
+import * as z from 'zod/mini'
 
-const postSchema = z.object({ title: z.string(), body: z.string() })
+const postSchema = z.object({
+
+  title: z.string(),
+
+  body: z.string()
+})
 
 const PostsModel = mongozod({
+
   collection: 'posts',
+
   db,
+
   schema: postSchema,
+
   virtuals: {
+
     readingMinutes: z.pipe(
       z.pick(postSchema, { body: true }),
       z.transform(({ body }) => Math.max(1, Math.round(body.split(/\s+/).length / 200)))

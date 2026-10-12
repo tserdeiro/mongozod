@@ -11,18 +11,37 @@ passes the rest to the driver, which runs the query. The inserts also return the
 import { ObjectId } from 'mongodb'
 import { mongozod } from 'mongozod'
 import * as mz from 'mongozod/mzod'
-import { z } from 'zod'
+import * as z from 'zod'
 
 const postSchema = z.object({
-  _id: mz.objectId().default(() => new ObjectId()),
-  title: z.string().min(1),
-  body: z.string().default(''),
-  status: z.enum(['draft', 'published']).default('draft'),
-  tags: z.array(z.string()).default([]),
+
+  _id: mz.objectId()
+    .default(() => new ObjectId()),
+
+  title: z.string()
+    .min(1),
+
+  body: z.string()
+    .default(''),
+
+  status: z.enum(['draft', 'published'])
+    .default('draft'),
+
+  tags: z.string()
+    .array()
+    .default([]),
+
   authorId: mz.objectId()
 })
 
-const PostsModel = mongozod({ collection: 'posts', db, schema: postSchema })
+const PostsModel = mongozod({
+
+  collection: 'posts',
+
+  db,
+
+  schema: postSchema
+})
 
 const authorId = new ObjectId()
 
@@ -149,9 +168,12 @@ An update with an aggregation pipeline needs `updatePipeline: true` in its optio
 are not validated, because the server computes them:
 
 ```ts
-await PostsModel.updateMany({ authorId }, [{ $set: { title: { $trim: { input: '$title' } } } }], {
-  updatePipeline: true
-})
+await PostsModel.updateMany(
+  { authorId },
+  [{ $set: { title: { $trim: { input: '$title' } } } }],
+  { updatePipeline: true }
+)
+
 ```
 
 ## Replace
@@ -166,10 +188,9 @@ await PostsModel.replaceOne({ _id: post._id }, { title: 'Hello again, MongoDB', 
 ```
 
 With `upsert: true`, a schema that declares `_id` needs it by equality in the filter, or in the
-replacement: a replacement has no `$setOnInsert`, and the server would insert an `ObjectId` of its
-own. Without either, the operation throws a `ZodError`. In a model with
-`timestamps`, a replacement without `createdAt` sets it to now: pass the one of the document to
-keep it (see [Timestamps](./timestamps.md)).
+replacement (see [Validation](./validation.md#replacements)). In a model with `timestamps`, a
+replacement without `createdAt` sets it to now: pass the one of the document to keep it (see
+[Timestamps](./timestamps.md)).
 
 ## Find one and modify
 

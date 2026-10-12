@@ -13,20 +13,35 @@ import type { Db } from 'mongodb'
 import { ObjectId } from 'mongodb'
 import { mongozod } from 'mongozod'
 import * as mz from 'mongozod/mzod'
-import { z } from 'zod'
+import * as z from 'zod'
 
 const postSchema = z.object({
-  _id: mz.objectId().default(() => new ObjectId()),
-  title: z.string().min(1),
-  body: z.string().default(''),
-  status: z.enum(['draft', 'published']).default('draft'),
-  tags: z.array(z.string()).default([]),
+
+  _id: mz.objectId()
+    .default(() => new ObjectId()),
+
+  title: z.string()
+    .min(1),
+
+  body: z.string()
+    .default(''),
+
+  status: z.enum(['draft', 'published'])
+    .default('draft'),
+
+  tags: z.string()
+    .array()
+    .default([]),
+
   authorId: mz.objectId()
 })
 
 export const PostsModel = mongozod({
+
   collection: 'posts',
+
   db,
+
   schema: postSchema
 })
 
@@ -74,13 +89,23 @@ that start a server first:
 let testDb: Db | undefined
 
 const CommentsModel = mongozod({
+
   collection: 'comments',
+
   db: () => {
+
     if (!testDb) throw new Error('the test database is not ready')
 
     return testDb
   },
-  schema: z.object({ postId: mz.objectId(), body: z.string().min(1) })
+
+  schema: z.object({
+
+    postId: mz.objectId(),
+
+    body: z.string()
+      .min(1)
+  })
 })
 ```
 
@@ -96,16 +121,21 @@ const tenants = new AsyncLocalStorage<Db>()
 const acmeDb = client.db('acme')
 
 const TenantPostsModel = mongozod({
+
   collection: 'posts',
+
   db: () => {
+
     const tenantDb = tenants.getStore()
 
     if (!tenantDb) throw new Error('no tenant: run the operation inside a request')
 
     return tenantDb
   },
+
   schema: postSchema
 })
+
 
 // Writes to the posts of the database `acme`.
 await tenants.run(acmeDb, () =>

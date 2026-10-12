@@ -12,43 +12,83 @@ document it points to.
 import { ObjectId } from 'mongodb'
 import { mongozod } from 'mongozod'
 import * as mz from 'mongozod/mzod'
-import { z } from 'zod'
+import * as z from 'zod'
 
 const userSchema = z.object({
-  _id: mz.objectId().default(() => new ObjectId()),
+
+  _id: mz.objectId()
+    .default(() => new ObjectId()),
+
   name: z.string(),
+
   email: z.email(),
-  role: z.enum(['admin', 'author']).default('author')
+
+  role: z.enum(['admin', 'author'])
+    .default('author')
 })
 
 const postSchema = z.object({
-  _id: mz.objectId().default(() => new ObjectId()),
+
+  _id: mz.objectId()
+    .default(() => new ObjectId()),
+
   title: z.string(),
+
   body: z.string(),
-  status: z.enum(['draft', 'published']).default('draft'),
-  tags: z.array(z.string()).default([]),
+
+  status: z.enum(['draft', 'published'])
+    .default('draft'),
+
+  tags: z.string()
+    .array()
+    .default([]),
+
   authorId: mz.objectId(),
-  coauthorIds: z.array(mz.objectId()).default([]),
-  revisions: z.array(z.object({ editorId: mz.objectId(), at: z.date() })).default([])
+
+  coauthorIds: mz.objectId()
+    .array()
+    .default([]),
+
+  revisions: z
+    .object({
+
+      editorId: mz.objectId(),
+
+      at: z.date()
+    })
+    .array()
+    .default([])
 })
 
 const UsersModel = mongozod({
+
   collection: 'users',
+
   db,
+
   schema: userSchema,
+
   references: {
+
     // One-to-many: the posts whose `authorId` stores the `_id` of the user.
     posts: { model: () => PostsModel, foreignField: 'authorId' }
   }
 })
 
 const PostsModel = mongozod({
+
   collection: 'posts',
+
   db,
+
   schema: postSchema,
+
   references: {
+
     'authorId': () => UsersModel,
+
     'coauthorIds': () => UsersModel,
+
     'revisions.editorId': () => UsersModel
   }
 })
@@ -87,20 +127,39 @@ The rest of this page uses these models.
 import { ObjectId } from 'mongodb'
 import { mongozod } from 'mongozod'
 import * as mz from 'mongozod/mzod'
-import { z } from 'zod'
+import * as z from 'zod'
 
 // The `user` collection of an auth library, which has no model.
-const authUserSchema = z.object({ _id: z.string(), name: z.string(), image: z.string().optional() })
+const authUserSchema = z.object({
+
+  _id: z.string(),
+
+  name: z.string(),
+
+  image: z.string()
+    .optional()
+})
 
 const PostsModel = mongozod({
+
   collection: 'posts',
+
   db,
+
   schema: z.object({
-    _id: mz.objectId().default(() => new ObjectId()),
+
+    _id: mz.objectId()
+      .default(() => new ObjectId()),
+
     title: z.string(),
+
     authorId: z.string()
   }),
-  references: { authorId: { collection: 'user', schema: authUserSchema } }
+
+  references: {
+
+    authorId: { collection: 'user', schema: authUserSchema }
+  }
 })
 
 const posts = await PostsModel.find({}, { populate: { authorId: { projection: { name: 1 } } } })
@@ -249,16 +308,25 @@ the document whose `_id` the `localField` stores. The `localField` keeps its id,
 
 ```ts
 const commentSchema = z.object({
-  _id: mz.objectId().default(() => new ObjectId()),
+
+  _id: mz.objectId()
+    .default(() => new ObjectId()),
+
   postId: mz.objectId(),
+
   body: z.string()
 })
 
 const CommentsModel = mongozod({
+
   collection: 'comments',
+
   db,
+
   schema: commentSchema,
+
   references: {
+
     post: { model: () => PostsModel, localField: 'postId' }
   }
 })

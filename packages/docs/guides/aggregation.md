@@ -11,19 +11,40 @@ the pipeline returns. Without it, the documents come back as the driver returns 
 import { ObjectId } from 'mongodb'
 import { mongozod } from 'mongozod'
 import * as mz from 'mongozod/mzod'
-import { z } from 'zod'
+import * as z from 'zod'
 
 const postSchema = z.object({
-  _id: mz.objectId().default(() => new ObjectId()),
-  title: z.string().min(1),
-  status: z.enum(['draft', 'published']).default('draft'),
-  tags: z.array(z.string()).default([]),
+
+  _id: mz.objectId()
+    .default(() => new ObjectId()),
+
+  title: z.string()
+    .min(1),
+
+  status: z.enum(['draft', 'published'])
+    .default('draft'),
+
+  tags: z.string()
+    .array()
+    .default([]),
+
   authorId: mz.objectId(),
+
   createdAt: mz.date(),
+
   updatedAt: mz.date()
 })
 
-const PostsModel = mongozod({ collection: 'posts', db, schema: postSchema, timestamps: true })
+const PostsModel = mongozod({
+
+  collection: 'posts',
+
+  db,
+
+  schema: postSchema,
+
+  timestamps: true
+})
 
 const topTags = await PostsModel.aggregate(
   [
@@ -33,7 +54,15 @@ const topTags = await PostsModel.aggregate(
     { $sort: { posts: -1 } },
     { $limit: 10 }
   ],
-  { schema: z.object({ _id: z.string(), posts: z.number().int() }) }
+  {
+    schema: z.object({
+
+      _id: z.string(),
+
+      posts: z.number()
+        .int()
+    })
+  }
 )
 // topTags: Array<{ _id: string; posts: number }>
 ```
@@ -47,7 +76,15 @@ each batch as it arrives:
 ```ts
 for await (const tag of PostsModel.aggregate(
   [{ $unwind: '$tags' }, { $group: { _id: '$tags', posts: { $sum: 1 } } }],
-  { schema: z.object({ _id: z.string(), posts: z.number().int() }) }
+  {
+    schema: z.object({
+
+      _id: z.string(),
+
+      posts: z.number()
+        .int()
+    })
+  }
 )) {
   console.log(tag._id, tag.posts)
 }
@@ -123,9 +160,15 @@ const withAuthors = await PostsModel.aggregate(
   ],
   {
     schema: z.object({
+
       _id: mz.objectId(),
+
       title: z.string(),
-      author: z.object({ name: z.string() })
+
+      author: z.object({
+
+        name: z.string()
+      })
     })
   }
 )
@@ -147,17 +190,27 @@ import { ObjectId } from 'mongodb'
 import { mongozod } from 'mongozod'
 import * as mz from 'mongozod/mzod'
 import { softDelete } from 'mongozod/plugins/soft-delete'
-import { z } from 'zod'
+import * as z from 'zod'
 
 const CommentsModel = mongozod({
+
   collection: 'comments',
+
   db,
+
   schema: z.object({
-    _id: mz.objectId().default(() => new ObjectId()),
+
+    _id: mz.objectId()
+      .default(() => new ObjectId()),
+
     postId: mz.objectId(),
+
     body: z.string(),
-    deletedAt: mz.date().optional()
+
+    deletedAt: mz.date()
+      .optional()
   }),
+
   plugins: [softDelete()]
 })
 

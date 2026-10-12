@@ -15,16 +15,31 @@ import { pipeline } from 'node:stream/promises'
 import { ObjectId } from 'mongodb'
 import { mongozod } from 'mongozod'
 import * as mz from 'mongozod/mzod'
-import { z } from 'zod'
+import * as z from 'zod'
 
 const postSchema = z.object({
-  _id: mz.objectId().default(() => new ObjectId()),
-  title: z.string().min(1),
-  body: z.string().default(''),
-  status: z.enum(['draft', 'published']).default('draft')
+
+  _id: mz.objectId()
+    .default(() => new ObjectId()),
+
+  title: z.string()
+    .min(1),
+
+  body: z.string()
+    .default(''),
+
+  status: z.enum(['draft', 'published'])
+    .default('draft')
 })
 
-const PostsModel = mongozod({ collection: 'posts', db, schema: postSchema })
+const PostsModel = mongozod({
+
+  collection: 'posts',
+
+  db,
+
+  schema: postSchema
+})
 
 let words = 0
 
@@ -36,8 +51,9 @@ for await (const post of PostsModel.find({ status: 'published' }, { projection: 
 ## Iterate with `for await`
 
 Each batch gets its virtuals and its `populate` at once, with one query per reference. The
-driver's `batchSize` option, in the options of `find`, sets how many documents a batch has. A loop
-that ends early, with `break`, `return` or an error, closes the cursor on the server.
+driver's `batchSize` option, in the options of `find`, sets how many documents a batch has. See
+[Operations](../guides/operations.md#find) for the rest of the cursor, such as closing it when a
+loop ends early.
 
 The cursor has no `.map()`, `.next()`, `.hasNext()` or `.forEach()`. `for await` covers them, and an
 async generator maps the documents:

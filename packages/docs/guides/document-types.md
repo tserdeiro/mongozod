@@ -11,34 +11,91 @@ says its type, and the filter of each operation decides which types it reads or 
 import { ObjectId } from 'mongodb'
 import { mongozod } from 'mongozod'
 import * as mz from 'mongozod/mzod'
-import { z } from 'zod'
+import * as z from 'zod'
 
 const basePost = z.object({
-  _id: mz.objectId().default(() => new ObjectId()),
+
+  _id: mz.objectId()
+    .default(() => new ObjectId()),
+
   title: z.string(),
-  status: z.enum(['draft', 'published']).default('draft'),
-  tags: z.array(z.string()).default([]),
+
+  status: z.enum(['draft', 'published'])
+    .default('draft'),
+
+  tags: z.string()
+    .array()
+    .default([]),
+
   authorId: mz.objectId()
 })
 
 const blockSchema = z.discriminatedUnion('type', [
-  z.object({ type: z.literal('text'), text: z.string() }),
-  z.object({ type: z.literal('image'), src: z.url(), alt: z.string().optional() })
+  z.object({
+
+    type: z.literal('text'),
+
+    text: z.string()
+  }),
+  z.object({
+
+    type: z.literal('image'),
+
+    src: z.url(),
+
+    alt: z.string()
+      .optional()
+  })
 ])
 
-const video = basePost.extend({ kind: z.literal('video'), seconds: z.number().int() })
+const video = basePost.extend({
+
+  kind: z.literal('video'),
+
+  seconds: z.number()
+    .int()
+})
 
 const postSchema = z.discriminatedUnion('kind', [
-  basePost.extend({ kind: z.literal('article'), blocks: z.array(blockSchema).default([]) }),
-  basePost.extend({ kind: z.literal('link'), url: z.url() }),
+  basePost.extend({
+
+    kind: z.literal('article'),
+
+    blocks: blockSchema
+      .array()
+      .default([])
+  }),
+  basePost.extend({
+
+    kind: z.literal('link'),
+
+    url: z.url()
+  }),
   // A type with subtypes: a union of its own, with its own key.
   z.discriminatedUnion('source', [
-    video.extend({ source: z.literal('youtube'), youtubeId: z.string() }),
-    video.extend({ source: z.literal('upload'), fileId: mz.objectId() })
+    video.extend({
+
+      source: z.literal('youtube'),
+
+      youtubeId: z.string()
+    }),
+    video.extend({
+
+      source: z.literal('upload'),
+
+      fileId: mz.objectId()
+    })
   ])
 ])
 
-const PostsModel = mongozod({ collection: 'posts', db, schema: postSchema })
+const PostsModel = mongozod({
+
+  collection: 'posts',
+
+  db,
+
+  schema: postSchema
+})
 
 const authorId = new ObjectId() // the `_id` of a user
 

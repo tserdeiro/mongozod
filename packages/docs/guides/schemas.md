@@ -11,19 +11,40 @@ document lives.
 import { ObjectId } from 'mongodb'
 import { mongozod } from 'mongozod'
 import * as mz from 'mongozod/mzod'
-import { z } from 'zod'
+import * as z from 'zod'
 
 const postSchema = z.object({
-  _id: mz.objectId().default(() => new ObjectId()),
-  title: z.string().min(1),
-  body: z.string().default(''),
-  status: z.enum(['draft', 'published']).default('draft'),
-  tags: z.array(z.string()).default([]),
+
+  _id: mz.objectId()
+    .default(() => new ObjectId()),
+
+  title: z.string()
+    .min(1),
+
+  body: z.string()
+    .default(''),
+
+  status: z.enum(['draft', 'published'])
+    .default('draft'),
+
+  tags: z.string()
+    .array()
+    .default([]),
+
   authorId: mz.objectId(),
-  publishedAt: mz.date().optional()
+
+  publishedAt: mz.date()
+    .optional()
 })
 
-const PostsModel = mongozod({ collection: 'posts', db, schema: postSchema })
+const PostsModel = mongozod({
+
+  collection: 'posts',
+
+  db,
+
+  schema: postSchema
+})
 ```
 
 The schema is a `z.object`, or a `z.discriminatedUnion` of objects for a collection that stores
@@ -50,12 +71,22 @@ assigns, such as the documents of another library or a natural key:
 
 ```ts
 const userSchema = z.object({
+
   _id: z.string(),
+
   name: z.string(),
+
   email: z.email()
 })
 
-const UsersModel = mongozod({ collection: 'users', db, schema: userSchema })
+const UsersModel = mongozod({
+
+  collection: 'users',
+
+  db,
+
+  schema: userSchema
+})
 
 // @ts-expect-error: the _id has no default, so the insert gives it
 await UsersModel.insertOne({ name: 'Ana', email: 'ana@example.com' })
@@ -104,6 +135,7 @@ const draft: z.input<typeof postSchema> = {
   publishedAt: '2026-10-12T09:00:00Z'
 }
 
+
 const { document: stored } = await PostsModel.insertOne(draft)
 // stored.authorId is an ObjectId and stored.publishedAt a Date
 
@@ -126,12 +158,23 @@ rejects it. A field computed from others goes in `.overwrite()`, which returns t
 ```ts
 const tagSchema = z
   .object({
-    name: z.string().min(1),
-    slug: z.string().default('')
+
+    name: z.string()
+      .min(1),
+
+    slug: z.string()
+      .default('')
   })
   .overwrite((tag) => ({ ...tag, slug: tag.name.toLowerCase().replaceAll(' ', '-') }))
 
-const TagsModel = mongozod({ collection: 'tags', db, schema: tagSchema })
+const TagsModel = mongozod({
+
+  collection: 'tags',
+
+  db,
+
+  schema: tagSchema
+})
 
 const { document: tag } = await TagsModel.insertOne({ name: 'Schema Design' })
 // { _id: ObjectId('…'), name: 'Schema Design', slug: 'schema-design' }
@@ -162,12 +205,23 @@ import { mongozod } from 'mongozod'
 import * as z from 'zod/mini'
 
 const userSchema = z.object({
+
   _id: z.string(),
-  name: z.string().check(z.minLength(1)),
+
+  name: z.string()
+    .check(z.minLength(1)),
+
   email: z.email()
 })
 
-const UsersModel = mongozod({ collection: 'users', db, schema: userSchema })
+const UsersModel = mongozod({
+
+  collection: 'users',
+
+  db,
+
+  schema: userSchema
+})
 ```
 
 A failed write still throws the `ZodError` of `zod`, so `error instanceof ZodError` catches it with
@@ -198,13 +252,22 @@ A `z.bigint()` needs a `Db` or a client with `useBigInt64: true`. Without it, th
 long as a `number`, so every operation of the model throws an `Error` that names the field:
 
 ```ts
-const statsSchema = z.object({ postId: mz.objectId(), views: z.bigint() })
+const statsSchema = z.object({
+
+  postId: mz.objectId(),
+
+  views: z.bigint()
+})
 
 const PostStatsModel = mongozod({
+
   collection: 'post_stats',
+
   db: client.db('blog', { useBigInt64: true }),
+
   schema: statsSchema
 })
+
 ```
 
 Recursive schemas, with the getters that Zod 4 recommends, are accepted (see

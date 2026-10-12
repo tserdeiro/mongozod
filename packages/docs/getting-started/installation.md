@@ -9,8 +9,6 @@ Install mongozod with Zod, the MongoDB driver and `bson`, which are its peer dep
 npm install mongozod zod mongodb bson
 ```
 
-With pnpm, `pnpm add mongozod zod mongodb bson`; with Bun, `bun add mongozod zod mongodb bson`.
-
 > [!WARNING]
 > mongozod is in 0.x: its API may change in a minor version. Each change is in the changelog of its
 > release.
@@ -63,9 +61,14 @@ Import `mongozod/mzod` as a namespace, as you import Zod, so a bundler keeps onl
 
 ```ts
 import * as mz from 'mongozod/mzod'
-import { z } from 'zod'
+import * as z from 'zod'
 
-const tagSchema = z.object({ _id: mz.objectId(), name: z.string() })
+const tagSchema = z.object({
+
+  _id: mz.objectId(),
+
+  name: z.string()
+})
 ```
 
 ## Next steps

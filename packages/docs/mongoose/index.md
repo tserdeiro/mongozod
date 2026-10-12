@@ -35,29 +35,63 @@ The same model on mongozod, over the same collection and the same documents:
 import { ObjectId } from 'mongodb'
 import { mongozod } from 'mongozod'
 import * as mz from 'mongozod/mzod'
-import { z } from 'zod'
+import * as z from 'zod'
 
 // What posts read from `users`, which Mongoose still owns.
-const userSchema = z.object({ _id: mz.objectId(), name: z.string() })
+const userSchema = z.object({
+
+  _id: mz.objectId(),
+
+  name: z.string()
+})
 
 const postSchema = z.object({
-  _id: mz.objectId().default(() => new ObjectId()),
-  title: z.string().trim().min(1),
-  body: z.string().default(''),
-  status: z.enum(['draft', 'published']).default('draft'),
-  tags: z.array(z.string()).default([]),
+
+  _id: mz.objectId()
+    .default(() => new ObjectId()),
+
+  title: z.string()
+    .trim()
+    .min(1),
+
+  body: z.string()
+    .default(''),
+
+  status: z.enum(['draft', 'published'])
+    .default('draft'),
+
+  tags: z.string()
+    .array()
+    .default([]),
+
   authorId: mz.objectId(),
+
   createdAt: mz.date(),
+
   updatedAt: mz.date(),
-  __v: z.number().int().default(0)
+
+  __v: z.number()
+    .int()
+    .default(0)
 })
 
 const PostsModel = mongozod({
+
   collection: 'posts',
+
   db,
+
   schema: postSchema,
-  indexes: (index) => [index({ authorId: 1, createdAt: -1 })],
-  references: { authorId: { collection: 'users', schema: userSchema } },
+
+  indexes: (index) => [
+    index({ authorId: 1, createdAt: -1 })
+  ],
+
+  references: {
+
+    authorId: { collection: 'users', schema: userSchema }
+  },
+
   timestamps: true
 })
 ```
@@ -110,6 +144,7 @@ import mongoose from 'mongoose'
 
 /** The database of Mongoose's default connection, for the mongozod models. */
 export function mongooseDb() {
+
   const { db } = mongoose.connection
 
   if (!db) throw new Error('Mongoose is not connected yet')
@@ -121,7 +156,14 @@ export function mongooseDb() {
 and pass it as `db`, in place of the `db` of the examples:
 
 ```ts nocheck
-const PostsModel = mongozod({ collection: 'posts', db: mongooseDb, schema: postSchema })
+const PostsModel = mongozod({
+
+  collection: 'posts',
+
+  db: mongooseDb,
+
+  schema: postSchema
+})
 ```
 
 A model calls the function on every operation (see [Models](../guides/models.md)), so the modules
@@ -198,13 +240,8 @@ that Mongoose still owns points to the collection and a schema of what you read 
 `authorId` does above; once that model is migrated too, point it to the model:
 `authorId: () => UsersModel`.
 
-Middleware moves to the schema or to plugins:
-
-- A `pre('save')` that changes a field, such as a hash or a slug, becomes a `.transform()` of the
-  field, which runs on every write of that field (see [Transforms](../recipes/transforms.md)).
-- Middleware that changes queries or reacts to writes becomes a hook of a
-  [plugin](../guides/plugins.md). A soft delete plugin becomes the official
-  [`softDelete()`](../plugins/soft-delete.md).
+Middleware moves to `.transform()`s of the schema or to the hooks of plugins, as the
+[cheatsheet](./cheatsheet.md#middleware) maps it.
 
 ### 3. Update the call sites
 

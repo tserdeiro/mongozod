@@ -15,7 +15,7 @@
  *
  * @example
  *   import * as mz from 'mongozod/mzod'
- *   import { z } from 'zod'
+ *   import * as z from 'zod'
  *
  *   const brandSchema = z.object({ _id: mz.objectId(), name: z.string(), createdAt: mz.date() })
  *

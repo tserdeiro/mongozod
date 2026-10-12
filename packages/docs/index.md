@@ -7,7 +7,7 @@ description: What mongozod is, what it adds to the MongoDB driver and Zod, and w
 > mongozod is an independent open-source project. It is not affiliated with, endorsed by or
 > sponsored by MongoDB, Inc. MongoDB® is a registered trademark of MongoDB, Inc.
 
-mongozod is a library for MongoDB where a [Zod](https://zod.dev) schema is the single source of
+`mongozod` is a library for MongoDB where a [Zod](https://zod.dev) schema is the single source of
 truth for each document: it validates what you write, types what you read and defines what each
 endpoint accepts. It is the alternative to Mongoose for projects that already speak Zod.
 
@@ -19,17 +19,27 @@ for everything the model does not wrap.
 import { MongoClient, ObjectId } from 'mongodb'
 import { mongozod } from 'mongozod'
 import * as mz from 'mongozod/mzod'
-import { z } from 'zod'
+import * as z from 'zod'
 
 const client = new MongoClient('mongodb://localhost:27017')
 
 const PostsModel = mongozod({
+
   collection: 'posts',
+
   db: client.db(),
+
   schema: z.object({
-    _id: mz.objectId().default(() => new ObjectId()),
-    title: z.string().min(1),
-    tags: z.array(z.string()).default([])
+
+    _id: mz.objectId()
+      .default(() => new ObjectId()),
+
+    title: z.string()
+      .min(1),
+
+    tags: z.string()
+      .array()
+      .default([])
   })
 })
 

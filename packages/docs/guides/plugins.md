@@ -13,23 +13,39 @@ import { ObjectId } from 'mongodb'
 import { definePlugin, mongozod } from 'mongozod'
 import * as mz from 'mongozod/mzod'
 import { softDelete } from 'mongozod/plugins/soft-delete'
-import { z } from 'zod'
+import * as z from 'zod'
 
 const postSchema = z.object({
-  _id: mz.objectId().default(() => new ObjectId()),
+
+  _id: mz.objectId()
+    .default(() => new ObjectId()),
+
   title: z.string(),
+
   body: z.string(),
-  status: z.enum(['draft', 'published']).default('draft'),
-  tags: z.array(z.string()).default([]),
+
+  status: z.enum(['draft', 'published'])
+    .default('draft'),
+
+  tags: z.string()
+    .array()
+    .default([]),
+
   authorId: mz.objectId(),
+
   // The field that softDelete writes.
-  deletedAt: mz.date().optional()
+  deletedAt: mz.date()
+    .optional()
 })
 
 const PostsModel = mongozod({
+
   collection: 'posts',
+
   db,
+
   schema: postSchema,
+
   plugins: [logger(), softDelete(), audit(), exists()]
 })
 
@@ -176,9 +192,20 @@ import type { AnyModel, FilterOf } from 'mongozod'
 /** Logs each operation with its duration. A read can turn it off with `log: false`. */
 function logger() {
   return definePlugin({
+
     id: 'logger',
-    options: { read: z.object({ log: z.boolean().default(true) }) },
+
+    options: {
+
+      read: z.object({
+
+        log: z.boolean()
+          .default(true)
+      })
+    },
+
     async middleware({ args, model, next, operation }) {
+
       const started = performance.now()
       const result = await next()
 
@@ -191,21 +218,36 @@ function logger() {
   })
 }
 
-const actorContext = z.object({ actor: mz.objectId() })
+const actorContext = z.object({
+
+  actor: mz.objectId()
+})
 
 /** Asks each write for the user who makes it. */
 function audit() {
   return definePlugin({
+
     id: 'audit',
-    context: { insert: actorContext, update: actorContext, delete: actorContext }
+
+    context: {
+
+      insert: actorContext,
+
+      update: actorContext,
+
+      delete: actorContext
+    }
   })
 }
 
 /** Adds `exists`, which says whether a document matches a filter. */
 function exists() {
   return definePlugin({
+
     id: 'exists',
+
     methods: {
+
       async exists<M extends AnyModel, const F extends FilterOf<M, F>>(
         this: M,
         filter: F,

@@ -11,16 +11,28 @@ with `mz.decimal128()`:
 import { Decimal128, ObjectId } from 'mongodb'
 import { mongozod } from 'mongozod'
 import * as mz from 'mongozod/mzod'
-import { z, ZodError } from 'zod'
+import * as z from 'zod'
 
 const userSchema = z.object({
-  _id: mz.objectId().default(() => new ObjectId()),
+
+  _id: mz.objectId()
+    .default(() => new ObjectId()),
+
   name: z.string(),
+
   birthday: z.iso.date(),
+
   balance: mz.decimal128()
 })
 
-const UsersModel = mongozod({ collection: 'users', db, schema: userSchema })
+const UsersModel = mongozod({
+
+  collection: 'users',
+
+  db,
+
+  schema: userSchema
+})
 
 const { document: ana } = await UsersModel.insertOne({
   name: 'Ana',
@@ -53,8 +65,8 @@ such as `createdAt`.
 
 ## Money
 
-`mz.decimal128()` stores a `Decimal128`, the BSON type for exact decimals. It takes a `Decimal128`,
-its string, such as `'25.50'`, or a number, and always returns a `Decimal128`:
+`mz.decimal128()` stores a `Decimal128`, the BSON type for exact decimals, and `$inc` adds to it
+exactly. A number that isn't the decimal it was written as fails:
 
 ```ts
 await UsersModel.updateOne({ _id: ana._id }, { $inc: { balance: '10.25' } })
@@ -63,19 +75,18 @@ await UsersModel.updateOne({ _id: ana._id }, { $inc: { balance: '10.25' } })
 try {
   await UsersModel.updateOne({ _id: ana._id }, { $set: { balance: 0.1 + 0.2 } })
 } catch (error) {
-  if (error instanceof ZodError) console.error(z.prettifyError(error))
+  if (error instanceof z.ZodError) console.error(z.prettifyError(error))
   // ✖ has more than 15 significant digits, which a number cannot keep: send it as a string
   //   → at $set.balance
 }
 ```
 
-A number passes only when it is the decimal it was written as, like `10.5`, so send amounts as
-strings. [BSON types](../guides/bson-types.md#decimal128) lists what the field takes.
+Send amounts as strings. [BSON types](../guides/bson-types.md#decimal128) lists what the field
+takes.
 
-`$inc` and `$mul` add and multiply in the server, exactly. They parse their amount without the
-checks of the field, so a balance with a `.refine()` that keeps it from being negative still takes
-an `$inc` of `'-10'`. Put that condition in the filter instead, so the update doesn't match when
-there isn't enough:
+`$inc` and `$mul` parse their amount without the checks of the field, so a balance with a
+`.refine()` that keeps it from being negative still takes an `$inc` of `'-10'`. Put that condition
+in the filter instead, so the update doesn't match when there isn't enough:
 
 ```ts
 const price = Decimal128.fromString('9.99')
@@ -89,19 +100,10 @@ const { modifiedCount } = await UsersModel.updateOne(
 
 ## Compare a decimal in a filter
 
-A filter on a decimal field takes a `Decimal128`, not a `number`: a double isn't always the
-decimal you wrote, and with `{ balance: { $gte: 9.99 } }` MongoDB leaves out a stored `9.99`.
-Build the value with `Decimal128.fromString()`, as above:
-
-```ts
-const rich = await UsersModel.find({ balance: { $gte: Decimal128.fromString('1000') } })
-
-// @ts-expect-error: a decimal field compares with a Decimal128, not a number
-await UsersModel.find({ balance: { $gte: 1000 } })
-```
-
-A filter that comes from a client goes through `mz.filter`, which parses the string or the number
-with the schema of the field:
+A filter on a decimal field takes a `Decimal128`, built with `Decimal128.fromString()` as above,
+not a `number`: [BSON types](../guides/bson-types.md#decimal128) explains why. A filter that comes
+from a client goes through `mz.filter`, which parses the string or the number with the schema of
+the field:
 
 ```ts
 const usersFilter = mz.filter(userSchema, { balance: ['$gte', '$lt'] })
@@ -114,14 +116,15 @@ await UsersModel.find(filter)
 
 ## Send them as JSON
 
-`JSON.stringify` turns a `Decimal128` into `{ "$numberDecimal": "35.75" }`, its Extended JSON, and
-`mz.decimal128()` takes that form back, so an amount survives a round trip through JSON. A day
-stays the same string. To send amounts as plain strings, encode the document with the schema:
+An amount survives a round trip through JSON, as
+[BSON types](../guides/bson-types.md#back-to-json) explains, and a day stays the same string. To
+send amounts as plain strings, encode the document with the schema:
 
 ```ts
 const user = await UsersModel.findOne({ _id: ana._id })
 
 if (user) {
+
   const body = z.encode(userSchema, user)
   // { _id: '6acd…', name: 'Ana', birthday: '1990-05-01', balance: '35.75' }
 }

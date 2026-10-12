@@ -10,22 +10,33 @@ when the schema leaves it out, or the schema's own `.default()`.
 import { ObjectId } from 'mongodb'
 import { mongozod } from 'mongozod'
 import * as mz from 'mongozod/mzod'
-import { z } from 'zod'
+import * as z from 'zod'
 
 // Not declared: the driver generates an ObjectId.
-const tagSchema = z.object({ name: z.string() })
+const tagSchema = z.object({
+
+  name: z.string()
+})
 
 // An ObjectId that the schema generates.
 const postSchema = z.object({
-  _id: mz.objectId().default(() => new ObjectId()),
+
+  _id: mz.objectId()
+    .default(() => new ObjectId()),
+
   title: z.string(),
+
   authorId: mz.objectId()
 })
 
 // A UUID string that the schema generates.
 const sessionSchema = z.object({
-  _id: z.uuidv4().default(() => crypto.randomUUID()),
+
+  _id: z.uuidv4()
+    .default(() => crypto.randomUUID()),
+
   userId: mz.objectId(),
+
   expiresAt: mz.date()
 })
 ```
@@ -37,7 +48,14 @@ type the `_id` as an `ObjectId`, filters take one, and `insertOne` returns it in
 in `document`:
 
 ```ts
-const TagsModel = mongozod({ collection: 'tags', db, schema: tagSchema })
+const TagsModel = mongozod({
+
+  collection: 'tags',
+
+  db,
+
+  schema: tagSchema
+})
 
 const { document: tag } = await TagsModel.insertOne({ name: 'mongodb' })
 // { _id: ObjectId('…'), name: 'mongodb' }
@@ -54,7 +72,14 @@ returns it.
 JSON client sends. Its `.default()` generates one for each insert, so inserts don't ask for it:
 
 ```ts
-const PostsModel = mongozod({ collection: 'posts', db, schema: postSchema })
+const PostsModel = mongozod({
+
+  collection: 'posts',
+
+  db,
+
+  schema: postSchema
+})
 
 const { document: post } = await PostsModel.insertOne({
   title: 'Hello, MongoDB',
@@ -76,7 +101,14 @@ Import `ObjectId` from `mongodb` on the server. A schema shared with a browser c
 Crypto global of Node.js and browsers, generates it:
 
 ```ts
-const SessionsModel = mongozod({ collection: 'sessions', db, schema: sessionSchema })
+const SessionsModel = mongozod({
+
+  collection: 'sessions',
+
+  db,
+
+  schema: sessionSchema
+})
 
 const { insertedId } = await SessionsModel.insertOne({
   userId: post.authorId,
@@ -96,6 +128,7 @@ Two `ObjectId`s with the same value are still two objects, so `===` is `false`. 
 
 ```ts
 const authorId = mz.objectId().parse('64f1c2a9e4b0a1b2c3d4e5f6')
+
 const posts = await PostsModel.find({ authorId })
 
 for (const found of posts) {
@@ -105,15 +138,10 @@ for (const found of posts) {
 }
 ```
 
-Don't check them with `instanceof` either. `bson` ships a CommonJS build and an ES module build,
-and an ES module app gets both: the driver loads the CommonJS one and reads every `ObjectId` with
-it, while `mz.objectId()` and an `ObjectId` imported from `bson` come from the ES module one. Above,
-`found.authorId instanceof ObjectId` is `true` and `authorId instanceof ObjectId` is `false`. The
-same goes for `Decimal128` and `UUID`.
-
-`.equals()` compares the values, whatever build each one comes from, and `ObjectId.isValid()`
-checks a value that may be an `ObjectId` of either build or its hex string. Filters and writes take
-either build: the driver recognizes them by their `_bsontype`, as `mz.objectId()` does.
+Don't check them with `instanceof` either: in an ES module app, `found.authorId` and `authorId`
+come from two builds of `bson`, so one of them fails it. `.equals()` and `ObjectId.isValid()` work
+with both, and so do filters and writes. See [BSON types](../guides/bson-types.md#objectid) for
+why.
 
 ## The `id` virtual
 
@@ -125,19 +153,28 @@ declare it as a [virtual](../guides/virtuals.md) that picks the `_id`:
 import { ObjectId } from 'mongodb'
 import { mongozod } from 'mongozod'
 import * as mz from 'mongozod/mzod'
-import { z } from 'zod'
+import * as z from 'zod'
 
 const userSchema = z.object({
-  _id: mz.objectId().default(() => new ObjectId()),
+
+  _id: mz.objectId()
+    .default(() => new ObjectId()),
+
   name: z.string()
 })
 
 const UsersModel = mongozod({
+
   collection: 'users',
+
   db,
+
   schema: userSchema,
+
   virtuals: {
-    id: userSchema.pick({ _id: true }).transform((user) => user._id.toHexString())
+
+    id: userSchema.pick({ _id: true })
+      .transform((user) => user._id.toHexString())
   }
 })
 

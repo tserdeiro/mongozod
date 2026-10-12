@@ -23,35 +23,89 @@ import type {
 import { ObjectId } from 'mongodb'
 import { mongozod } from 'mongozod'
 import * as mz from 'mongozod/mzod'
-import { z } from 'zod'
+import * as z from 'zod'
 
 const userSchema = z.object({
-  _id: mz.objectId().default(() => new ObjectId()),
+
+  _id: mz.objectId()
+    .default(() => new ObjectId()),
+
   name: z.string(),
+
   email: z.email()
 })
 
-const UsersModel = mongozod({ collection: 'users', db, schema: userSchema })
+const UsersModel = mongozod({
+
+  collection: 'users',
+
+  db,
+
+  schema: userSchema
+})
 
 const postSchema = z.object({
-  _id: mz.objectId().default(() => new ObjectId()),
-  title: z.string().min(1),
-  body: z.string().default(''),
-  status: z.enum(['draft', 'published']).default('draft'),
-  tags: z.array(z.string()).default([]),
+
+  _id: mz.objectId()
+    .default(() => new ObjectId()),
+
+  title: z.string()
+    .min(1),
+
+  body: z.string()
+    .default(''),
+
+  status: z.enum(['draft', 'published'])
+    .default('draft'),
+
+  tags: z.string()
+    .array()
+    .default([]),
+
   authorId: mz.objectId(),
-  views: z.number().int().default(0),
-  seo: z.object({ title: z.string(), description: z.string().optional() }).optional(),
-  links: z.array(z.object({ url: z.url(), checked: z.boolean().default(false) })).default([]),
-  reactions: z.record(z.string(), z.number().int()).default({}),
-  publishedAt: mz.date().optional()
+
+  views: z.number()
+    .int()
+    .default(0),
+
+  seo: z.object({
+
+    title: z.string(),
+
+    description: z.string()
+      .optional()
+  })
+    .optional(),
+
+  links: z.object({
+
+    url: z.url(),
+
+    checked: z.boolean()
+      .default(false)
+  })
+    .array()
+    .default([]),
+
+  reactions: z.record(z.string(), z.number().int())
+    .default({}),
+
+  publishedAt: mz.date()
+    .optional()
 })
 
 const PostsModel = mongozod({
+
   collection: 'posts',
+
   db,
+
   schema: postSchema,
-  references: { authorId: () => UsersModel }
+
+  references: {
+
+    authorId: () => UsersModel
+  }
 })
 
 const published = await PostsModel.find({ 'status': 'published', 'seo.title': { $exists: true } })
@@ -125,6 +179,7 @@ that is what you mean:
 
 ```ts
 async function listPosts(status?: 'draft' | 'published') {
+
   // @ts-expect-error: the driver would send an undefined status as null
   await PostsModel.find({ status })
 
@@ -142,6 +197,7 @@ such as a route parameter, before it reaches the model:
 
 ```ts
 async function getPost(id: string) {
+
   // @ts-expect-error: the _id is an ObjectId, and the model does not cast the string
   await PostsModel.findOne({ _id: id })
 
@@ -279,6 +335,7 @@ segment at a time, as Zod walks a value. So there is no depth limit, and recursi
 
 ```ts
 async function react(postId: ObjectId, emoji: string) {
+
   const reaction: Record<`reactions.${string}`, number> = { [`reactions.${emoji}`]: 1 }
 
   await PostsModel.updateOne({ _id: postId }, { $inc: reaction })

@@ -11,14 +11,25 @@ schema needs, the options and the context of its operations, and the methods it 
 import { ObjectId } from 'mongodb'
 import { definePlugin, mongozod } from 'mongozod'
 import * as mz from 'mongozod/mzod'
-import { z } from 'zod'
+import * as z from 'zod'
 
 /** Logs each operation of the model with its duration. A read can turn it off with `log: false`. */
 export function logger(write: (line: string) => void = console.info) {
   return definePlugin({
+
     id: 'logger',
-    options: { read: z.object({ log: z.boolean().default(true) }) },
+
+    options: {
+
+      read: z.object({
+
+        log: z.boolean()
+          .default(true)
+      })
+    },
+
     async middleware({ args, model, next, operation }) {
+
       const started = performance.now()
       const result = await next()
 
@@ -32,15 +43,34 @@ export function logger(write: (line: string) => void = console.info) {
 }
 
 const postSchema = z.object({
-  _id: mz.objectId().default(() => new ObjectId()),
+
+  _id: mz.objectId()
+    .default(() => new ObjectId()),
+
   title: z.string(),
+
   body: z.string(),
-  status: z.enum(['draft', 'published']).default('draft'),
-  tags: z.array(z.string()).default([]),
+
+  status: z.enum(['draft', 'published'])
+    .default('draft'),
+
+  tags: z.string()
+    .array()
+    .default([]),
+
   authorId: mz.objectId()
 })
 
-const PostsModel = mongozod({ collection: 'posts', db, schema: postSchema, plugins: [logger()] })
+const PostsModel = mongozod({
+
+  collection: 'posts',
+
+  db,
+
+  schema: postSchema,
+
+  plugins: [logger()]
+})
 
 await PostsModel.countDocuments({ status: 'published' })
 // posts.countDocuments: 2 ms
@@ -124,10 +154,9 @@ required, with a `context`. A method that passes its options on to one of them, 
 - **Forwarded as written**: the `context` stays in `args.options`, so a hook that dispatches another
   operation with `args.options` passes it on. mongozod removes it before calling the driver, and
   `populate` passes it to the reads of the models it populates.
-- **Deletes that become updates**: `softDelete` turns a delete into an update that carries the
-  options of the delete. A plugin that asks for a context in the updates asks for it in the deletes
-  too: otherwise a delete next to `softDelete` compiles without it, and the update it becomes throws
-  a `ZodError`.
+- **Deletes that become updates**: next to `softDelete`, a delete becomes an update with the options
+  of the delete, so a plugin that asks for a context in the updates asks for it in the deletes too
+  (see [Plugins](../guides/plugins.md#context)).
 
 ## Hooks
 
@@ -176,10 +205,15 @@ only changes the filter works as is, since every operation of the group has one.
 /** Caps the documents a `find` returns at 100. */
 export function readCap() {
   return definePlugin({
+
     id: 'readCap',
+
     hooks: {
+
       read: {
+
         before({ args, operation }) {
+
           if (operation !== 'find') return
 
           const limit = Math.min(args.options.limit || 100, 100)
@@ -206,7 +240,10 @@ updates that `softDelete` makes of them.
 ```ts
 import type { Document } from 'mongodb'
 
-const actorContext = z.object({ actor: mz.objectId() })
+const actorContext = z.object({
+
+  actor: mz.objectId()
+})
 
 /** A document to write, with its writer. */
 function withWriter(document: Document, actor: ObjectId): Document {
@@ -222,6 +259,7 @@ function updateWithWriter(update: Document | Document[], actor: ObjectId): Docum
 
 /** One operation of a `bulkWrite`, with its writer. */
 function bulkWithWriter(operation: Document, actor: ObjectId): Document {
+
   const { insertOne, replaceOne, updateMany, updateOne } = operation
 
   if (insertOne) {
@@ -243,18 +281,33 @@ function bulkWithWriter(operation: Document, actor: ObjectId): Document {
 /** Stores in `updatedBy` the user who made the last write of each document. */
 export function audit() {
   return definePlugin({
+
     id: 'audit',
-    fields: { updatedBy: mz.objectId() },
+
+    fields: {
+
+      updatedBy: mz.objectId()
+    },
+
     fills: ['updatedBy'],
+
     context: {
+
       insert: actorContext,
+
       update: actorContext,
+
       delete: actorContext,
+
       bulk: actorContext
     },
+
     hooks: {
+
       insert: {
+
         before({ args, context, operation }) {
+
           if (operation === 'insertOne') {
             return { args: { ...args, document: withWriter(args.document, context.actor) } }
           }
@@ -264,8 +317,11 @@ export function audit() {
           return { args: { ...args, documents } }
         }
       },
+
       update: {
+
         before({ args, context }) {
+
           if ('replacement' in args) {
             return { args: { ...args, replacement: withWriter(args.replacement, context.actor) } }
           }
@@ -273,8 +329,11 @@ export function audit() {
           return { args: { ...args, update: updateWithWriter(args.update, context.actor) } }
         }
       },
+
       bulkWrite: {
+
         before({ args, context }) {
+
           const operations = args.operations.map((operation) =>
             bulkWithWriter(operation, context.actor)
           )
@@ -287,9 +346,16 @@ export function audit() {
 }
 
 const AuditedPostsModel = mongozod({
+
   collection: 'posts',
+
   db,
-  schema: postSchema.extend({ updatedBy: mz.objectId() }),
+
+  schema: postSchema.extend({
+
+    updatedBy: mz.objectId()
+  }),
+
   plugins: [audit()]
 })
 
@@ -310,11 +376,21 @@ of its `deleteOne`, without the rest of the plugin:
 
 ```ts
 const markDeleted = definePlugin({
+
   id: 'markDeleted',
-  fields: { deletedAt: mz.date().optional() },
+
+  fields: {
+
+    deletedAt: mz.date()
+      .optional()
+  },
+
   hooks: {
+
     deleteOne: {
+
       async before({ args, model }) {
+
         const result = await model.updateOne(
           args.filter,
           { $set: { deletedAt: new Date() } },
@@ -358,12 +434,16 @@ const WRITES = new Set<Operation>([
 /** Records each write in an `outbox` collection, in the same transaction as the write. */
 export function outbox() {
   return definePlugin({
+
     id: 'outbox',
+
     async middleware({ model, next, operation }) {
+
       if (!WRITES.has(operation)) return next()
 
       return model.db.client.withSession((session) =>
         session.withTransaction(async () => {
+
           const result = await next({ session })
 
           await model.db
@@ -398,8 +478,11 @@ import type { AnyModel, FilterOf, ReadOptionsArg, UpdateOf, UpdateOptionsArg } f
 
 export function helpers() {
   return definePlugin({
+
     id: 'helpers',
+
     methods: {
+
       /** True when at least one document matches the filter. */
       async exists<M extends AnyModel, const F extends FilterOf<M, F>>(
         this: M,
@@ -415,6 +498,7 @@ export function helpers() {
         const F extends FilterOf<M, F>,
         const U extends UpdateOf<M, U, F>
       >(this: M, filter: F, update: U, ...options: UpdateOptionsArg<M>) {
+
         const result = await this.updateOne(filter, update, options[0])
 
         if (result.matchedCount === 0) throw new Error(`${this.name}: no document matches`)
@@ -426,9 +510,13 @@ export function helpers() {
 }
 
 const HelpedPostsModel = mongozod({
+
   collection: 'posts',
+
   db,
+
   schema: postSchema,
+
   plugins: [helpers()]
 })
 

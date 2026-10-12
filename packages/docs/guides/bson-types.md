@@ -11,17 +11,33 @@ and what your server passes, and returns the BSON value the driver stores and re
 import { Decimal128, ObjectId, UUID } from 'mongodb'
 import { mongozod } from 'mongozod'
 import * as mz from 'mongozod/mzod'
-import { z } from 'zod'
+import * as z from 'zod'
 
 const postSchema = z.object({
-  _id: mz.objectId().default(() => new ObjectId()),
-  title: z.string().min(1),
+
+  _id: mz.objectId()
+    .default(() => new ObjectId()),
+
+  title: z.string()
+    .min(1),
+
   authorId: mz.objectId(),
-  tags: mz.set(z.string()).default([]),
-  publishedAt: mz.date().optional()
+
+  tags: mz.set(z.string())
+    .default([]),
+
+  publishedAt: mz.date()
+    .optional()
 })
 
-const PostsModel = mongozod({ collection: 'posts', db, schema: postSchema })
+const PostsModel = mongozod({
+
+  collection: 'posts',
+
+  db,
+
+  schema: postSchema
+})
 
 // The strings of a JSON request body
 const { document: post } = await PostsModel.insertOne({
@@ -96,11 +112,21 @@ a number, and returns a `Decimal128`:
 
 ```ts
 const invoiceSchema = z.object({
-  _id: mz.objectId().default(() => new ObjectId()),
+
+  _id: mz.objectId()
+    .default(() => new ObjectId()),
+
   total: mz.decimal128()
 })
 
-const InvoicesModel = mongozod({ collection: 'invoices', db, schema: invoiceSchema })
+const InvoicesModel = mongozod({
+
+  collection: 'invoices',
+
+  db,
+
+  schema: invoiceSchema
+})
 
 const { document: invoice } = await InvoicesModel.insertOne({ total: '10.50' })
 
@@ -142,13 +168,25 @@ binary data as:
 
 ```ts
 const attachmentSchema = z.object({
-  _id: mz.objectId().default(() => new ObjectId()),
+
+  _id: mz.objectId()
+    .default(() => new ObjectId()),
+
   postId: mz.objectId(),
+
   name: z.string(),
+
   data: mz.binary()
 })
 
-const AttachmentsModel = mongozod({ collection: 'attachments', db, schema: attachmentSchema })
+const AttachmentsModel = mongozod({
+
+  collection: 'attachments',
+
+  db,
+
+  schema: attachmentSchema
+})
 
 const { document: attachment } = await AttachmentsModel.insertOne({
   postId: post._id,
@@ -171,12 +209,23 @@ a `UUID`, which is what the driver reads:
 
 ```ts
 const sessionSchema = z.object({
-  _id: mz.uuid().default(() => new UUID()),
+
+  _id: mz.uuid()
+    .default(() => new UUID()),
+
   userId: mz.objectId(),
+
   expiresAt: mz.date()
 })
 
-const SessionsModel = mongozod({ collection: 'sessions', db, schema: sessionSchema })
+const SessionsModel = mongozod({
+
+  collection: 'sessions',
+
+  db,
+
+  schema: sessionSchema
+})
 
 const session = await SessionsModel.findOne({
   _id: mz.uuid().parse('0f1aef5a-e7a8-4f60-811b-6685550d99ff')
@@ -237,17 +286,29 @@ stores and queries. They don't convert values: they validate the shape.
 
 ```ts
 const placeSchema = z.object({
-  _id: mz.objectId().default(() => new ObjectId()),
+
+  _id: mz.objectId()
+    .default(() => new ObjectId()),
+
   name: z.string(),
+
   location: mz.point(),
-  area: mz.polygon().optional()
+
+  area: mz.polygon()
+    .optional()
 })
 
 const PlacesModel = mongozod({
+
   collection: 'places',
+
   db,
+
   schema: placeSchema,
-  indexes: (index) => [index({ location: '2dsphere' })]
+
+  indexes: (index) => [
+    index({ location: '2dsphere' })
+  ]
 })
 
 await PlacesModel.sync()
@@ -303,9 +364,18 @@ Declare its type with Zod's metadata API, `.meta({ bsonType })`:
 
 ```ts
 const ledgerSchema = z.object({
-  _id: mz.objectId().default(() => new ObjectId()),
-  balance: z.instanceof(Decimal128).meta({ bsonType: 'decimal' }),
-  entries: z.number().int().min(0).max(2_147_483_647).meta({ bsonType: 'int' })
+
+  _id: mz.objectId()
+    .default(() => new ObjectId()),
+
+  balance: z.instanceof(Decimal128)
+    .meta({ bsonType: 'decimal' }),
+
+  entries: z.number()
+    .int()
+    .min(0)
+    .max(2_147_483_647)
+    .meta({ bsonType: 'int' })
 })
 ```
 

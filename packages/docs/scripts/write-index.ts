@@ -1,7 +1,7 @@
 // Writes README.md, the index of the docs: the title and description of each page, in the order of
 // the meta.json files. GitHub shows it when the folder is opened, and agents find it in
 // node_modules/mongozod/dist/docs/. With --check, it fails when README.md is out of date instead.
-import { readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 import { parse } from 'yaml'
@@ -35,6 +35,9 @@ for (const page of metaSchema.parse(readJson('meta.json')).pages) {
   }
 
   lines.push('', `## ${folder.data.title ?? page}`, '')
+
+  // The index page of a folder is the folder's own link, so its meta.json doesn't list it.
+  if (existsSync(join(page, 'index.md'))) lines.push(item(join(page, 'index.md')))
 
   for (const child of folder.data.pages) lines.push(item(join(page, `${child}.md`)))
 }

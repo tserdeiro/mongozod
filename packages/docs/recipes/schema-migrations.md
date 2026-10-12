@@ -19,20 +19,41 @@ migrated. Deploy the schema, so that new posts have the field, and migrate the o
 import { ObjectId } from 'mongodb'
 import { mongozod } from 'mongozod'
 import * as mz from 'mongozod/mzod'
-import { z } from 'zod'
+import * as z from 'zod'
 
 const postSchema = z.object({
-  _id: mz.objectId().default(() => new ObjectId()),
-  title: z.string().min(1),
+
+  _id: mz.objectId()
+    .default(() => new ObjectId()),
+
+  title: z.string()
+    .min(1),
+
   body: z.string(),
+
   // New: posts written before don't have these.
-  tags: z.array(z.string()).default([]),
-  excerpt: z.string().default(''),
+  tags: z.string()
+    .array()
+    .default([]),
+
+  excerpt: z.string()
+    .default(''),
+
   createdAt: mz.date(),
+
   updatedAt: mz.date()
 })
 
-const PostsModel = mongozod({ collection: 'posts', db, schema: postSchema, timestamps: true })
+const PostsModel = mongozod({
+
+  collection: 'posts',
+
+  db,
+
+  schema: postSchema,
+
+  timestamps: true
+})
 
 const { modifiedCount } = await PostsModel.updateMany(
   { tags: { $exists: false } },
@@ -62,6 +83,7 @@ with the driver's collection, which returns the documents as stored:
 
 ```ts
 for await (const post of PostsModel.collection.find()) {
+
   const result = postSchema.safeParse(post)
 
   if (!result.success) console.log(post._id.toHexString(), z.prettifyError(result.error))
@@ -87,17 +109,32 @@ it:
 
 ```ts
 const userSchema = z.object({
-  _id: mz.objectId().default(() => new ObjectId()),
+
+  _id: mz.objectId()
+    .default(() => new ObjectId()),
+
   firstName: z.string(),
+
   // New: users written before only have `firstName`.
   lastName: z.string()
 })
 
-const fullName = userSchema
-  .pick({ firstName: true, lastName: true })
+const fullName = userSchema.pick({ firstName: true, lastName: true })
   .transform((user) => `${user.firstName} ${user.lastName}`)
 
-const UsersModel = mongozod({ collection: 'users', db, schema: userSchema, virtuals: { fullName } })
+const UsersModel = mongozod({
+
+  collection: 'users',
+
+  db,
+
+  schema: userSchema,
+
+  virtuals: {
+
+    fullName
+  }
+})
 
 for await (const user of UsersModel.collection.find()) {
   if (!fullName.safeParse(user).success) console.log(user._id)

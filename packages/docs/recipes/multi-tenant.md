@@ -16,11 +16,12 @@ import { AsyncLocalStorage } from 'node:async_hooks'
 import { ObjectId } from 'mongodb'
 import { mongozod } from 'mongozod'
 import * as mz from 'mongozod/mzod'
-import { z } from 'zod'
+import * as z from 'zod'
 
 const tenantDb = new AsyncLocalStorage<Db>()
 
 function currentDb() {
+
   const found = tenantDb.getStore()
 
   if (!found) throw new Error('no tenant: run the operation inside withTenant()')
@@ -29,12 +30,24 @@ function currentDb() {
 }
 
 const postSchema = z.object({
-  _id: mz.objectId().default(() => new ObjectId()),
+
+  _id: mz.objectId()
+    .default(() => new ObjectId()),
+
   title: z.string(),
-  status: z.enum(['draft', 'published']).default('draft')
+
+  status: z.enum(['draft', 'published'])
+    .default('draft')
 })
 
-export const PostsModel = mongozod({ collection: 'posts', db: currentDb, schema: postSchema })
+export const PostsModel = mongozod({
+
+  collection: 'posts',
+
+  db: currentDb,
+
+  schema: postSchema
+})
 ```
 
 ## Keep a `Db` per tenant
@@ -48,6 +61,7 @@ const tenantDbs = new Map<string, Db>()
 
 /** Runs a function, such as the handler of a request, with the database of a tenant. */
 export function withTenant<T>(tenant: string, run: () => T): T {
+
   let found = tenantDbs.get(tenant)
 
   if (!found) {

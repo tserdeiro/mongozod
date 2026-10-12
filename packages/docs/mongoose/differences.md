@@ -21,19 +21,41 @@ In mongozod, the change is the update:
 import { ObjectId } from 'mongodb'
 import { mongozod } from 'mongozod'
 import * as mz from 'mongozod/mzod'
-import { z } from 'zod'
+import * as z from 'zod'
 
 const postSchema = z.object({
-  _id: mz.objectId().default(() => new ObjectId()),
-  title: z.string().min(1),
-  body: z.string().default(''),
-  status: z.enum(['draft', 'published']).default('draft'),
-  tags: z.array(z.string()).default([]),
+
+  _id: mz.objectId()
+    .default(() => new ObjectId()),
+
+  title: z.string()
+    .min(1),
+
+  body: z.string()
+    .default(''),
+
+  status: z.enum(['draft', 'published'])
+    .default('draft'),
+
+  tags: z.string()
+    .array()
+    .default([]),
+
   authorId: mz.objectId(),
-  __v: z.number().int().default(0)
+
+  __v: z.number()
+    .int()
+    .default(0)
 })
 
-const PostsModel = mongozod({ collection: 'posts', db, schema: postSchema })
+const PostsModel = mongozod({
+
+  collection: 'posts',
+
+  db,
+
+  schema: postSchema
+})
 
 const id = mz.objectId().parse('64f1c2a9e4b0a1b2c3d4e5f6')
 
@@ -211,15 +233,10 @@ await PostsModel.collection.updateMany({}, { $unset: { __v: '' } })
 
 ## Smaller differences
 
-- **Collection names**: Mongoose derives the name from the model, lowercased and in plural
-  ([Mongoose docs](https://mongoosejs.com/docs/models.html#compiling)). mongozod takes the name you
-  pass.
-- **Optional fields**: a Mongoose path is optional unless it is `required`, and an array defaults to
-  `[]` ([Mongoose docs](https://mongoosejs.com/docs/schematypes.html#arrays)). A Zod key is required
-  unless it is `.optional()`, and an array needs `.default([])`.
-- **Required strings**: Mongoose's `required` rejects an empty string
-  ([Mongoose docs](https://mongoosejs.com/docs/api/schemastring.html#SchemaString.prototype.checkRequired%28%29)).
-  In Zod, add `.min(1)`.
+- **Collection names, optional fields and required strings**: Mongoose derives the collection name
+  from the model, and a Zod key is required unless it is `.optional()`. See
+  [Write the Zod schema](./index.md#1-write-the-zod-schema) and the
+  [cheatsheet](./cheatsheet.md#field-options).
 - **Empty objects**: Mongoose removes them by default, with its `minimize` option
   ([Mongoose docs](https://mongoosejs.com/docs/guide.html#minimize),
   [Automattic/mongoose#8505](https://github.com/Automattic/mongoose/issues/8505)). mongozod stores
@@ -240,10 +257,9 @@ await PostsModel.collection.updateMany({}, { $unset: { __v: '' } })
   [Document types](../guides/document-types.md)).
 - **Errors**: a validation throws Zod's `ZodError`, not a `ValidationError`, and there is no
   `CastError`. The driver's errors, such as a duplicate key, are the same in both.
-- **Transactions**: Mongoose can pass the session of a transaction to its operations through
-  `AsyncLocalStorage` ([Mongoose docs](https://mongoosejs.com/docs/transactions.html#asynclocalstorage)).
-  mongozod takes it in the options of each operation, `{ session }` (see
-  [Transactions](../guides/transactions.md)).
+- **Transactions**: mongozod takes the session in the options of each operation, `{ session }`, also
+  when Mongoose's `transactionAsyncLocalStorage` is on (see
+  [Share the connection](./index.md#share-the-connection)).
 
 ## Not there yet
 

@@ -10,27 +10,52 @@ the operation throws Zod's `ZodError`, with every problem it found, and writes n
 import { ObjectId } from 'mongodb'
 import { mongozod } from 'mongozod'
 import * as mz from 'mongozod/mzod'
-import { z, ZodError } from 'zod'
+import * as z from 'zod'
 
 const postSchema = z.object({
-  _id: mz.objectId().default(() => new ObjectId()),
-  title: z.string().min(1),
-  body: z.string().default(''),
-  status: z.enum(['draft', 'published']).default('draft'),
-  tags: z.array(z.string()).default([]),
+
+  _id: mz.objectId()
+    .default(() => new ObjectId()),
+
+  title: z.string()
+    .min(1),
+
+  body: z.string()
+    .default(''),
+
+  status: z.enum(['draft', 'published'])
+    .default('draft'),
+
+  tags: z.string()
+    .array()
+    .default([]),
+
   authorId: mz.objectId(),
-  views: z.number().int().min(0).default(0),
-  publishedAt: mz.date().optional()
+
+  views: z.number()
+    .int()
+    .min(0)
+    .default(0),
+
+  publishedAt: mz.date()
+    .optional()
 })
 
-const PostsModel = mongozod({ collection: 'posts', db, schema: postSchema })
+const PostsModel = mongozod({
+
+  collection: 'posts',
+
+  db,
+
+  schema: postSchema
+})
 
 const authorId = new ObjectId()
 
 try {
   await PostsModel.insertOne({ title: '', authorId })
 } catch (error) {
-  if (error instanceof ZodError) console.log(error.issues)
+  if (error instanceof z.ZodError) console.log(error.issues)
   // [{ code: 'too_small', path: ['title'], message: 'Too small: expected string to have >=1 characters', … }]
 }
 ```
@@ -64,7 +89,7 @@ try {
     { title: '', authorId }
   ])
 } catch (error) {
-  if (error instanceof ZodError) console.log(error.issues.map((issue) => issue.path))
+  if (error instanceof z.ZodError) console.log(error.issues.map((issue) => issue.path))
   // [[1, 'title']], and no document was written
 }
 ```
@@ -183,16 +208,26 @@ database, like an [async validator](https://mongoosejs.com/docs/validation.html)
 
 ```ts
 const userSchema = z.object({
-  name: z.string().min(1),
-  handle: z
-    .string()
+
+  name: z.string()
+    .min(1),
+
+  handle: z.string()
     .refine(
       async (handle) => (await db.collection('reserved_handles').countDocuments({ handle })) === 0,
       'is reserved'
     )
 })
 
-const UsersModel = mongozod({ collection: 'users', db, schema: userSchema })
+const UsersModel = mongozod({
+
+  collection: 'users',
+
+  db,
+
+  schema: userSchema
+})
+
 
 // Throws a ZodError with the issue 'is reserved' when the handle is in reserved_handles.
 await UsersModel.insertOne({ name: 'Admin', handle: 'admin' })
@@ -206,7 +241,7 @@ it. A check that has to see the transaction goes in the `before` hook of a plugi
 ## The ZodError
 
 A failed validation throws the `ZodError` of `zod`, also with Zod Mini schemas, so
-`error instanceof ZodError` catches it in both. Its `issues` say what failed and where:
+`error instanceof z.ZodError` catches it in both. Its `issues` say what failed and where:
 
 | Write                                   | Path of an issue                                                                                       |
 | --------------------------------------- | ------------------------------------------------------------------------------------------------------ |
@@ -222,7 +257,7 @@ A failed validation throws the `ZodError` of `zod`, also with Zod Mini schemas, 
 try {
   await PostsModel.updateOne({ _id: post._id }, { $set: { title: '' } })
 } catch (error) {
-  if (error instanceof ZodError) console.error(z.prettifyError(error))
+  if (error instanceof z.ZodError) console.error(z.prettifyError(error))
   // ✖ Too small: expected string to have >=1 characters
   //   → at $set.title
 }
@@ -260,7 +295,7 @@ are missing, and a `$set` past the end of an array fills the gap with `null`. Th
 - **An upsert whose update lacks a required field**: it throws a `ZodError`, also when a document
   matches. Give the field in the filter or with `$setOnInsert`.
 - **Catching every error as a `ZodError`**: a duplicate key is the driver's `MongoServerError`.
-  Check `instanceof ZodError` before reading `issues`.
+  Check `instanceof z.ZodError` before reading `issues`.
 - **An async refinement that has to see a transaction**: it reads outside of it. Move the check to a
   plugin's `before` hook.
 - **Trusting reads to fit the schema**: they are not validated. Use `sync()` with `jsonSchema`, and

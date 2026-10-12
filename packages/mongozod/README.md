@@ -79,23 +79,38 @@ pnpm install them; Yarn does not.
 import { MongoClient, ObjectId } from 'mongodb'
 import { mongozod } from 'mongozod'
 import * as mz from 'mongozod/mzod'
-import { z } from 'zod'
+import * as z from 'zod'
 
 const client = new MongoClient('mongodb://localhost:27017')
 
 const postSchema = z.object({
-  _id: mz.objectId().default(() => new ObjectId()),
-  title: z.string().min(1),
-  status: z.enum(['draft', 'published']).default('draft'),
-  tags: z.array(z.string()).default([]),
+
+  _id: mz.objectId()
+    .default(() => new ObjectId()),
+
+  title: z.string()
+    .min(1),
+
+  status: z.enum(['draft', 'published'])
+    .default('draft'),
+
+  tags: z.string()
+    .array()
+    .default([]),
+
   createdAt: mz.date(),
+
   updatedAt: mz.date()
 })
 
 const PostsModel = mongozod({
+
   collection: 'posts',
+
   db: client.db(),
+
   schema: postSchema,
+
   timestamps: true
 })
 ```
@@ -127,13 +142,31 @@ and only what the endpoint declares gets through:
 
 ```ts
 const listPostsInput = z.object({
-  filter: mz.filter(postSchema, { status: ['$eq'], tags: ['$in'] }).default({}),
-  sort: mz.sort(postSchema, { createdAt: true, title: true }).default({ createdAt: -1 }),
-  limit: z.number().int().min(1).max(100).default(20)
+
+  filter: mz
+    .filter(postSchema, {
+      status: ['$eq'],
+      tags: ['$in']
+    })
+    .default({}),
+
+  sort: mz
+    .sort(postSchema, {
+      createdAt: true,
+      title: true
+    })
+    .default({ createdAt: -1 }),
+
+  limit: z.number()
+    .int()
+    .min(1)
+    .max(100)
+    .default(20)
 })
 
 // The body of a request, such as { "filter": { "tags": { "$in": ["mongodb"] } } }
 export async function listPosts(body: unknown) {
+
   const { filter, sort, limit } = listPostsInput.parse(body)
 
   return PostsModel.find(filter, { sort, limit })

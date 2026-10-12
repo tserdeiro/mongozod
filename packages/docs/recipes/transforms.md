@@ -19,9 +19,10 @@ import { randomBytes, scrypt } from 'node:crypto'
 import { ObjectId } from 'mongodb'
 import { definePlugin, mongozod } from 'mongozod'
 import * as mz from 'mongozod/mzod'
-import { z } from 'zod'
+import * as z from 'zod'
 
 function hashPassword(password: string): Promise<string> {
+
   const salt = randomBytes(16).toString('hex')
 
   return new Promise((resolve, reject) => {
@@ -33,12 +34,25 @@ function hashPassword(password: string): Promise<string> {
 }
 
 const userSchema = z.object({
-  _id: mz.objectId().default(() => new ObjectId()),
+
+  _id: mz.objectId()
+    .default(() => new ObjectId()),
+
   email: z.email(),
-  password: z.string().min(8).transform(hashPassword)
+
+  password: z.string()
+    .min(8)
+    .transform(hashPassword)
 })
 
-const UsersModel = mongozod({ collection: 'users', db, schema: userSchema })
+const UsersModel = mongozod({
+
+  collection: 'users',
+
+  db,
+
+  schema: userSchema
+})
 
 const { document: user } = await UsersModel.insertOne({
   email: 'ana@example.com',
@@ -85,9 +99,9 @@ are safe to write back. For one that doesn't, such as a hash:
 
 ## A field computed from others
 
-A slug computed from the title goes in `.overwrite()`, which changes the document without changing
-its type. A `.transform()` of the whole document is rejected when the model is defined: updates
-write paths, and they couldn't run it.
+A slug computed from the title goes in `.overwrite()`, not in a `.transform()` of the whole
+document. See [Schemas](../guides/schemas.md#fields-computed-from-others) for why, and why the
+schema declares `slug` with a default.
 
 ```ts
 function slugify(title: string) {
@@ -97,27 +111,34 @@ function slugify(title: string) {
     .replaceAll(/^-|-$/g, '')
 }
 
-const postSchema = z
-  .object({
-    _id: mz.objectId().default(() => new ObjectId()),
-    title: z.string().min(1),
-    slug: z.string().default('')
-  })
+const postSchema = z.object({
+
+  _id: mz.objectId()
+    .default(() => new ObjectId()),
+
+  title: z.string()
+    .min(1),
+
+  slug: z.string()
+    .default('')
+})
   .overwrite((post) => ({ ...post, slug: slugify(post.title) }))
 
-const PostsModel = mongozod({ collection: 'posts', db, schema: postSchema })
+const PostsModel = mongozod({
+
+  collection: 'posts',
+
+  db,
+
+  schema: postSchema
+})
 
 const { document: post } = await PostsModel.insertOne({ title: 'Hello, MongoDB' })
 // { _id: ObjectId('…'), title: 'Hello, MongoDB', slug: 'hello-mongodb' }
 ```
 
-`.overwrite()` can't add a field to the type, so the schema declares `slug`, and `.default('')`
-lets inserts leave it out while reads type it as a `string`. With `.optional()`, reads would type
-it `string | undefined`.
-
-It runs on inserts and replacements, which validate the whole document. An update validates the
-values it writes, each with the schema of its path, so `$set: { title }` leaves the slug as it was.
-Set both:
+`.overwrite()` runs on inserts and replacements, not on updates, so `$set: { title }` leaves the
+slug as it was. Set both:
 
 ```ts
 const title = 'Hello again, MongoDB'
@@ -133,21 +154,36 @@ to see them goes in a plugin's `before` hook, whose `args.options` has the `sess
 
 ```ts
 const commentSchema = z.object({
-  _id: mz.objectId().default(() => new ObjectId()),
+
+  _id: mz.objectId()
+    .default(() => new ObjectId()),
+
   postId: mz.objectId(),
-  body: z.string().min(1)
+
+  body: z.string()
+    .min(1)
 })
 
 /** Rejects a comment whose post doesn't exist, inside the transaction of the insert. */
 function postExists() {
   return definePlugin({
+
     id: 'postExists',
-    fields: { postId: mz.objectId() },
+
+    fields: {
+
+      postId: mz.objectId()
+    },
+
     hooks: {
+
       insertOne: {
+
         async before({ args }) {
+
           // The hook sees the call before validation: the id may still be a hex string.
           const postId = mz.objectId().parse(args.document.postId)
+
           const count = await PostsModel.countDocuments(
             { _id: postId },
             { limit: 1, session: args.options.session }
@@ -161,14 +197,19 @@ function postExists() {
 }
 
 const CommentsModel = mongozod({
+
   collection: 'comments',
+
   db,
+
   schema: commentSchema,
+
   plugins: [postExists()]
 })
 
 await client.withSession((session) =>
   session.withTransaction(async () => {
+
     const { document: draft } = await PostsModel.insertOne({ title: 'Draft' }, { session })
 
     // The hook reads with the session, so it sees the post this transaction inserted.

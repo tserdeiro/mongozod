@@ -14,9 +14,10 @@ mongozod uses the official driver's connection: create a `MongoClient` as you wo
 import { MongoClient, ObjectId } from 'mongodb'
 import { mongozod } from 'mongozod'
 import * as mz from 'mongozod/mzod'
-import { z, ZodError } from 'zod'
+import * as z from 'zod'
 
-const client = new MongoClient(process.env.MONGODB_URI ?? 'mongodb://localhost:27017')
+const client = new MongoClient('mongodb://localhost:27017')
+
 const db = client.db('blog')
 ```
 
@@ -28,12 +29,25 @@ The schema describes a document as it is stored. Its defaults fill what a write 
 
 ```ts
 const postSchema = z.object({
-  _id: mz.objectId().default(() => new ObjectId()),
-  title: z.string().min(1),
-  body: z.string().default(''),
-  status: z.enum(['draft', 'published']).default('draft'),
-  tags: z.array(z.string()).default([]),
+
+  _id: mz.objectId()
+    .default(() => new ObjectId()),
+
+  title: z.string()
+    .min(1),
+
+  body: z.string()
+    .default(''),
+
+  status: z.enum(['draft', 'published'])
+    .default('draft'),
+
+  tags: z.string()
+    .array()
+    .default([]),
+
   createdAt: mz.date(),
+
   updatedAt: mz.date()
 })
 ```
@@ -47,11 +61,18 @@ and `updatedAt` on every write, and `indexes` declares the indexes, which `sync(
 
 ```ts
 export const PostsModel = mongozod({
+
   collection: 'posts',
+
   db,
+
   schema: postSchema,
+
   timestamps: true,
-  indexes: (index) => [index({ status: 1, createdAt: -1 })]
+
+  indexes: (index) => [
+    index({ status: 1, createdAt: -1 })
+  ]
 })
 
 await PostsModel.sync()
@@ -87,7 +108,7 @@ await PostsModel.updateOne({ _id: post._id }, { $set: { status: 'archived' } })
 try {
   await PostsModel.insertOne({ title: '' })
 } catch (error) {
-  if (error instanceof ZodError) console.error(z.prettifyError(error))
+  if (error instanceof z.ZodError) console.error(z.prettifyError(error))
   // ✖ Too small: expected string to have >=1 characters
   //   → at title
 }
@@ -128,16 +149,33 @@ value with the schema of its field:
 
 ```ts
 export const listPostsInput = z.object({
+
   filter: mz
-    .filter(postSchema, { status: ['$eq'], tags: ['$in', '$all'], createdAt: ['$gte', '$lt'] })
+    .filter(postSchema, {
+      status: ['$eq'],
+      tags: ['$in', '$all'],
+      createdAt: ['$gte', '$lt']
+    })
     .default({}),
-  sort: mz.sort(postSchema, { createdAt: true, title: true }).default({ createdAt: -1 }),
-  limit: z.number().int().min(1).max(100).default(20)
+
+  sort: mz
+    .sort(postSchema, {
+      createdAt: true,
+      title: true
+    })
+    .default({ createdAt: -1 }),
+
+  limit: z.number()
+    .int()
+    .min(1)
+    .max(100)
+    .default(20)
 })
 
 // The body of a request, such as
 // { "filter": { "tags": { "$in": ["mongodb"] }, "createdAt": { "$gte": "2026-01-01T00:00:00Z" } } }
 export async function listPosts(body: unknown) {
+
   const { filter, sort, limit } = listPostsInput.parse(body)
 
   return PostsModel.find(filter, { sort, limit })

@@ -33,37 +33,65 @@ The same in mongozod:
 import { ObjectId } from 'mongodb'
 import { definePlugin, mongozod } from 'mongozod'
 import * as mz from 'mongozod/mzod'
-import { z } from 'zod'
+import * as z from 'zod'
 
 const userSchema = z.object({
-  _id: mz.objectId().default(() => new ObjectId()),
-  name: z.string().trim().min(1),
-  email: z
-    .string()
+
+  _id: mz.objectId()
+    .default(() => new ObjectId()),
+
+  name: z.string()
+    .trim()
+    .min(1),
+
+  email: z.string()
     .toLowerCase()
     .regex(/^\S+@\S+$/),
-  role: z.enum(['reader', 'author', 'admin']).default('reader'),
-  age: z.number().min(13).optional(),
-  avatar: mz.binary().optional(),
-  links: z.record(z.string(), z.string()).optional(),
-  addresses: z
-    .array(
-      z.object({
-        _id: mz.objectId().default(() => new ObjectId()),
-        city: z.string().optional(),
-        zip: z.string().optional()
-      })
-    )
+
+  role: z.enum(['reader', 'author', 'admin'])
+    .default('reader'),
+
+  age: z.number()
+    .min(13)
+    .optional(),
+
+  avatar: mz.binary()
+    .optional(),
+
+  links: z.record(z.string(), z.string())
+    .optional(),
+
+  addresses: z.object({
+
+    _id: mz.objectId()
+      .default(() => new ObjectId()),
+
+    city: z.string()
+      .optional(),
+
+    zip: z.string()
+      .optional()
+  })
+    .array()
     .default([]),
+
   createdAt: mz.date(),
+
   updatedAt: mz.date()
 })
 
 const UsersModel = mongozod({
+
   collection: 'users',
+
   db,
+
   schema: userSchema,
-  indexes: (index) => [index({ email: 1 }, { unique: true })],
+
+  indexes: (index) => [
+    index({ email: 1 }, { unique: true })
+  ],
+
   timestamps: true
 })
 ```
@@ -72,40 +100,76 @@ The rest of the page also uses posts and their comments:
 
 ```ts
 const postSchema = z.object({
-  _id: mz.objectId().default(() => new ObjectId()),
-  title: z.string().min(1),
-  body: z.string().default(''),
-  status: z.enum(['draft', 'published']).default('draft'),
-  tags: z.array(z.string()).default([]),
+
+  _id: mz.objectId()
+    .default(() => new ObjectId()),
+
+  title: z.string()
+    .min(1),
+
+  body: z.string()
+    .default(''),
+
+  status: z.enum(['draft', 'published'])
+    .default('draft'),
+
+  tags: z.string()
+    .array()
+    .default([]),
+
   authorId: mz.objectId(),
+
   createdAt: mz.date(),
+
   updatedAt: mz.date()
 })
 
 const commentSchema = z.object({
-  _id: mz.objectId().default(() => new ObjectId()),
+
+  _id: mz.objectId()
+    .default(() => new ObjectId()),
+
   postId: mz.objectId(),
-  body: z.string().min(1),
+
+  body: z.string()
+    .min(1),
+
   createdAt: mz.date(),
+
   updatedAt: mz.date()
 })
 
 const PostsModel = mongozod({
+
   collection: 'posts',
+
   db,
+
   schema: postSchema,
+
   references: {
+
     authorId: () => UsersModel,
+
     comments: { model: () => CommentsModel, foreignField: 'postId' }
   },
+
   timestamps: true
 })
 
 const CommentsModel = mongozod({
+
   collection: 'comments',
+
   db,
+
   schema: commentSchema,
-  references: { postId: () => PostsModel },
+
+  references: {
+
+    postId: () => PostsModel
+  },
+
   timestamps: true
 })
 ```
@@ -114,26 +178,26 @@ const CommentsModel = mongozod({
 
 From [SchemaTypes](https://mongoosejs.com/docs/schematypes.html) in the Mongoose docs:
 
-| Mongoose                                                       | mongozod                                                                                                                  |
-| -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| `new Schema({ … })`                                            | `z.object({ … })`                                                                                                         |
-| `String`                                                       | `z.string()`                                                                                                              |
-| `Number`                                                       | `z.number()`, or `z.int()` for integers                                                                                   |
-| `Boolean`                                                      | `z.boolean()`                                                                                                             |
-| `Date`                                                         | [`mz.date()`](../guides/bson-types.md#dates), which also takes the ISO string a JSON client sends, or `z.date()`          |
-| `ObjectId`                                                     | [`mz.objectId()`](../guides/bson-types.md#objectid), which also takes the hex string                                      |
-| `Decimal128`                                                   | [`mz.decimal128()`](../guides/bson-types.md#decimal128)                                                                   |
-| `Buffer`                                                       | [`mz.binary()`](../guides/bson-types.md#binary-data)                                                                      |
-| `UUID`                                                         | [`mz.uuid()`](../guides/bson-types.md#uuid)                                                                               |
-| `BigInt`                                                       | `z.bigint()`, with `useBigInt64: true` on the client (see [Schemas](../guides/schemas.md))                                |
-| `Int32`                                                        | `z.int32()`                                                                                                               |
-| `Mixed`                                                        | `z.unknown()`, or a schema of its shape                                                                                   |
-| `Map` with `of`                                                | `z.record(z.string(), …)`: a `z.map()` does not come back from MongoDB, so a model rejects it                             |
-| `Union`                                                        | `z.union([…])`, or `z.discriminatedUnion()`                                                                               |
-| `[String]`, an array                                           | `z.array(z.string()).default([])`: Mongoose arrays [default to `[]`](https://mongoosejs.com/docs/schematypes.html#arrays) |
-| A nested object or a subdocument                               | `z.object({ … })`, with the `_id` that Mongoose [gives each subdocument](https://mongoosejs.com/docs/subdocs.html)        |
-| GeoJSON as `{ type: { type: String }, coordinates: [Number] }` | [`mz.point()`](../guides/bson-types.md#geojson), `mz.polygon()` and the rest of the GeoJSON types                         |
-| An array of unique values, by hand                             | [`mz.set()`](../guides/bson-types.md#sets)                                                                                |
+| Mongoose                                                       | mongozod                                                                                                                 |
+| -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `new Schema({ … })`                                            | `z.object({ … })`                                                                                                        |
+| `String`                                                       | `z.string()`                                                                                                             |
+| `Number`                                                       | `z.number()`, or `z.int()` for integers                                                                                  |
+| `Boolean`                                                      | `z.boolean()`                                                                                                            |
+| `Date`                                                         | [`mz.date()`](../guides/bson-types.md#dates), which also takes the ISO string a JSON client sends, or `z.date()`         |
+| `ObjectId`                                                     | [`mz.objectId()`](../guides/bson-types.md#objectid), which also takes the hex string                                     |
+| `Decimal128`                                                   | [`mz.decimal128()`](../guides/bson-types.md#decimal128)                                                                  |
+| `Buffer`                                                       | [`mz.binary()`](../guides/bson-types.md#binary-data)                                                                     |
+| `UUID`                                                         | [`mz.uuid()`](../guides/bson-types.md#uuid)                                                                              |
+| `BigInt`                                                       | `z.bigint()`, with `useBigInt64: true` on the client (see [Schemas](../guides/schemas.md))                               |
+| `Int32`                                                        | `z.int32()`                                                                                                              |
+| `Mixed`                                                        | `z.unknown()`, or a schema of its shape                                                                                  |
+| `Map` with `of`                                                | `z.record(z.string(), …)`: a `z.map()` does not come back from MongoDB, so a model rejects it                            |
+| `Union`                                                        | `z.union([…])`, or `z.discriminatedUnion()`                                                                              |
+| `[String]`, an array                                           | `z.string().array().default([])`: Mongoose arrays [default to `[]`](https://mongoosejs.com/docs/schematypes.html#arrays) |
+| A nested object or a subdocument                               | `z.object({ … })`, with the `_id` that Mongoose [gives each subdocument](https://mongoosejs.com/docs/subdocs.html)       |
+| GeoJSON as `{ type: { type: String }, coordinates: [Number] }` | [`mz.point()`](../guides/bson-types.md#geojson), `mz.polygon()` and the rest of the GeoJSON types                        |
+| An array of unique values, by hand                             | [`mz.set()`](../guides/bson-types.md#sets)                                                                               |
 
 ## Field options
 
@@ -329,11 +393,18 @@ From [Virtuals](https://mongoosejs.com/docs/tutorials/virtuals.html):
 ```ts
 // Another model of the same collection, with a virtual.
 const ProfilesModel = mongozod({
+
   collection: 'users',
+
   db,
+
   schema: userSchema,
+
   virtuals: {
-    handle: userSchema.pick({ email: true }).transform((user) => user.email.split('@')[0] ?? '')
+
+    handle: userSchema
+      .pick({ email: true })
+      .transform((user) => user.email.split('@')[0] ?? '')
   }
 })
 
@@ -397,9 +468,13 @@ postSchema.pre('find', function () {
 /** Reads published posts only. */
 function publishedOnly() {
   return definePlugin({
+
     id: 'publishedOnly',
+
     hooks: {
+
       find: {
+
         before: ({ args }) => ({
           args: { ...args, filter: { $and: [args.filter, { status: 'published' }] } }
         })
@@ -409,9 +484,13 @@ function publishedOnly() {
 }
 
 const PublishedPostsModel = mongozod({
+
   collection: 'posts',
+
   db,
+
   schema: postSchema,
+
   plugins: [publishedOnly()]
 })
 ```

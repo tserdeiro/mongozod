@@ -11,17 +11,33 @@ off by default. The schema declares both fields, and the writes take them as opt
 import { ObjectId } from 'mongodb'
 import { mongozod } from 'mongozod'
 import * as mz from 'mongozod/mzod'
-import { z } from 'zod'
+import * as z from 'zod'
 
 const postSchema = z.object({
-  _id: mz.objectId().default(() => new ObjectId()),
+
+  _id: mz.objectId()
+    .default(() => new ObjectId()),
+
   title: z.string(),
-  status: z.enum(['draft', 'published']).default('draft'),
+
+  status: z.enum(['draft', 'published'])
+    .default('draft'),
+
   createdAt: mz.date(),
+
   updatedAt: mz.date()
 })
 
-const PostsModel = mongozod({ collection: 'posts', db, schema: postSchema, timestamps: true })
+const PostsModel = mongozod({
+
+  collection: 'posts',
+
+  db,
+
+  schema: postSchema,
+
+  timestamps: true
+})
 
 const { document: post } = await PostsModel.insertOne({ title: 'Hello, MongoDB' })
 // post.createdAt and post.updatedAt: the same Date, the time of the insert
@@ -54,14 +70,20 @@ change:
 
 ```ts
 const viewSchema = z.object({
+
   postId: mz.objectId(),
+
   viewed_at: mz.date()
 })
 
 const PostViewsModel = mongozod({
+
   collection: 'post_views',
+
   db,
+
   schema: viewSchema,
+
   timestamps: { createdAt: 'viewed_at', updatedAt: false }
 })
 

@@ -12,30 +12,50 @@ operation.
 import { ObjectId } from 'mongodb'
 import { mongozod } from 'mongozod'
 import * as mz from 'mongozod/mzod'
-import { z } from 'zod'
+import * as z from 'zod'
 
 const postSchema = z.object({
-  _id: mz.objectId().default(() => new ObjectId()),
-  title: z.string().min(1),
+
+  _id: mz.objectId()
+    .default(() => new ObjectId()),
+
+  title: z.string()
+    .min(1),
+
   slug: z.string(),
-  body: z.string().default(''),
-  status: z.enum(['draft', 'published']).default('draft'),
-  tags: mz.set(z.string()).default([]),
+
+  body: z.string()
+    .default(''),
+
+  status: z.enum(['draft', 'published'])
+    .default('draft'),
+
+  tags: mz.set(z.string())
+    .default([]),
+
   authorId: mz.objectId(),
+
   createdAt: mz.date(),
+
   updatedAt: mz.date()
 })
 
 const PostsModel = mongozod({
+
   collection: 'posts',
+
   db,
+
   schema: postSchema,
+
   timestamps: true,
+
   indexes: (index) => [
     index({ status: 1, createdAt: -1 }),
     index({ slug: 1 }, { unique: true, partialFilterExpression: { status: 'published' } }),
     index({ title: 'text', body: 'text' }, { weights: { title: 10 } })
   ],
+
   jsonSchema: true
 })
 
@@ -63,15 +83,23 @@ document while you type them.
 
 ```ts
 const sessionSchema = z.object({
-  _id: mz.objectId().default(() => new ObjectId()),
+
+  _id: mz.objectId()
+    .default(() => new ObjectId()),
+
   userId: mz.objectId(),
+
   expiresAt: mz.date()
 })
 
 const SessionsModel = mongozod({
+
   collection: 'sessions',
+
   db,
+
   schema: sessionSchema,
+
   indexes: (index) => [
     // MongoDB deletes each session after its expiresAt
     index({ expiresAt: 1 }, { expireAfterSeconds: 0 }),
@@ -85,9 +113,13 @@ defined:
 
 ```ts
 mongozod({
+
   collection: 'posts',
+
   db,
+
   schema: postSchema,
+
   // @ts-expect-error: "titel" is not a path of the document
   indexes: (index) => [index({ titel: 1 })]
 })

@@ -11,31 +11,58 @@ recommends over `skip`. For tables with numbered pages, `skip` and `limit` work 
 import { ObjectId } from 'mongodb'
 import { mongozod } from 'mongozod'
 import * as mz from 'mongozod/mzod'
-import { z } from 'zod'
+import * as z from 'zod'
 
 const postSchema = z.object({
-  _id: mz.objectId().default(() => new ObjectId()),
-  title: z.string().min(1),
-  status: z.enum(['draft', 'published']).default('draft'),
-  tags: z.array(z.string()).default([]),
+
+  _id: mz.objectId()
+    .default(() => new ObjectId()),
+
+  title: z.string()
+    .min(1),
+
+  status: z.enum(['draft', 'published'])
+    .default('draft'),
+
+  tags: z.string()
+    .array()
+    .default([]),
+
   createdAt: mz.date(),
+
   updatedAt: mz.date()
 })
 
 const PostsModel = mongozod({
+
   collection: 'posts',
+
   db,
+
   schema: postSchema,
+
   timestamps: true,
-  indexes: (index) => [index({ createdAt: -1, _id: -1 })]
+
+  indexes: (index) => [
+    index({ createdAt: -1, _id: -1 })
+  ]
 })
 
 const listPostsInput = z.object({
-  after: mz.after(postSchema, { createdAt: -1, _id: -1 }).default({}),
-  limit: z.number().int().min(1).max(100).default(20)
+
+  after: mz
+    .after(postSchema, { createdAt: -1, _id: -1 })
+    .default({}),
+
+  limit: z.number()
+    .int()
+    .min(1)
+    .max(100)
+    .default(20)
 })
 
 export async function listPosts(body: unknown) {
+
   const { after, limit } = listPostsInput.parse(body)
 
   return PostsModel.find(after, { sort: { createdAt: -1, _id: -1 }, limit })
@@ -84,8 +111,8 @@ on the next one: with `$lt` on a field sorted with `-1`, and with `$gt` on one s
 
 Each value is parsed with the schema of its field. With
 [`mz.date()` and `mz.objectId()`](./bson-types.md), the ISO string and the hex string that JSON
-gives become a `Date` and an `ObjectId`, so the client sends back what it received. The input takes exactly the fields of the sort: a missing one, or one
-more, fails.
+gives become a `Date` and an `ObjectId`, so the client sends back what it received. The input takes
+exactly the fields of the sort: a missing one, or one more, fails.
 
 ## The sort
 
@@ -121,11 +148,20 @@ The `find` sorts the same way, and nothing checks that the two match. Keep the s
 const newestFirst = { createdAt: -1, _id: -1 } as const
 
 const feedInput = z.object({
-  after: mz.after(postSchema, newestFirst).default({}),
-  limit: z.number().int().min(1).max(100).default(20)
+
+  after: mz
+    .after(postSchema, newestFirst)
+    .default({}),
+
+  limit: z.number()
+    .int()
+    .min(1)
+    .max(100)
+    .default(20)
 })
 
 export async function feed(body: unknown) {
+
   const { after, limit } = feedInput.parse(body)
 
   return PostsModel.find(after, { sort: newestFirst, limit })
@@ -142,12 +178,26 @@ Declare an index with the keys of the sort, such as `index({ createdAt: -1, _id:
 
 ```ts
 const publishedInput = z.object({
-  after: mz.after(postSchema, newestFirst).default({}),
-  filter: mz.filter(postSchema, { tags: ['$in'] }).default({}),
-  limit: z.number().int().min(1).max(100).default(20)
+
+  after: mz
+    .after(postSchema, newestFirst)
+    .default({}),
+
+  filter: mz
+    .filter(postSchema, {
+      tags: ['$in']
+    })
+    .default({}),
+
+  limit: z.number()
+    .int()
+    .min(1)
+    .max(100)
+    .default(20)
 })
 
 export async function listPublished(body: unknown) {
+
   const { after, filter, limit } = publishedInput.parse(body)
 
   return PostsModel.find(
@@ -172,11 +222,21 @@ which the model passes as they are, and a client sends a number, which needs no 
 
 ```ts
 const tableInput = z.object({
-  page: z.number().int().min(1).default(1),
-  pageSize: z.number().int().min(1).max(100).default(20)
+
+  page: z.number()
+    .int()
+    .min(1)
+    .default(1),
+
+  pageSize: z.number()
+    .int()
+    .min(1)
+    .max(100)
+    .default(20)
 })
 
 export async function postsTable(body: unknown) {
+
   const { page, pageSize } = tableInput.parse(body)
 
   const [rows, total] = await Promise.all([

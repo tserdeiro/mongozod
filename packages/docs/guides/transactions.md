@@ -11,31 +11,51 @@ to each operation of a model, as you would to a collection of the driver.
 import { ObjectId } from 'mongodb'
 import { mongozod } from 'mongozod'
 import * as mz from 'mongozod/mzod'
-import { z } from 'zod'
+import * as z from 'zod'
 
 const PostsModel = mongozod({
+
   collection: 'posts',
+
   db,
+
   schema: z.object({
-    _id: mz.objectId().default(() => new ObjectId()),
-    title: z.string().min(1),
-    commentCount: z.number().int().min(0).default(0)
+
+    _id: mz.objectId()
+      .default(() => new ObjectId()),
+
+    title: z.string()
+      .min(1),
+
+    commentCount: z.number()
+      .int()
+      .min(0)
+      .default(0)
   })
 })
 
 const CommentsModel = mongozod({
+
   collection: 'comments',
+
   db,
+
   schema: z.object({
-    _id: mz.objectId().default(() => new ObjectId()),
+
+    _id: mz.objectId()
+      .default(() => new ObjectId()),
+
     postId: mz.objectId(),
-    body: z.string().min(1)
+
+    body: z.string()
+      .min(1)
   })
 })
 
 export async function addComment(postId: ObjectId, body: string) {
   return client.withSession((session) =>
     session.withTransaction(async () => {
+
       const { document } = await CommentsModel.insertOne({ postId, body }, { session })
 
       await PostsModel.updateOne({ _id: postId }, { $inc: { commentCount: 1 } }, { session })
@@ -63,6 +83,7 @@ option goes next to the driver's other options and mongozod's:
 ```ts
 await client.withSession((session) =>
   session.withTransaction(async () => {
+
     const post = await PostsModel.findOne({ title: 'Hello, MongoDB' }, { session })
 
     if (!post) throw new Error('the post does not exist')

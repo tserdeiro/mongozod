@@ -13,19 +13,39 @@ import type { FilterOf, InsertOf, ReadOf } from 'mongozod'
 import { ObjectId } from 'mongodb'
 import { mongozod } from 'mongozod'
 import * as mz from 'mongozod/mzod'
-import { z } from 'zod'
+import * as z from 'zod'
 
 const postSchema = z.object({
-  _id: mz.objectId().default(() => new ObjectId()),
-  title: z.string().min(1),
-  body: z.string().default(''),
-  status: z.enum(['draft', 'published']).default('draft'),
+
+  _id: mz.objectId()
+    .default(() => new ObjectId()),
+
+  title: z.string()
+    .min(1),
+
+  body: z.string()
+    .default(''),
+
+  status: z.enum(['draft', 'published'])
+    .default('draft'),
+
   authorId: mz.objectId(),
+
   createdAt: mz.date(),
+
   updatedAt: mz.date()
 })
 
-const PostsModel = mongozod({ collection: 'posts', db, schema: postSchema, timestamps: true })
+const PostsModel = mongozod({
+
+  collection: 'posts',
+
+  db,
+
+  schema: postSchema,
+
+  timestamps: true
+})
 
 interface Page<T> {
   items: T[]
@@ -38,6 +58,7 @@ export async function paginate<T>(
   page: number,
   size = 20
 ): Promise<Page<T>> {
+
   const items = await query({ skip: (page - 1) * size, limit: size + 1 })
 
   return { items: items.slice(0, size), hasNext: items.length > size }
@@ -60,18 +81,16 @@ after the last document of a page.
 
 ## A service per model
 
-A service that receives a filter, a document to insert or a read to return types it from its model:
-
-- `FilterOf<typeof PostsModel, F>`, with a `const` generic, checks a filter like the model does.
-- `InsertOf<typeof PostsModel>` is what `insertOne` takes, with the fields that `timestamps` and
-  the plugins fill optional.
-- `ReadOf<typeof PostsModel, O>` is what a read returns, given the `projection` and the `populate`
-  of its options.
+A service that receives a filter, a document to insert or a read to return types it from its model
+with `FilterOf`, `InsertOf` and `ReadOf`. See
+[TypeScript](../guides/typescript.md#types-for-services-and-repositories) for what each one is, and
+the other exported types, such as `DocOf` and `UpdateOf`.
 
 ```ts
 type PostSummary = ReadOf<typeof PostsModel, { projection: { title: 1; createdAt: 1 } }>
 
 export const postsService = {
+
   create(post: InsertOf<typeof PostsModel>) {
     return PostsModel.insertOne(post)
   },
@@ -94,9 +113,6 @@ await postsService.count({ status: 'published' })
 await postsService.count({ status: 'archived' })
 ```
 
-[TypeScript](../guides/typescript.md) lists the other exported types, such as `DocOf`, `SortOf`
-and `UpdateOf`.
-
 ## Generic over the result, not over the model
 
 mongozod has no type for any model with typed reads. Comparing a model with
@@ -108,6 +124,7 @@ The same goes for a helper that throws when a document is missing:
 
 ```ts
 export async function orNotFound<T>(read: PromiseLike<T | null>): Promise<T> {
+
   const found = await read
 
   if (found === null) throw new Error('not found')

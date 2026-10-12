@@ -12,22 +12,38 @@ import { ObjectId } from 'mongodb'
 import { mongozod } from 'mongozod'
 import * as mz from 'mongozod/mzod'
 import { softDelete } from 'mongozod/plugins/soft-delete'
-import { z } from 'zod'
+import * as z from 'zod'
 
 const postSchema = z.object({
-  _id: mz.objectId().default(() => new ObjectId()),
+
+  _id: mz.objectId()
+    .default(() => new ObjectId()),
+
   title: z.string(),
+
   body: z.string(),
-  status: z.enum(['draft', 'published']).default('draft'),
-  tags: z.array(z.string()).default([]),
+
+  status: z.enum(['draft', 'published'])
+    .default('draft'),
+
+  tags: z.string()
+    .array()
+    .default([]),
+
   authorId: mz.objectId(),
-  deletedAt: mz.date().optional()
+
+  deletedAt: mz.date()
+    .optional()
 })
 
 const PostsModel = mongozod({
+
   collection: 'posts',
+
   db,
+
   schema: postSchema,
+
   plugins: [softDelete()]
 })
 
@@ -144,13 +160,26 @@ it:
 import { mongozod } from 'mongozod'
 import * as mz from 'mongozod/mzod'
 import { softDelete } from 'mongozod/plugins/soft-delete'
-import { z } from 'zod'
+import * as z from 'zod'
 
 const PostsModel = mongozod({
+
   collection: 'posts',
+
   db,
-  schema: z.object({ slug: z.string(), title: z.string(), deletedAt: mz.date().optional() }),
+
+  schema: z.object({
+
+    slug: z.string(),
+
+    title: z.string(),
+
+    deletedAt: mz.date()
+      .optional()
+  }),
+
   plugins: [softDelete()],
+
   indexes: (index) => [
     index({ slug: 1 }, { unique: true, partialFilterExpression: { deletedAt: null } })
   ]
@@ -164,10 +193,8 @@ await PostsModel.sync()
 
 ## With other plugins
 
-The update that marks a delete receives the options of the delete, `context` included, so the other
-plugins see it as any update. A plugin that asks for a context in the updates has to ask for it in
-the deletes too: otherwise a delete compiles without it, and the update it becomes throws a
-`ZodError`. See [Plugins](../guides/plugins.md#context).
+A plugin that asks for a context in the updates has to ask for it in the deletes too, since the
+update that marks a delete takes the options of the delete: see [Plugins](../guides/plugins.md#context).
 
 ## Reference
 

@@ -16,24 +16,46 @@ field that recurses with a getter, as
 import { ObjectId } from 'mongodb'
 import { mongozod } from 'mongozod'
 import * as mz from 'mongozod/mzod'
-import { z } from 'zod'
+import * as z from 'zod'
 
 const replySchema = z.object({
-  _id: mz.objectId().default(() => new ObjectId()),
-  body: z.string().min(1),
+
+  _id: mz.objectId()
+    .default(() => new ObjectId()),
+
+  body: z.string()
+    .min(1),
+
   get replies() {
-    return z.array(replySchema).default([])
+    return replySchema
+      .array()
+      .default([])
   }
 })
 
 const commentSchema = z.object({
-  _id: mz.objectId().default(() => new ObjectId()),
+
+  _id: mz.objectId()
+    .default(() => new ObjectId()),
+
   postId: mz.objectId(),
-  body: z.string().min(1),
-  replies: z.array(replySchema).default([])
+
+  body: z.string()
+    .min(1),
+
+  replies: replySchema
+    .array()
+    .default([])
 })
 
-const CommentsModel = mongozod({ collection: 'comments', db, schema: commentSchema })
+const CommentsModel = mongozod({
+
+  collection: 'comments',
+
+  db,
+
+  schema: commentSchema
+})
 
 const { document: comment } = await CommentsModel.insertOne({
   postId: new ObjectId(),
@@ -75,21 +97,32 @@ A record stores keys that the schema doesn't name, such as the count of each rea
 
 ```ts
 const postSchema = z.object({
-  _id: mz.objectId().default(() => new ObjectId()),
-  title: z.string().min(1),
-  reactions: z.record(z.string(), z.number().int().min(0)).default({})
+
+  _id: mz.objectId()
+    .default(() => new ObjectId()),
+
+  title: z.string()
+    .min(1),
+
+  reactions: z.record(z.string(), z.number().int().min(0))
+    .default({})
 })
 
-const PostsModel = mongozod({ collection: 'posts', db, schema: postSchema })
+const PostsModel = mongozod({
+
+  collection: 'posts',
+
+  db,
+
+  schema: postSchema
+})
 
 const { document: post } = await PostsModel.insertOne({ title: 'Hello, MongoDB' })
 ```
 
 A path under a record compiles with any key, with the type of its values: `'reactions.tada'`
-takes a number. When the key is in a variable, though, TypeScript widens the computed key of an
-object literal to `string`
-([microsoft/TypeScript#13948](https://github.com/microsoft/TypeScript/issues/13948)), and a
-`string` key is not a path:
+takes a number. When the key is in a variable, though, TypeScript widens the computed key to
+`string`, which is not a path (see [TypeScript](../guides/typescript.md#dotted-paths)):
 
 ```ts
 async function addReaction(postId: ObjectId, reaction: string) {
@@ -102,6 +135,7 @@ Type the object with the pattern instead:
 
 ```ts
 async function react(postId: ObjectId, reaction: string) {
+
   const inc: Record<`reactions.${string}`, number> = { [`reactions.${reaction}`]: 1 }
 
   await PostsModel.updateOne({ _id: postId }, { $inc: inc })
