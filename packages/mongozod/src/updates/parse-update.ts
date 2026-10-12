@@ -51,7 +51,7 @@ export interface ParseUpdateOptions {
   upsert?: boolean
 }
 
-/** A path of the `_id`, which only `$setOnInsert` writes: the server rejects a change (66). */
+/** A path of the `_id`, which only `$setOnInsert` writes, whole: the server rejects a change (66). */
 const ID_PATH = /^_id(?:\.|$)/
 
 type FieldResult = { issues: core.$ZodIssue[] } | { value: unknown }
@@ -140,8 +140,9 @@ async function parseField(
   const at = [operator, path]
   const renamesToId = operator === '$rename' && typeof value === 'string' && ID_PATH.test(value)
 
-  if (operator !== '$setOnInsert' && (ID_PATH.test(path) || renamesToId)) {
-    return fail(at, 'the _id is immutable: an upsert sets it with $setOnInsert', value)
+  // `$setOnInsert` writes it whole: a path inside it fails once another part of the `_id` is given.
+  if ((ID_PATH.test(path) && (operator !== '$setOnInsert' || path !== '_id')) || renamesToId) {
+    return fail(at, 'the _id is immutable: an upsert sets it whole with $setOnInsert', value)
   }
 
   const resolved = resolveUpdatePath(schema, path, context)

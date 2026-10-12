@@ -96,11 +96,13 @@ valor tiene que servir para su operador y su campo. Se aplica en `updateOne`, `u
 | `$pull`                                | Solo en arrays, con una condición sobre el elemento, como `$elemMatch`.                                            |
 | `$rename`                              | De un campo opcional a otro que guarda el mismo tipo: el servidor mueve el valor guardado, sin parsearlo.          |
 
-- **El `_id`**: solo `$setOnInsert` lo escribe, también en `mz.update`, que no lo toma: el servidor
+- **El `_id`**: solo `$setOnInsert` lo escribe, y entero; `mz.update` no lo toma. El servidor
   rechaza cambiarlo con el código 66, también un path adentro como `_id.a` y el destino de un
-  `$rename` (verificado). En un upsert, un `$set` del `_id` inserta con él pero falla si encuentra
-  un documento con otro, así que se escribe con `$setOnInsert`. El editor no lo sugiere en los
-  demás operadores.
+  `$rename` (verificado). Un path adentro en `$setOnInsert` anda solo si es el único y el filtro no
+  da otra parte del `_id`: con `{ '_id.shop': 's1' }` en el filtro, o con dos paths, falla con el
+  66 (verificado con MongoDB 8.2.6), así que se escribe el `_id` entero. En un upsert, un `$set`
+  del `_id` inserta con él pero falla si encuentra un documento con otro, así que se escribe con
+  `$setOnInsert`. El editor no lo sugiere en los demás operadores.
 
 - **Uniones**: cada campo que escribe un operador tiene que estar en todos los tipos que permite el
   filtro o, dentro de un array, la entrada de `arrayFilters` de su `$[id]`, como en

@@ -439,17 +439,20 @@ type FieldOperator =
 
 type ArrayFiltersOf<O> = O extends { arrayFilters: infer AF } ? AF : never
 
-/** The paths of the `_id`, which only `$setOnInsert` writes: the server rejects a change (66). */
+/**
+ * The paths of the `_id`: the server rejects a change (66), so only `$setOnInsert` writes it,
+ * whole. A path inside it fails as soon as the filter or another path gives a part of the `_id`.
+ */
 type IdPath = '_id' | `_id.${string}`
 
-type IdProblem = 'the _id is immutable: an upsert sets it with $setOnInsert'
+type IdProblem = 'the _id is immutable: an upsert sets it whole with $setOnInsert'
 
 type OperatorCheck<S, Op, Fields, F, AF, Locked> = {
   [K in keyof Fields]: K extends string
     ? K extends Locked
       ? `"${K}" is set by timestamps: pass timestamps: false to write it`
       : K extends IdPath
-        ? Op extends '$setOnInsert'
+        ? [Op, K] extends ['$setOnInsert', '_id']
           ? PathCheck<S, Op, K, Fields[K], F, AF>
           : IdProblem
         : Op extends '$rename'
@@ -497,7 +500,7 @@ export type UpdateCheck<S, U, F, O, N extends TimestampNames = NoTimestamps> = {
  */
 export type SuggestedUpdate<S> = {
   [Op in FieldOperator]?: Op extends '$setOnInsert'
-    ? { [K in PathSuggestions<S, 'update'>]?: unknown }
+    ? { [K in Exclude<PathSuggestions<S, 'update'>, `_id.${string}`>]?: unknown }
     : Op extends '$pull'
       ? // The condition of `$pull` is on the elements: the editor suggests their fields.
         {

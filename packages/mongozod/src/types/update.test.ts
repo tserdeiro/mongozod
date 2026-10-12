@@ -132,6 +132,18 @@ function updateLabels<
   return value
 }
 
+const keySchema = z.object({
+  _id: z.object({ day: z.string(), shop: z.string() }),
+  n: z.number()
+})
+
+function updateKeys<
+  const F extends ModelFilter<typeof keySchema, F>,
+  const U extends ModelUpdate<typeof keySchema, U, F, unknown>
+>(_filter: F, value: U) {
+  return value
+}
+
 test('the _id is written only with $setOnInsert: the server rejects a change of it', () => {
   update({}, { $setOnInsert: { _id: crypto.randomUUID() } }, { upsert: true })
 
@@ -141,6 +153,10 @@ test('the _id is written only with $setOnInsert: the server rejects a change of 
   update({}, { $unset: { _id: '' } })
   // @ts-expect-error the _id is immutable
   update({}, { $rename: { nickname: '_id' } })
+
+  updateKeys({}, { $setOnInsert: { _id: { day: 'mon', shop: 's1' } } })
+  // @ts-expect-error an upsert sets the _id whole
+  updateKeys({}, { $setOnInsert: { '_id.day': 'mon' } })
   expect(true).toBe(true)
 })
 

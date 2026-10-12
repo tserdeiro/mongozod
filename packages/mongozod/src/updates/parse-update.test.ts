@@ -176,7 +176,7 @@ describe('operators', () => {
   })
 
   test('write the _id only with $setOnInsert: the server rejects a change of it', async () => {
-    const message = 'the _id is immutable: an upsert sets it with $setOnInsert'
+    const message = 'the _id is immutable: an upsert sets it whole with $setOnInsert'
     const id = crypto.randomUUID()
 
     expect(
@@ -200,6 +200,23 @@ describe('operators', () => {
         { upsert: true }
       )
     ).toMatchObject({ $setOnInsert: { _id: id } })
+
+    // A path inside it fails as soon as the filter or another path gives a part of the _id.
+    const keySchema = z.object({
+      _id: z.object({ day: z.string(), shop: z.string() }),
+      n: z.number()
+    })
+
+    expect(
+      await issuesOf(() =>
+        parseUpdate(
+          keySchema,
+          { '_id.shop': 's1' },
+          { $setOnInsert: { '_id.day': 'mon', 'n': 1 } },
+          { upsert: true }
+        )
+      )
+    ).toEqual([['$setOnInsert _id.day', message]])
   })
 
   test('$unset and $rename take a key a record or a catchall may lack', async () => {
