@@ -118,7 +118,7 @@ has to filter the tenant in its own `$match`.
 
 Mongoose resolves the same case with `useDb()`, cached with `useCache: true`, and a model per
 tenant ([Mongoose docs](https://mongoosejs.com/docs/connections.html#multi-tenant-connections)). A
-model per tenant also works with mongozod, but one model with a function is enough.
+model per tenant also works with MongoZod, but one model with a function is enough.
 
 ## Common mistakes
 

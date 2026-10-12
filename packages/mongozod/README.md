@@ -1,4 +1,4 @@
-<h1 align="center">mongozod</h1>
+<h1 align="center">MongoZod</h1>
 
 <p align="center">
   The Mongoose alternative built on Zod and the official MongoDB® driver.<br />
@@ -22,12 +22,12 @@
 </p>
 
 > [!NOTE]
-> mongozod is an independent open-source project. It is not affiliated with, endorsed by or
+> MongoZod is an independent open-source project. It is not affiliated with, endorsed by or
 > sponsored by MongoDB, Inc. MongoDB® is a registered trademark of MongoDB, Inc.
 
-## What is mongozod?
+## What is MongoZod?
 
-mongozod is a library for MongoDB where a [Zod](https://zod.dev) schema is the single source of
+MongoZod is a library for MongoDB where a [Zod](https://zod.dev) schema is the single source of
 truth for each document: it validates what you write, types what you read and defines what each
 endpoint accepts. It complements the official driver instead of replacing it: a model mirrors the
 driver's operations, options and results, and the driver stays at hand for everything else.
@@ -47,7 +47,7 @@ driver's operations, options and results, and the driver stays at hand for every
 
 ## Why not Mongoose?
 
-|                       | Mongoose 9                                                                                                                                                  | mongozod                                                                                   |
+|                       | Mongoose 9                                                                                                                                                  | MongoZod                                                                                   |
 | --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
 | Schema                | A Mongoose schema, apart from what validates your endpoints                                                                                                 | One Zod schema for the document, its types and the inputs of your endpoints                |
 | Update validation     | [Off by default](https://mongoosejs.com/docs/validation.html#update-validators), and only on `$set`, `$unset`, `$push`, `$addToSet`, `$pull` and `$pullAll` | Always, on every operator, and on the document an upsert would insert                      |
@@ -64,13 +64,13 @@ Both run on the same connection, so you can [migrate one model at a time](https:
 npm install mongozod
 ```
 
-mongozod uses the Zod and the MongoDB driver of your project: `zod@^4.5.0`,
+MongoZod uses the Zod and the MongoDB driver of your project: `zod@^4.5.0`,
 `mongodb@^6.20.0 || ^7.0.0` and `bson` of the same major as the driver are its peer dependencies,
 which npm and pnpm install when they are missing (with Yarn, add them yourself). It needs Node.js
 22.15 or later and TypeScript 5.5 or later with `strict`.
 
 > [!WARNING]
-> mongozod is in 0.x: its API may change in a minor version.
+> MongoZod is in 0.x: its API may change in a minor version.
 
 ## Basic usage
 

@@ -59,17 +59,17 @@ const posts = await PostsModel.find(
 // [{ _id: ObjectId('…'), title: 'Hello, MongoDB', readingMinutes: 4 }]
 ```
 
-The projection asks for `readingMinutes`, so mongozod asks the server for the `body` it reads,
+The projection asks for `readingMinutes`, so MongoZod asks the server for the `body` it reads,
 computes it and returns only what the projection asked for.
 
 ## Declare a virtual
 
 The `pick` declares the fields the virtual reads, and the `transform` receives those fields only,
-typed by the schema. A virtual is a plain Zod schema, without a helper from mongozod, so it can live
+typed by the schema. A virtual is a plain Zod schema, without a helper from MongoZod, so it can live
 next to the schema of the document and run in a client too.
 
 With [Zod Mini](https://zod.dev/packages/mini), the same virtual is a `z.pipe` of a `z.pick` and a
-`z.transform`. mongozod reads the fields from the object at the start of the pipes:
+`z.transform`. MongoZod reads the fields from the object at the start of the pipes:
 
 ```ts separate
 import { mongozod } from 'mongozod'
@@ -132,7 +132,7 @@ have no virtuals. `aggregate` does not compute them either: a pipeline computes 
 
 ## Projections
 
-- **An inclusion** returns the virtuals it asks for, with `1` or `true`, and no other. mongozod asks
+- **An inclusion** returns the virtuals it asks for, with `1` or `true`, and no other. MongoZod asks
   the server for the fields they read and removes the ones the projection did not ask for:
   `{ readingMinutes: 1 }` gives `{ _id, readingMinutes }`, and `{ _id: 0, path: 1 }`, whose virtual
   reads only the `_id`, gives `{ path }`.

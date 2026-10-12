@@ -4,11 +4,11 @@ description: Define a model from a Zod schema, write and read documents, and acc
 ---
 
 This page builds the posts of a blog, from the schema to an endpoint that lists them. It assumes
-mongozod is [installed](./installation.md) and a MongoDB server is running.
+MongoZod is [installed](./installation.md) and a MongoDB server is running.
 
 ## Connect
 
-mongozod uses the official driver's connection: create a `MongoClient` as you would without it.
+MongoZod uses the official driver's connection: create a `MongoClient` as you would without it.
 
 ```ts
 import { MongoClient, ObjectId } from 'mongodb'

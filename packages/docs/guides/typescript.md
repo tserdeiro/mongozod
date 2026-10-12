@@ -452,7 +452,7 @@ query as a callback: see [Repositories](../recipes/repositories.md).
 
 ## `exactOptionalPropertyTypes`
 
-mongozod's types are tested with `exactOptionalPropertyTypes` on. What a `mz.filter()` or
+MongoZod's types are tested with `exactOptionalPropertyTypes` on. What a `mz.filter()` or
 `mz.populate()` schema returns, whose optional keys Zod types with `| undefined`, can be passed to
 the operations, and the `projection`, `sort` and `populate` options take `undefined`. A filter key
 that you set to `undefined` by hand still does not compile, because the driver would send it as

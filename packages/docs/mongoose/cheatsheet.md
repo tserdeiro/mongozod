@@ -1,9 +1,9 @@
 ---
 title: Mongoose cheatsheet
-description: Each Mongoose feature with its mongozod equivalent, from schema types and options to queries, populate, middleware and indexes.
+description: Each Mongoose feature with its MongoZod equivalent, from schema types and options to queries, populate, middleware and indexes.
 ---
 
-Each Mongoose feature and what replaces it in mongozod. The schema is a Zod schema of the document
+Each Mongoose feature and what replaces it in MongoZod. The schema is a Zod schema of the document
 as MongoDB stores it, and the model has the driver's operations. A Mongoose schema:
 
 ```ts nocheck
@@ -27,7 +27,7 @@ userSchema.index({ email: 1 }, { unique: true })
 export const User = model('User', userSchema)
 ```
 
-The same in mongozod:
+The same in MongoZod:
 
 ```ts
 import { ObjectId } from 'mongodb'
@@ -183,7 +183,7 @@ const CommentsModel = mongozod({
 
 From [SchemaTypes](https://mongoosejs.com/docs/schematypes.html) in the Mongoose docs:
 
-| Mongoose                                                       | mongozod                                                                                                                 |
+| Mongoose                                                       | MongoZod                                                                                                                 |
 | -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
 | `new Schema({ … })`                                            | `z.object({ … })`                                                                                                        |
 | `String`                                                       | `z.string()`                                                                                                             |
@@ -208,7 +208,7 @@ From [SchemaTypes](https://mongoosejs.com/docs/schematypes.html) in the Mongoose
 
 From the [SchemaType options](https://mongoosejs.com/docs/schematypes.html#schematype-options):
 
-| Mongoose                             | mongozod                                                                                                                                                      |
+| Mongoose                             | MongoZod                                                                                                                                                      |
 | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | No `required`                        | `.optional()`: a Zod key is required unless it says so. `.nullable()` too if the field stores `null`.                                                         |
 | `required: true`                     | Nothing: Zod keys are required                                                                                                                                |
@@ -233,7 +233,7 @@ From the [SchemaType options](https://mongoosejs.com/docs/schematypes.html#schem
 
 From the [schema options](https://mongoosejs.com/docs/guide.html#options):
 
-| Mongoose                                  | mongozod                                                                                                             |
+| Mongoose                                  | MongoZod                                                                                                             |
 | ----------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
 | `model('User', schema)`                   | `mongozod({ schema, collection: 'users', db })`: the collection is named, not derived from the model                 |
 | `collection`                              | `collection`                                                                                                         |
@@ -255,11 +255,11 @@ From the [schema options](https://mongoosejs.com/docs/guide.html#options):
 ## Models and operations
 
 From [Models](https://mongoosejs.com/docs/models.html) and the
-[Model API](https://mongoosejs.com/docs/api/model.html). A mongozod model has the driver's
+[Model API](https://mongoosejs.com/docs/api/model.html). A MongoZod model has the driver's
 operations, with the driver's arguments, options and results. `insertOne` and `insertMany` also
 return the stored documents.
 
-| Mongoose                                               | mongozod                                                                                             |
+| Mongoose                                               | MongoZod                                                                                             |
 | ------------------------------------------------------ | ---------------------------------------------------------------------------------------------------- |
 | `Model.create(doc)`, `new Model(doc).save()`           | `insertOne(doc)`, which returns the stored `document`                                                |
 | `Model.create([ … ])`, `Model.insertMany([ … ])`       | `insertMany([ … ])`, which returns the stored `documents`                                            |
@@ -304,11 +304,11 @@ const exists = (await PostsModel.findOne({ _id: id }, { projection: { _id: 1 } }
 ## Queries
 
 From [Queries](https://mongoosejs.com/docs/queries.html) and
-[Query casting](https://mongoosejs.com/docs/tutorials/query_casting.html). In mongozod, `find`
+[Query casting](https://mongoosejs.com/docs/tutorials/query_casting.html). In MongoZod, `find`
 returns a cursor that you `await` for the array, or iterate with `for await`. Its options are the
 driver's.
 
-| Mongoose                                                   | mongozod                                                                                                          |
+| Mongoose                                                   | MongoZod                                                                                                          |
 | ---------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
 | `await query`, `.exec()`                                   | `await`                                                                                                           |
 | `.lean()`                                                  | Not needed: reads are plain objects                                                                               |
@@ -345,7 +345,7 @@ await PostsModel.find({}, { sort: '-createdAt' })
 
 From [Populate](https://mongoosejs.com/docs/populate.html):
 
-| Mongoose                                                                                                      | mongozod                                                                                                   |
+| Mongoose                                                                                                      | MongoZod                                                                                                   |
 | ------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
 | `ref: 'User'`                                                                                                 | `references: { authorId: () => UsersModel }`                                                               |
 | A `ref` to a collection without a model                                                                       | `references: { authorId: { collection: 'users', schema } }`                                                |
@@ -388,7 +388,7 @@ const withComments = await PostsModel.find(
 
 From [Virtuals](https://mongoosejs.com/docs/tutorials/virtuals.html):
 
-| Mongoose                                    | mongozod                                                                                                                 |
+| Mongoose                                    | MongoZod                                                                                                                 |
 | ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
 | `schema.virtual('fullName').get(function)`  | `virtuals: { fullName: schema.pick({ … }).transform(…) }`                                                                |
 | A virtual setter                            | No equivalent                                                                                                            |
@@ -423,7 +423,7 @@ See [Virtuals](../guides/virtuals.md).
 
 From [Timestamps](https://mongoosejs.com/docs/timestamps.html):
 
-| Mongoose                             | mongozod                                                                            |
+| Mongoose                             | MongoZod                                                                            |
 | ------------------------------------ | ----------------------------------------------------------------------------------- |
 | `timestamps: true`                   | `timestamps: true`, with `createdAt: mz.date()` and `updatedAt: mz.date()` declared |
 | Renamed fields                       | `timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' }`                  |
@@ -437,7 +437,7 @@ See [Timestamps](../guides/timestamps.md).
 
 From [Discriminators](https://mongoosejs.com/docs/discriminators.html):
 
-| Mongoose                               | mongozod                                                                                                        |
+| Mongoose                               | MongoZod                                                                                                        |
 | -------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
 | `Event.discriminator('Click', schema)` | An option of a `z.discriminatedUnion()`, the model's schema                                                     |
 | `discriminatorKey: 'kind'`             | `z.discriminatedUnion('kind', [ … ])`                                                                           |
@@ -453,7 +453,7 @@ See [Document types](../guides/document-types.md).
 
 From [Middleware](https://mongoosejs.com/docs/middleware.html):
 
-| Mongoose                                                     | mongozod                                                                                                    |
+| Mongoose                                                     | MongoZod                                                                                                    |
 | ------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------- |
 | `pre('save')` that changes a field, such as a hash           | A `.transform()` of the field, which runs on every write of it (see [Transforms](../recipes/transforms.md)) |
 | `pre('validate')`, checks across fields                      | `.refine()` or `.superRefine()` on the schema                                                               |
@@ -506,7 +506,7 @@ See [Plugins](../guides/plugins.md) and [Writing plugins](../plugins/writing-plu
 
 From [Plugins](https://mongoosejs.com/docs/plugins.html):
 
-| Mongoose                            | mongozod                                                                         |
+| Mongoose                            | MongoZod                                                                         |
 | ----------------------------------- | -------------------------------------------------------------------------------- |
 | `schema.plugin(plugin, options)`    | `plugins: [plugin(options)]`, in the order they apply                            |
 | `mongoose.plugin()`, global plugins | No equivalent: pass the same plugins to each model                               |
@@ -518,7 +518,7 @@ From [Plugins](https://mongoosejs.com/docs/plugins.html):
 From [Indexes](https://mongoosejs.com/docs/guide.html#indexes) and the
 [Model API](https://mongoosejs.com/docs/api/model.html#Model.syncIndexes%28%29):
 
-| Mongoose                                               | mongozod                                                                                  |
+| Mongoose                                               | MongoZod                                                                                  |
 | ------------------------------------------------------ | ----------------------------------------------------------------------------------------- |
 | `schema.index(fields, options)`                        | `indexes: (index) => [index(fields, options)]`, with the paths checked against the schema |
 | `autoIndex`, `Model.init()`, `Model.createIndexes()`   | `await Model.sync()`, from a deploy script                                                |
@@ -532,7 +532,7 @@ See [Sync](../guides/sync.md).
 
 From [Transactions](https://mongoosejs.com/docs/transactions.html):
 
-| Mongoose                                                    | mongozod                                                                    |
+| Mongoose                                                    | MongoZod                                                                    |
 | ----------------------------------------------------------- | --------------------------------------------------------------------------- |
 | `connection.transaction(fn)`, `session.withTransaction(fn)` | The driver's `client.withSession((session) => session.withTransaction(fn))` |
 | `{ session }` in each operation, `.session(session)`        | `{ session }` in each operation                                             |
@@ -544,7 +544,7 @@ See [Transactions](../guides/transactions.md).
 
 From [Errors](https://mongoosejs.com/docs/api/error.html):
 
-| Mongoose                             | mongozod                                                                                  |
+| Mongoose                             | MongoZod                                                                                  |
 | ------------------------------------ | ----------------------------------------------------------------------------------------- |
 | `ValidationError`                    | Zod's `ZodError`, with the path of each issue (see [Validation](../guides/validation.md)) |
 | `CastError`                          | No casting in the model. What `mz` parses throws a `ZodError`.                            |

@@ -1,10 +1,10 @@
 ---
 title: Migrating from Mongoose
-description: Move a Mongoose app to mongozod one model at a time, on the connection Mongoose already opened, with a prompt for your coding agent.
+description: Move a Mongoose app to MongoZod one model at a time, on the connection Mongoose already opened, with a prompt for your coding agent.
 ---
 
 This guide is for teams with an app on Mongoose that want the Zod schema to be the single source of
-truth of each document. There is no big switch: mongozod runs on the connection Mongoose already
+truth of each document. There is no big switch: MongoZod runs on the connection Mongoose already
 opened, so you migrate one model at a time and ship each one, while the rest of the app keeps using
 Mongoose.
 
@@ -29,7 +29,7 @@ postSchema.index({ authorId: 1, createdAt: -1 })
 export const Post = model('Post', postSchema)
 ```
 
-The same model on mongozod, over the same collection and the same documents:
+The same model on MongoZod, over the same collection and the same documents:
 
 ```ts
 import { ObjectId } from 'mongodb'
@@ -102,13 +102,13 @@ const PostsModel = mongozod({
 ```
 
 The schema keeps the names and shapes MongoDB already stores, so no document has to change. The
-[cheatsheet](./cheatsheet.md) maps each Mongoose feature to mongozod, and
+[cheatsheet](./cheatsheet.md) maps each Mongoose feature to MongoZod, and
 [Differences](./differences.md) explains what works another way.
-[Why mongozod](../getting-started/why-mongozod.md) lists the Mongoose issues it solves.
+[Why MongoZod](../getting-started/why-mongozod.md) lists the Mongoose issues it solves.
 
 ## The plan
 
-1. [Install mongozod next to Mongoose](#install-next-to-mongoose), with the same driver.
+1. [Install MongoZod next to Mongoose](#install-next-to-mongoose), with the same driver.
 2. [Share Mongoose's connection](#share-the-connection).
 3. [Migrate one model](#migrate-one-model): its schema, its model and its call sites.
 4. [Verify it](#verify), ship it, and go on with the next model.
@@ -119,8 +119,8 @@ install it as a [skill](../getting-started/ai-agents.md).
 
 ## Install next to Mongoose
 
-Both libraries have to use the same driver, so that a `Db` from Mongoose is the `Db` mongozod
-expects. mongozod takes `mongodb` `^6.20.0 || ^7.0.0`: driver 7 is the one of Mongoose 9, and driver
+Both libraries have to use the same driver, so that a `Db` from Mongoose is the `Db` MongoZod
+expects. MongoZod takes `mongodb` `^6.20.0 || ^7.0.0`: driver 7 is the one of Mongoose 9, and driver
 6.20 the one of Mongoose 8.19 and later. Earlier versions of Mongoose 8 depend on an older driver,
 so update Mongoose first.
 
@@ -142,7 +142,7 @@ With Mongoose 8.19 or later, the driver is a 6.x, such as `mongodb@6.20.0`, with
 
 Mongoose's connection wraps the driver's: once it is open, `mongoose.connection.db` is the driver's
 `Db` ([Mongoose docs](https://mongoosejs.com/docs/api/connection.html#Connection.prototype.db)).
-Give mongozod a function that returns it:
+Give MongoZod a function that returns it:
 
 ```ts nocheck
 import mongoose from 'mongoose'
@@ -186,7 +186,7 @@ await mongoose.connection.transaction(async (session) => {
 })
 ```
 
-Pass `{ session }` to each mongozod operation, also when Mongoose's `transactionAsyncLocalStorage`
+Pass `{ session }` to each MongoZod operation, also when Mongoose's `transactionAsyncLocalStorage`
 is on: that option sets the session of Mongoose's operations only
 ([Mongoose docs](https://mongoosejs.com/docs/transactions.html#asynclocalstorage)). See
 [Transactions](../guides/transactions.md).
@@ -203,7 +203,7 @@ document as MongoDB stores it, so keep what is there:
 
 - **The collection**: Mongoose names it after the model, lowercased and in plural, unless the schema
   sets `collection` ([Mongoose docs](https://mongoosejs.com/docs/models.html#compiling)): `Post`
-  stores in `posts`. mongozod takes the name as it is.
+  stores in `posts`. MongoZod takes the name as it is.
 - **Field names and shapes**: rename nothing while you migrate. A rename is a separate change that
   migrates the documents too.
 - **What is optional**: a Mongoose path is optional unless it says `required`, while a Zod key is
@@ -298,7 +298,7 @@ Before shipping the model:
   Mongoose habits.
 - **Tests**: run them against MongoDB, such as with `mongodb-memory-server`, so that the server
   checks what the types cannot.
-- **Stored documents**: mongozod validates writes, not reads, so a document stored before the schema
+- **Stored documents**: MongoZod validates writes, not reads, so a document stored before the schema
   existed is read as it is, whatever its type says. Check them all once, through the driver's
   collection, which returns them as stored: the model's `find` computes the virtuals, which throw
   on a document that does not fit.
@@ -331,7 +331,7 @@ Delete a Mongoose model once no code calls it and no Mongoose schema has a `ref`
 populates a `ref` with the model of that name
 ([Mongoose docs](https://mongoosejs.com/docs/populate.html)).
 
-When the last model is gone, open the connection with the driver, give mongozod its `Db`, and
+When the last model is gone, open the connection with the driver, give MongoZod its `Db`, and
 remove Mongoose:
 
 ```ts separate
@@ -402,11 +402,11 @@ They match the installed version: follow them over what you remember of mongozod
 ## Common mistakes
 
 - **Two copies of the driver**: a `mongodb` version other than Mongoose's installs a second copy,
-  and passing Mongoose's `Db` to mongozod fails with TS2322, _Types have separate declarations of a
+  and passing Mongoose's `Db` to MongoZod fails with TS2322, _Types have separate declarations of a
   private property_. Install the version `npm ls mongodb` shows under `mongoose`.
 - **Reading `mongoose.connection.db` when a module loads**: it is `undefined` until the connection
   opens. Pass the function, `db: mongooseDb`, not its result.
-- **Relying on `transactionAsyncLocalStorage`**: a mongozod operation without `{ session }` runs
+- **Relying on `transactionAsyncLocalStorage`**: a MongoZod operation without `{ session }` runs
   outside the transaction, and an abort does not undo it. Pass the session to each one.
 - **Another collection name**: `collection: 'post'` for a model named `Post` reads an empty
   collection, without an error. Check the name Mongoose used, `posts` here.
@@ -414,5 +414,5 @@ They match the installed version: follow them over what you remember of mongozod
   `findOneAndReplace` removes from the stored document what the schema does not declare. Declare
   both while Mongoose shares the collection.
 - **Turning on `jsonSchema` while Mongoose writes the collection**: the server applies the validator
-  to every write, so Mongoose's writes that do not fit the schema fail. Turn it on once mongozod is
+  to every write, so Mongoose's writes that do not fit the schema fail. Turn it on once MongoZod is
   the only writer (see [Sync](../guides/sync.md)).

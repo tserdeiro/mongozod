@@ -1,6 +1,6 @@
 ---
 title: Validation
-description: What mongozod validates on each write, how it checks upserts, and the ZodError it throws when a write does not fit.
+description: What MongoZod validates on each write, how it checks upserts, and the ZodError it throws when a write does not fit.
 ---
 
 Every write goes through the schema before it reaches the driver. When something does not fit,
@@ -74,7 +74,7 @@ included, its defaults, its transforms and its codecs, and the database stores w
 
 ## Inserts
 
-`insertOne` validates the document with the schema and stores its output. On the way, mongozod
+`insertOne` validates the document with the schema and stores its output. On the way, MongoZod
 drops the keys left `undefined`, which the driver would store as `null`, and rejects a key with a
 `.` or starting with `$`, such as one of a `z.record()`, because no path reaches it.
 
@@ -105,13 +105,13 @@ the schema, and its defaults, its transforms and the refinements of the whole do
 The replacement writes its `_id` only when you pass it, since the `_id` of a document cannot
 change: the one its `.default()` generates is dropped. With `upsert: true`, the server inserts the
 replacement with its own `_id` or, without one, with the `_id` of the filter, so a schema that
-declares `_id` needs it in the replacement or by equality in the filter, and mongozod validates the
+declares `_id` needs it in the replacement or by equality in the filter, and MongoZod validates the
 replacement with it. Without either, the operation throws a `ZodError`, and so does a `null` `_id`
 in the filter, or one that the schema does not take.
 
 ## Updates
 
-An update has no document to validate: it writes paths. mongozod validates each value with the
+An update has no document to validate: it writes paths. MongoZod validates each value with the
 schema of its path, with its refinements, defaults and transforms, and writes what Zod returns. An
 ISO string in a `mz.date()` field arrives as a `Date`:
 
@@ -175,7 +175,7 @@ const { modifiedCount } = await PostsModel.updateOne(
 
 ## Upserts
 
-With `upsert: true`, an update can insert a document, so mongozod also validates the document the
+With `upsert: true`, an update can insert a document, so MongoZod also validates the document the
 server would insert. It builds it as MongoDB does: the equalities of the filter, then the fields
 each operator creates. It validates it with the whole schema, refinements of the whole document
 included, and adds the defaults it lacks with `$setOnInsert`:
@@ -203,7 +203,7 @@ await PostsModel.updateOne(
 )
 ```
 
-- **Every upsert**: mongozod cannot know whether the filter will match a document, so it validates
+- **Every upsert**: MongoZod cannot know whether the filter will match a document, so it validates
   the document an upsert would insert even when the upsert ends up updating one. The first update
   above throws although `post` exists.
 - **From the filter**: the server copies an equality, a `$eq`, a `$in` of one value, and the same

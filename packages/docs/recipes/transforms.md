@@ -10,7 +10,7 @@ shows where a check against the database goes when it has to see a transaction.
 ## Hash a password, like `pre('save')`
 
 Where Mongoose code hashes a password in a `pre('save')`
-[middleware](https://mongoosejs.com/docs/middleware.html#pre), mongozod uses a `.transform()` of
+[middleware](https://mongoosejs.com/docs/middleware.html#pre), MongoZod uses a `.transform()` of
 the field, which can be async:
 
 ```ts
@@ -93,7 +93,7 @@ Transforms that give the same result when they run twice, such as `.trim()` or `
 are safe to write back. For one that doesn't, such as a hash:
 
 - **Write what changes**: update the other fields with `$set`, and the password only when the user
-  sends a new one. mongozod has no `.save()`, so this is the usual way.
+  sends a new one. MongoZod has no `.save()`, so this is the usual way.
 - **Or hash in the service**: store a `passwordHash: z.string()`, hash before calling the model, and
   validate the password the user typed in the endpoint's input.
 

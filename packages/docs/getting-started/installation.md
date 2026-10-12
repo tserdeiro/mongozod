@@ -1,17 +1,17 @@
 ---
 title: Installation
-description: Install mongozod, and the versions of Node.js, TypeScript, Zod and the MongoDB driver it needs.
+description: Install MongoZod, and the versions of Node.js, TypeScript, Zod and the MongoDB driver it needs.
 ---
 
 ```npm
 npm install mongozod
 ```
 
-mongozod uses the Zod and the MongoDB driver of your project, which are its
+MongoZod uses the Zod and the MongoDB driver of your project, which are its
 [peer dependencies](#peer-dependencies): npm and pnpm install them when they are missing.
 
 > [!WARNING]
-> mongozod is in 0.x: its API may change in a minor version. Each change is in the changelog of its
+> MongoZod is in 0.x: its API may change in a minor version. Each change is in the changelog of its
 > release.
 
 ## Requirements
@@ -23,13 +23,13 @@ mongozod uses the Zod and the MongoDB driver of your project, which are its
 | `zod`      | `^4.5.0`                    | Zod 4 or Zod Mini. Zod 3 is not supported.                                                                                                         |
 | `mongodb`  | `^6.20.0 \|\| ^7.0.0`       | Driver 6.20 is the one of Mongoose 8.19 and later, and driver 7 the one of Mongoose 9, so both libraries can share a connection while you migrate. |
 | `bson`     | The major of your driver    | The field types of `mongozod/mzod`, like `mz.objectId()`, build BSON values with it. Driver 7 uses `bson` 7, and driver 6 uses `bson` 6.           |
-| MongoDB    | 8.x                         | The server mongozod is tested against.                                                                                                             |
+| MongoDB    | 8.x                         | The server MongoZod is tested against.                                                                                                             |
 
 Bun works too: the tests also run on its latest version.
 
 ## Peer dependencies
 
-`zod`, `mongodb` and `bson` are peer dependencies, not dependencies of mongozod: it works with the
+`zod`, `mongodb` and `bson` are peer dependencies, not dependencies of MongoZod: it works with the
 copies your project uses, so the `MongoClient` you create and the schemas you write are the ones it
 receives. A second copy of the driver would not even compile when you pass your `Db` to a model.
 
@@ -41,7 +41,7 @@ serializes the BSON values of its own major. Check it with `npm ls bson`.
 
 ## TypeScript
 
-mongozod is published as ESM only, with its declarations. Use a `moduleResolution` that reads the
+MongoZod is published as ESM only, with its declarations. Use a `moduleResolution` that reads the
 `exports` of a package, which is any of `node16`, `nodenext` and `bundler`:
 
 ```json

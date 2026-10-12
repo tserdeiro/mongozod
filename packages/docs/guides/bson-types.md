@@ -76,7 +76,7 @@ A value that doesn't fit gives one issue, with a message that says what the fiel
 
 `mongozod/mzod` never imports the driver, so a schema that uses it also runs in web and React Native
 clients, such as one shared between a form and its endpoint. The BSON types come from
-[`bson`](https://www.npmjs.com/package/bson), a peer dependency of mongozod of the same major as your
+[`bson`](https://www.npmjs.com/package/bson), a peer dependency of MongoZod of the same major as your
 driver (see [Installation](../getting-started/installation.md)). A bundler leaves `bson` out unless a
 field needs it: `mz.date()` and the GeoJSON types import only Zod.
 
@@ -271,7 +271,7 @@ await PostsModel.updateOne({ _id: post._id }, { $push: { tags: 'zod' } })
   whole array is parsed, and `$pull`, `$pullAll` and `$pop` remove.
 - **On the server**: with the [`jsonSchema` option](./sync.md), `sync()` marks the array with
   `uniqueItems: true`, so MongoDB also rejects a repeated value that arrives some other way, such as
-  a `$push` through the driver. Without it, there is one case mongozod doesn't see: `$addToSet`
+  a `$push` through the driver. Without it, there is one case MongoZod doesn't see: `$addToSet`
   compares objects with the order of their fields, so it adds an equal object with its fields in
   another order.
 
@@ -387,7 +387,7 @@ const ledgerSchema = z.object({
 - **With `.nullable()`**, it is the type of the value, and `null` still passes, so `.meta()` goes
   before or after `.nullable()` alike. A later `.min()` or `.refine()` keeps it, as Zod keeps any
   metadata.
-- **Typed**: mongozod adds `bsonType` to Zod's `GlobalMeta`, so the editor suggests MongoDB's
+- **Typed**: MongoZod adds `bsonType` to Zod's `GlobalMeta`, so the editor suggests MongoDB's
   aliases and a misspelled one doesn't compile. It takes one alias: a field of several types is a
   `z.union`.
 - **Zod Mini** declares it with its `z.meta()` check, as in

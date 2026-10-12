@@ -143,7 +143,7 @@ Some mistakes reach the server or pass unnoticed:
   describes them, with their `name` and `key`. The index of `_id` is not among them, nor the one
   MongoDB creates on the `metaField` and `timeField` of a time-series collection.
 
-mongozod doesn't write to the console. Your script decides what to do with the extra indexes:
+MongoZod doesn't write to the console. Your script decides what to do with the extra indexes:
 
 ```ts
 for (const index of extraIndexes) {
@@ -242,7 +242,7 @@ Some things stay in the app:
 - **Recursive schemas**: the field through which the schema refers to itself gets no rule, because
   `$jsonSchema` has no `$ref`.
 
-mongozod writes the validator itself instead of using `z.toJSONSchema()`: MongoDB's `$jsonSchema`
+MongoZod writes the validator itself instead of using `z.toJSONSchema()`: MongoDB's `$jsonSchema`
 is [draft 4 without `$ref`, `default`, `format` or the `integer` type](https://www.mongodb.com/docs/manual/reference/operator/query/jsonSchema/),
 rejects unknown keywords, and uses `bsonType` for dates and the other BSON types.
 

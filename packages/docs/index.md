@@ -1,10 +1,10 @@
 ---
 title: Introduction
-description: What mongozod is, what it adds to the MongoDB driver and Zod, and where to start.
+description: What MongoZod is, what it adds to the MongoDB driver and Zod, and where to start.
 ---
 
 > [!NOTE]
-> mongozod is an independent open-source project. It is not affiliated with, endorsed by or
+> MongoZod is an independent open-source project. It is not affiliated with, endorsed by or
 > sponsored by MongoDB, Inc. MongoDB® is a registered trademark of MongoDB, Inc.
 
 `mongozod` is a library for MongoDB where a [Zod](https://zod.dev) schema is the single source of
@@ -72,8 +72,8 @@ const posts = await PostsModel.find({ tags: 'mongodb' })
 
 ## Where to start
 
-- New to mongozod: [Installation](./getting-started/installation.md), then the
+- New to MongoZod: [Installation](./getting-started/installation.md), then the
   [Quick start](./getting-started/quick-start.md).
 - Coming from Mongoose: [Migrating from Mongoose](./mongoose/index.md).
-- Deciding: [Why mongozod](./getting-started/why-mongozod.md).
+- Deciding: [Why MongoZod](./getting-started/why-mongozod.md).
 - With a coding agent: [AI agents](./getting-started/ai-agents.md).

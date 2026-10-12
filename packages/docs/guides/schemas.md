@@ -3,7 +3,7 @@ title: Schemas
 description: Describe a stored document with a Zod schema, from its _id and defaults to the types a model takes and returns.
 ---
 
-A model's schema is a Zod object that describes a document as it is stored. mongozod validates
+A model's schema is a Zod object that describes a document as it is stored. MongoZod validates
 every write with it and types every read from it, so it is the only place where the shape of a
 document lives.
 
@@ -115,7 +115,7 @@ Defaults apply wherever a write parses a value with the schema:
 - inserts and replacements, at every level of the document;
 - the value an update operator writes, such as an object in `$set` that leaves out a field with a
   default;
-- the document an upsert would insert: mongozod adds the defaults it lacks with `$setOnInsert`, so
+- the document an upsert would insert: MongoZod adds the defaults it lacks with `$setOnInsert`, so
   the `_id` of a `.default()` reaches it too.
 
 Reads return documents as they are stored, without parsing them. A document written before a field
@@ -146,7 +146,7 @@ const published: z.output<typeof postSchema> | null = await PostsModel.findOne({
 and both return the BSON value. The same goes for any transform or codec of a field, such as
 `z.string().trim().toLowerCase()`: the document stores what Zod returns.
 
-Zod keeps a key set to `undefined` in its output. mongozod drops it at every level before writing,
+Zod keeps a key set to `undefined` in its output. MongoZod drops it at every level before writing,
 because the driver would store it as `null`. To remove a field from a stored document, use
 `$unset`.
 
@@ -225,10 +225,10 @@ const UsersModel = mongozod({
 ```
 
 A failed write still throws the `ZodError` of `zod`, so `error instanceof ZodError` catches it with
-both: mongozod parses with Zod Classic, which takes Mini schemas, because the parse of
+both: MongoZod parses with Zod Classic, which takes Mini schemas, because the parse of
 `zod/v4/core` throws a `$ZodError`, which is not an instance of `ZodError`.
 
-The schemas that mongozod builds, such as those of `mongozod/mzod`, are Zod Classic, and building
+The schemas that MongoZod builds, such as those of `mongozod/mzod`, are Zod Classic, and building
 the first one registers Zod's English locale as the global default when the project set none: from
 then on, the messages of Mini schemas are the longer English ones, such as
 `Invalid input: expected string, received number`.
@@ -284,6 +284,6 @@ Recursive schemas, with the getters that Zod 4 recommends, are accepted (see
   `mz.date()`, which takes both and stores a `Date`.
 - **An `_id` without `.default()` by accident**: every insert needs it, and it does not compile
   without it. Add the `.default()`, or leave `_id` out to let the driver generate an `ObjectId`.
-- **Setting a field to `undefined` to remove it**: mongozod drops the key, and the stored value
+- **Setting a field to `undefined` to remove it**: MongoZod drops the key, and the stored value
   stays. Use `$unset`, which works on optional fields.
 - **`z.set()` for a list without repeats**: `mongozod()` throws an `Error`. Use `mz.set()`.

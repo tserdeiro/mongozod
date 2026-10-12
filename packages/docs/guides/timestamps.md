@@ -54,7 +54,7 @@ The schema stays the single source of truth, so it declares the fields `timestam
 - **Taking and returning a `Date`**. The usual field is [`mz.date()`](./bson-types.md#dates),
   which also takes the ISO string that a JSON client sends; `z.date()` works too.
 - **Without a `.default()`**: while `timestamps` is on, inserts and replacements take them as
-  optional, because mongozod fills them before validating. A `.default()` still works.
+  optional, because MongoZod fills them before validating. A `.default()` still works.
 
 A schema without one of the fields, or with one that does not take a `Date`, does not compile, and
 `mongozod()` throws an `Error`, such as `timestamps needs the field "updatedAt" in the schema`.
@@ -168,7 +168,7 @@ await PostsModel.updateOne(
 An insert or a replacement with `timestamps: false` gives the dates, unless the schema has a
 `.default()` for them: without them it does not compile, and the schema throws a `ZodError`. In
 `bulkWrite`, the option goes in the options of the call and applies to all its operations. It exists
-only on the models that have `timestamps`, and mongozod removes it before calling the driver.
+only on the models that have `timestamps`, and MongoZod removes it before calling the driver.
 
 ## With the rest of the model
 
@@ -179,7 +179,7 @@ only on the models that have `timestamps`, and mongozod removes it before callin
 ## Common mistakes
 
 - **Writing `updatedAt` in an update**, with `$set` or `$currentDate`: it does not compile and
-  throws a `ZodError`. mongozod writes it; to set another value, pass `timestamps: false`. Mongoose
+  throws a `ZodError`. MongoZod writes it; to set another value, pass `timestamps: false`. Mongoose
   overwrites it without telling you
   ([Mongoose docs](https://mongoosejs.com/docs/timestamps.html)).
 - **Replacing a document without its `createdAt`**: the replacement gets the time of the

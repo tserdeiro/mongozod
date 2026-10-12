@@ -250,7 +250,7 @@ is a positive integer; another throws a `ZodError`.
 Mongoose's `limit` counts the documents of the whole query instead, and its `perDocumentLimit` runs
 one query per document
 ([Mongoose docs](https://mongoosejs.com/docs/populate.html#limit-vs-perDocumentLimit)). In an array
-of ids the query already brings every id, so mongozod cuts each array; a one-to-many reference with
+of ids the query already brings every id, so MongoZod cuts each array; a one-to-many reference with
 a `limit` runs [one query per document](#one-to-many).
 
 ## Arrays and subdocuments
@@ -306,7 +306,7 @@ const ana = await UsersModel.findOne(
   a `limit` without a `sort` does not compile and throws a `ZodError`. It runs one query per
   document, in parallel, each with its `limit`.
 - **Projections**: when the projection of the read leaves out the `localField`, or the projection
-  of the `populate` leaves out the `foreignField`, mongozod asks for it and removes it afterwards. A
+  of the `populate` leaves out the `foreignField`, MongoZod asks for it and removes it afterwards. A
   projection of the `populate` that keeps only some elements of the array above the `foreignField`,
   with `$elemMatch`, `$slice` or `$`, does not compile and throws a `ZodError`: the documents the
   other elements point to would be lost.
@@ -410,7 +410,7 @@ document.
   and its `authorId`, populated.
 - **An exclusion** that leaves out a reference you populate, or an object above it, does not compile
   and throws a `ZodError`: `populate needs "authorId": the projection excludes it`.
-- **The projection of a `populate`** may leave out the `_id`: mongozod asks for it to match each
+- **The projection of a `populate`** may leave out the `_id`: MongoZod asks for it to match each
   document with its reference, and removes it afterwards.
 
 ## How it reads

@@ -1,6 +1,6 @@
 ---
 title: mongozod
-description: The reference of the mongozod entry point, with mongozod(), the model, its operations and cursors, definePlugin and the types.
+description: The reference of the `mongozod` entry point, with mongozod(), the model, its operations and cursors, definePlugin and the types.
 ---
 
 The `mongozod` entry point exports `mongozod()`, which defines the model of a collection, the
@@ -127,7 +127,7 @@ cases first:
   doesn't have.
 - A plugin needs a field that isn't in every type of document, fills a field that isn't one of its
   `fields`, defines a method that another plugin or the model has, or declares an option of
-  mongozod or of another plugin.
+  MongoZod or of another plugin.
 
 A schema with a `z.bigint()` needs a client with `useBigInt64: true`, or every operation throws
 (see [Schemas](../guides/schemas.md)).

@@ -1,21 +1,21 @@
 ---
 name: migrate-from-mongoose
-description: Migrates a Mongoose model to mongozod, one model at a time, on the connection Mongoose already opened and without changing the data MongoDB stores, from its Mongoose schema or, without one, from a $jsonSchema exported from MongoDB Compass or @mongodb-js/mongodb-schema. Use when asked to move a model, a collection or a project from Mongoose to mongozod, or to replace Mongoose with Zod and the MongoDB driver.
+description: Migrates a Mongoose model to MongoZod, one model at a time, on the connection Mongoose already opened and without changing the data MongoDB stores, from its Mongoose schema or, without one, from a $jsonSchema exported from MongoDB Compass or @mongodb-js/mongodb-schema. Use when asked to move a model, a collection or a project from Mongoose to MongoZod, or to replace Mongoose with Zod and the MongoDB driver.
 ---
 
-# Migrate a Mongoose model to mongozod
+# Migrate a Mongoose model to MongoZod
 
-Migrate one model per run. Mongoose and mongozod share one connection while a project migrates, so
+Migrate one model per run. Mongoose and MongoZod share one connection while a project migrates, so
 the rest of the app keeps using Mongoose until its turn. If the user did not name the model, list
 the Mongoose models of the project and ask which one.
 
 ## 1. Set up
 
-1. Check that mongozod is installed: `node_modules/mongozod/dist/docs/README.md` exists. In a
+1. Check that MongoZod is installed: `node_modules/mongozod/dist/docs/README.md` exists. In a
    monorepo, look in the package that depends on Mongoose.
 2. If it is not installed, install it with the same driver as Mongoose, so that there is one copy of
    `mongodb`:
-   - `npm ls mongodb` shows the version under `mongoose`. mongozod needs driver 7 (Mongoose 9) or
+   - `npm ls mongodb` shows the version under `mongoose`. MongoZod needs driver 7 (Mongoose 9) or
      driver 6.20 (Mongoose 8.19 and later). With an older Mongoose, stop and tell the user to update
      it first.
    - Install `mongozod`, `zod`, `mongodb` at that exact version, and `bson` of the same major as the
@@ -27,7 +27,7 @@ the Mongoose models of the project and ask which one.
    `guides/models.md`, `guides/operations.md` and `guides/validation.md`, and the guide of each
    feature the model uses, such as `guides/populate.md`, `guides/virtuals.md`,
    `guides/timestamps.md`, `guides/document-types.md`, `guides/sync.md` or `guides/plugins.md`.
-   They match the installed version: follow them over what you remember of mongozod or Mongoose.
+   They match the installed version: follow them over what you remember of MongoZod or Mongoose.
 4. Find how the project shares the connection: a function such as `mongooseDb()` that returns
    `mongoose.connection.db`. If there is none, create it as `mongoose/index.md` shows, in the module
    that connects to MongoDB.
@@ -89,7 +89,7 @@ Rewrite each use of the Mongoose model with the cheatsheet and `mongoose/differe
 - `projection`, `sort` and `populate` are objects in the options, the second argument of `find`:
   `find(filter, { projection: { title: 1 }, sort: { createdAt: -1 } })`.
 - `findById(id)` is `findOne({ _id })`, and `{ new: true }` is `{ returnDocument: 'after' }`.
-- A transaction passes `{ session }` to each mongozod operation, also when Mongoose sets
+- A transaction passes `{ session }` to each MongoZod operation, also when Mongoose sets
   `transactionAsyncLocalStorage`.
 
 Keep the Mongoose model while other code calls it or another Mongoose schema has a `ref` to it.
@@ -118,5 +118,5 @@ Tell the user:
 - The files you changed, and the Mongoose model you kept or deleted.
 - Each decision the Mongoose schema or the `$jsonSchema` left open, such as a field you made
   optional or an enum you inferred from the code.
-- What the model used that mongozod does not have yet, and the workaround you used.
+- What the model used that MongoZod does not have yet, and the workaround you used.
 - The script that checks the stored documents, and what `sync()` reported.

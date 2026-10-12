@@ -9,7 +9,7 @@ export const revalidate = false
 // the docs, each to the Markdown of its page.
 export function GET() {
   const lines = [
-    '# mongozod',
+    '# MongoZod',
     '',
     '> MongoDB with a Zod schema as the single source of truth for each document: it validates every write, types every read and defines what each endpoint accepts. The Mongoose alternative built on Zod and the official MongoDB driver.',
     '',

@@ -146,7 +146,7 @@ why.
 ## The `id` virtual
 
 Mongoose adds an `id` getter to every schema, with the `_id` as a string
-([Mongoose docs](https://mongoosejs.com/docs/guide.html#id)). mongozod adds nothing on its own:
+([Mongoose docs](https://mongoosejs.com/docs/guide.html#id)). MongoZod adds nothing on its own:
 declare it as a [virtual](../guides/virtuals.md) that picks the `_id`:
 
 ```ts separate
@@ -198,7 +198,7 @@ string.
   value, and in an ES module app `instanceof` fails for the ones of the other build of `bson`. Use
   `.equals()`.
 - **Filtering by the hex string**: `{ _id: '64f1…' }` on an `ObjectId` field doesn't compile, and
-  without types it matches nothing, because mongozod doesn't cast filters. Parse the string with
+  without types it matches nothing, because MongoZod doesn't cast filters. Parse the string with
   `mz.objectId()`, or take the filter through [`mz.filter`](../guides/endpoint-inputs.md).
 - **`mz.objectId()` without `.default()` on the `_id`**: every insert has to pass the `_id`, and one
   that doesn't fails with a `ZodError` (`received undefined`). Add `.default(() => new ObjectId())`,

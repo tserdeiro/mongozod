@@ -4,7 +4,7 @@ description: The driver's collection methods as a model wraps them, with their o
 ---
 
 Each operation of a model wraps the method of the same name of the driver's `Collection`, with the
-same arguments, options and results. mongozod validates what it writes, types what it reads and
+same arguments, options and results. MongoZod validates what it writes, types what it reads and
 passes the rest to the driver, which runs the query. The inserts also return the stored documents.
 
 ```ts
@@ -68,7 +68,7 @@ const published = await PostsModel.find({ status: 'published' }, { sort: { title
 ## Options
 
 Each operation takes the driver's options, such as `session`, `comment`, `hint` or
-`maxTimeMS`. What mongozod adds goes in the same object, and it removes it before calling the
+`maxTimeMS`. What MongoZod adds goes in the same object, and it removes it before calling the
 driver:
 
 | Option                 | Where                                                             | Guide                                 |

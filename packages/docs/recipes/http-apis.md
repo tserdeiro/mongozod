@@ -201,7 +201,7 @@ A cursor of `find` can be awaited, but it has no `.catch()`. Await it inside `tr
 
 - **Filters in plain query parameters**: `?views=10` arrives as the string `'10'`, which a number
   field rejects. Send the filter as JSON in `q`.
-- **Passing query or route parameters to the model without parsing them**: mongozod doesn't cast
+- **Passing query or route parameters to the model without parsing them**: MongoZod doesn't cast
   filters, so a hex string never matches an `ObjectId`. Parse with `mz.filter` or `mz.objectId()`.
 - **Answering 500 to a client's invalid data**: catch `ZodError` and answer 400, and 409 for a
   duplicate key (`code` 11000).

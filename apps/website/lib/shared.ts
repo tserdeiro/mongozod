@@ -1,15 +1,15 @@
 import { createGetUrl } from 'fumadocs-core/source'
 
-export const appName = 'mongozod'
+export const appName = 'MongoZod'
 export const siteUrl = 'https://mongozod.dev'
 export const docsRoute = '/docs'
 export const docsImageRoute = '/og/docs'
 export const docsContentRoute = '/llms.mdx/docs'
 export const githubUrl = 'https://github.com/tserdeiro/mongozod'
 
-/** The notice that mongozod is not a MongoDB product, on every page of the site. */
+/** The notice that MongoZod is not a MongoDB product, on every page of the site. */
 export const trademarkNotice =
-  'mongozod is an independent open-source project. It is not affiliated with, endorsed by or sponsored by MongoDB, Inc. MongoDB® is a registered trademark of MongoDB, Inc.'
+  'MongoZod is an independent open-source project. It is not affiliated with, endorsed by or sponsored by MongoDB, Inc. MongoDB® is a registered trademark of MongoDB, Inc.'
 
 const getContentUrl = createGetUrl(docsContentRoute)
 const getImageUrl = createGetUrl(docsImageRoute)

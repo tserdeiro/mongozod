@@ -4,7 +4,7 @@ description: Run aggregation pipelines, validate and type their results with a s
 ---
 
 `aggregate(pipeline, options)` runs a pipeline on the model's collection, with the driver's
-signature and options. mongozod adds one option, `schema`, which validates and types each document
+signature and options. MongoZod adds one option, `schema`, which validates and types each document
 the pipeline returns. Without it, the documents come back as the driver returns them.
 
 ```ts

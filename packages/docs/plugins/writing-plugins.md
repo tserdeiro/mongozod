@@ -131,14 +131,14 @@ The schema still validates them after the hooks, so a write the plugin does not 
 
 `options` takes a `z.object` per group of operations. Its fields join the driver's options in the
 operations of that group: with the `logger` above, `find(filter, { log: false })` compiles and
-`deleteOne(filter, { log: false })` does not. mongozod validates them with their schema, with its
+`deleteOne(filter, { log: false })` does not. MongoZod validates them with their schema, with its
 defaults and transforms, before the hooks run, and removes them before calling the driver: the
 hooks see them parsed, in `args.options`.
 
-An option cannot be named like one of the driver, of mongozod (`context`, `populate`, `schema`,
+An option cannot be named like one of the driver, of MongoZod (`context`, `populate`, `schema`,
 `timestamps` or `updatePipeline`, the option of [update pipelines](../guides/operations.md#update))
 or of another plugin of the model: it does not compile, and `mongozod()` throws an `Error` for the
-names of mongozod and of other plugins.
+names of MongoZod and of other plugins.
 
 ## Context
 
@@ -152,7 +152,7 @@ required, with a `context`. A method that passes its options on to one of them, 
 - **Validated before the hooks**: a context that does not fit throws a `ZodError` with its issues
   under `['context', …]`.
 - **Forwarded as written**: the `context` stays in `args.options`, so a hook that dispatches another
-  operation with `args.options` passes it on. mongozod removes it before calling the driver, and
+  operation with `args.options` passes it on. MongoZod removes it before calling the driver, and
   `populate` passes it to the reads of the models it populates.
 - **Deletes that become updates**: next to `softDelete`, a delete becomes an update with the options
   of the delete, so a plugin that asks for a context in the updates asks for it in the deletes too
@@ -179,7 +179,7 @@ middleware run on them, and they take no context.
 | `before` | `{ operation, args, context, model }` | `{ args }` to go on with other arguments, `{ result }` to skip the operation, or nothing. A throw stops it. |
 | `after`  | the same, plus `result`               | `{ result }` to replace the result, or nothing.                                                             |
 
-- **A `before` sees the call as written**: before mongozod validates it, fills `timestamps`, or
+- **A `before` sees the call as written**: before MongoZod validates it, fills `timestamps`, or
   plans the virtuals and `populate`. Its documents are the input of the schema, without defaults, so
   a hook can fill a required field.
 - **An `after` sees the final result**, the one the caller gets.

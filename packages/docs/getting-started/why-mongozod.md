@@ -1,19 +1,19 @@
 ---
-title: Why mongozod
-description: How mongozod compares with Mongoose and with the driver and Zod by hand, the Mongoose issues it solves and when not to use it.
+title: Why MongoZod
+description: How MongoZod compares with Mongoose and with the driver and Zod by hand, the Mongoose issues it solves and when not to use it.
 ---
 
 A project on MongoDB and TypeScript usually describes each document three times: in a Mongoose
 schema, in a TypeScript type, and in the Zod schemas that validate what its endpoints receive. They
 drift apart, and each one checks something different.
 
-mongozod keeps one description, the Zod schema, and builds the rest from it: the model validates
+MongoZod keeps one description, the Zod schema, and builds the rest from it: the model validates
 every write with it, the types of every query and result come from it, and the inputs of the
 endpoints are derived from it.
 
 ## Compared with Mongoose
 
-|                   | Mongoose 9                                                                                                                                                  | mongozod                                                                                                             |
+|                   | Mongoose 9                                                                                                                                                  | MongoZod                                                                                                             |
 | ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
 | Schema            | A Mongoose schema, apart from what validates your endpoints                                                                                                 | One Zod schema for the document, its types and the inputs of your endpoints                                          |
 | Update validation | [Off by default](https://mongoosejs.com/docs/validation.html#update-validators), and only on `$set`, `$unset`, `$push`, `$addToSet`, `$pull` and `$pullAll` | Always, on every operator, with refinements, and on the document an upsert would insert                              |
@@ -34,11 +34,11 @@ works another way.
 The driver with a Zod schema already validates an insert: parse the document, then insert the
 result. The rest is what a team ends up writing again in each project:
 
-- **Updates**: an update is a set of operators on paths, not a document. mongozod validates the
+- **Updates**: an update is a set of operators on paths, not a document. MongoZod validates the
   value of each path with the schema of that field, applies the rules of each operator (`$inc` on
   numbers, `$unset` on optional fields, array operators on arrays) and, for an upsert, builds and
   validates the document MongoDB would insert.
-- **Types**: the driver types a filter loosely. mongozod checks every filter, update, projection and
+- **Types**: the driver types a filter loosely. MongoZod checks every filter, update, projection and
   sort against the schema, dotted paths included, and narrows the result of a projection.
 - **Relations and computed fields**: [`populate`](../guides/populate.md),
   [virtuals](../guides/virtuals.md) and [timestamps](../guides/timestamps.md), each typed in the
@@ -51,7 +51,7 @@ result. The rest is what a team ends up writing again in each project:
 
 ## Mongoose issues it solves
 
-Open issues of Mongoose that mongozod handles by design:
+Open issues of Mongoose that MongoZod handles by design:
 
 - **Validating updates**: the required fields of an upsert
   ([#7037](https://github.com/Automattic/mongoose/issues/7037)), the subdocuments of a
@@ -82,17 +82,17 @@ Open issues of Mongoose that mongozod handles by design:
   [#13546](https://github.com/Automattic/mongoose/issues/13546)).
 
 Mongoose's types have also slowed editors down
-([#10349](https://github.com/Automattic/mongoose/issues/10349)). mongozod's CI fails when the type
+([#10349](https://github.com/Automattic/mongoose/issues/10349)). MongoZod's CI fails when the type
 instantiations of a typical project go over a budget, so a release cannot make your editor slower
 without anyone noticing.
 
 ## When not to use it
 
-mongozod is not the right fit, or not yet, when a project needs:
+MongoZod is not the right fit, or not yet, when a project needs:
 
-- **Documents with methods and change tracking**, like Mongoose's `doc.save()`. mongozod writes with
+- **Documents with methods and change tracking**, like Mongoose's `doc.save()`. MongoZod writes with
   explicit operations, as the driver does.
-- **Filters cast at runtime** from untyped values. mongozod types them instead, and parses what
+- **Filters cast at runtime** from untyped values. MongoZod types them instead, and parses what
   clients send with `mz`.
 - **Zod 3**, **Node.js before 22.15** or **TypeScript before 5.5**.
 - Some Mongoose features that are planned but not there yet: `select: false`, `immutable` and

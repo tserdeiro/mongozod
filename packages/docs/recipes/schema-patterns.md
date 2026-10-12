@@ -89,7 +89,7 @@ The editor suggests paths up to 6 levels deep, and deeper ones still compile.
 When TypeScript can't infer the type of a getter, it reports that the getter implicitly has type
 `any` (TS7023): annotate the return type of the getter, as Zod's docs show. Prefer getters to the
 Zod 3 pattern of `z.lazy()` with a `z.ZodType<T>` annotation, which hides the shape from
-mongozod's types: a path into the field, such as `'replies.body'`, doesn't compile.
+MongoZod's types: a path into the field, such as `'replies.body'`, doesn't compile.
 
 ## A dynamic key of a record
 

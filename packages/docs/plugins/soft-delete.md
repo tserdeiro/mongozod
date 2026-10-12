@@ -4,7 +4,7 @@ description: Mark documents as deleted instead of removing them, and hide them f
 ---
 
 `softDelete` marks a document as deleted with a `deletedAt` date, instead of removing it, and hides
-the deleted documents from reads and updates. It is the official plugin of mongozod, in
+the deleted documents from reads and updates. It is the official plugin of MongoZod, in
 `mongozod/plugins/soft-delete`.
 
 ```ts

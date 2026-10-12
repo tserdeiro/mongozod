@@ -115,7 +115,7 @@ await postsService.count({ status: 'archived' })
 
 ## Generic over the result, not over the model
 
-mongozod has no type for any model with typed reads. Comparing a model with
+MongoZod has no type for any model with typed reads. Comparing a model with
 `Model<any, any, any, any, any>` costs about 57,600 type instantiations with TypeScript 7 and
 133,800 with 5.5 the first time. `AnyModel`, the type plugins see, takes and returns the driver's
 `Document`, so its reads lose their types. A helper that is generic over what it reads keeps them.

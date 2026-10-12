@@ -3,7 +3,7 @@ title: Differences from Mongoose
 description: What works another way than in Mongoose, such as explicit writes instead of save(), filters without casting, __v and an explicit sync().
 ---
 
-mongozod keeps the driver's way of working with documents: a read returns the document as MongoDB
+MongoZod keeps the driver's way of working with documents: a read returns the document as MongoDB
 stores it, and each write is an operation that says what changes. Most differences with Mongoose
 come from there. The habit that changes the most is `save()`:
 
@@ -15,7 +15,7 @@ post.tags.push('mongodb')
 await post.save()
 ```
 
-In mongozod, the change is the update:
+In MongoZod, the change is the update:
 
 ```ts
 import { ObjectId } from 'mongodb'
@@ -72,12 +72,12 @@ differences that change how you write code.
 
 Mongoose returns documents: instances of the model that track your changes, which `save()` sends as
 an `updateOne()` of the modified paths
-([Mongoose docs](https://mongoosejs.com/docs/documents.html#updating-using-save)). mongozod returns
+([Mongoose docs](https://mongoosejs.com/docs/documents.html#updating-using-save)). MongoZod returns
 the driver's plain objects, like a Mongoose query with `lean()`
 ([Mongoose docs](https://mongoosejs.com/docs/tutorials/lean.html)), and writes with the driver's
 operations:
 
-| With a Mongoose document                    | With mongozod                                                   |
+| With a Mongoose document                    | With MongoZod                                                   |
 | ------------------------------------------- | --------------------------------------------------------------- |
 | `new Post(data).save()`                     | `insertOne(data)`, which returns the stored `document`          |
 | `post.title = title`, then `post.save()`    | `updateOne({ _id }, { $set: { title } })`                       |
@@ -102,7 +102,7 @@ write of that field (see [Transforms](../recipes/transforms.md)), and the rest b
 ## Updates take operators
 
 Mongoose treats the keys of an update that are not operators as a `$set`
-([Mongoose docs](https://mongoosejs.com/docs/api/model.html#Model.findOneAndUpdate%28%29)). mongozod
+([Mongoose docs](https://mongoosejs.com/docs/api/model.html#Model.findOneAndUpdate%28%29)). MongoZod
 passes the update to the driver as it is, so it takes operators only:
 
 ```ts
@@ -119,7 +119,7 @@ whole document, use `replaceOne`.
 
 Mongoose casts each value of a filter to the type of its field when the query runs, such as `'50'`
 to `50` or a hex string to an `ObjectId`, and throws a `CastError` when it cannot
-([Mongoose docs](https://mongoosejs.com/docs/tutorials/query_casting.html)). mongozod leaves filters
+([Mongoose docs](https://mongoosejs.com/docs/tutorials/query_casting.html)). MongoZod leaves filters
 as they are, as the driver does, and checks them with their types instead: a value of the wrong type
 does not compile.
 
@@ -145,28 +145,28 @@ await PostsModel.find({ status: { $in: ['draft', 'published'] } })
 - **Pipelines**: Mongoose does not cast them
   ([Mongoose docs](https://mongoosejs.com/docs/queries.html#versus-aggregation)), so a string for an
   `ObjectId` in a `$match` finds nothing
-  ([Automattic/mongoose#1399](https://github.com/Automattic/mongoose/issues/1399)). mongozod types
+  ([Automattic/mongoose#1399](https://github.com/Automattic/mongoose/issues/1399)). MongoZod types
   the `$match` stages at the start of a pipeline like a filter (see
   [Aggregation](../guides/aggregation.md)).
 
 ## Reads are plain and not validated
 
 A read returns what the driver returns, with the [virtuals](../guides/virtuals.md) and the
-[populated](../guides/populate.md) references you ask for. mongozod does not run the schema on it:
+[populated](../guides/populate.md) references you ask for. MongoZod does not run the schema on it:
 
 - **No getters**: a transform runs when a value is written, not when it is read.
 - **No defaults on old documents**: a document stored before a field or its `.default()` existed is
   read without that field, although its type says it is there. Migrate those documents when you add
   the field (see [Schema migrations](../recipes/schema-migrations.md)).
 - **No validation**: a stored document that does not fit the schema is read as it is. Before you
-  switch a collection to mongozod, check its documents with `safeParse` (see
+  switch a collection to MongoZod, check its documents with `safeParse` (see
   [Migrating from Mongoose](./index.md#verify)).
 
 ## `insertMany` validates the whole batch
 
 Mongoose validates each document before it inserts, and with `ordered: false` it inserts the valid
 ones and reports the others ([Mongoose docs](https://mongoosejs.com/docs/api/model.html#Model.insertMany%28%29)).
-mongozod validates every document first, also with `ordered: false`: one invalid document rejects
+MongoZod validates every document first, also with `ordered: false`: one invalid document rejects
 the batch, nothing is written, and a single `ZodError` lists the issues of every invalid document
 under its index, such as `[1, 'title']`. `ordered: false` still lets the other documents through
 when the server rejects one, such as for a duplicate key. `bulkWrite` works the same way. See
@@ -182,7 +182,7 @@ turning the creation of indexes off in production
 the indexes the schema does not declare
 ([Mongoose docs](https://mongoosejs.com/docs/api/model.html#Model.syncIndexes%28%29)).
 
-mongozod does nothing when the app starts. `sync()` creates the declared indexes, and applies the
+MongoZod does nothing when the app starts. `sync()` creates the declared indexes, and applies the
 `$jsonSchema` when the model asks for it, when you call it, such as from a deploy script. It never
 drops an index: it returns the ones the model does not declare in `extraIndexes`. MongoDB creates
 the collection on the first write.
@@ -191,7 +191,7 @@ the collection on the first write.
 const { indexes, extraIndexes } = await PostsModel.sync()
 ```
 
-While Mongoose and mongozod share a collection, Mongoose keeps creating the indexes of its schema
+While Mongoose and MongoZod share a collection, Mongoose keeps creating the indexes of its schema
 when it starts. An index that both declare with the same keys and options exists once. See
 [Sync](../guides/sync.md).
 
@@ -202,10 +202,10 @@ Mongoose writes a version key, `__v`, in each document it creates, and only `sav
 `save()` fails when the document changed since it was read
 ([Mongoose docs](https://mongoosejs.com/docs/guide.html#optimisticConcurrency)).
 
-mongozod does not know about `__v`. An update that does not write it keeps it, but a `z.object`
+MongoZod does not know about `__v`. An update that does not write it keeps it, but a `z.object`
 drops the keys it does not declare, so a `replaceOne` or a `findOneAndReplace` removes it. While
 Mongoose still writes the collection, declare it as `postSchema` does above,
-`__v: z.number().int().default(0)`, so that the documents mongozod inserts start from `0`, as
+`__v: z.number().int().default(0)`, so that the documents MongoZod inserts start from `0`, as
 Mongoose's do, and Mongoose's `save()` works on them. A replacement keeps it when you pass the
 document you read. Leave it out if the Mongoose schema sets `versionKey: false`.
 
@@ -239,11 +239,11 @@ await PostsModel.collection.updateMany({}, { $unset: { __v: '' } })
   [cheatsheet](./cheatsheet.md#field-options).
 - **Empty objects**: Mongoose removes them by default, with its `minimize` option
   ([Mongoose docs](https://mongoosejs.com/docs/guide.html#minimize),
-  [Automattic/mongoose#8505](https://github.com/Automattic/mongoose/issues/8505)). mongozod stores
+  [Automattic/mongoose#8505](https://github.com/Automattic/mongoose/issues/8505)). MongoZod stores
   them.
 - **Upserts**: Mongoose adds the defaults of the schema to the document an upsert inserts, with
   `$setOnInsert` ([Mongoose docs](https://mongoosejs.com/docs/defaults.html#the-setdefaultsoninsert-option)).
-  mongozod does too, and also validates that document: an upsert that would insert one without a
+  MongoZod does too, and also validates that document: an upsert that would insert one without a
   required field throws a `ZodError`
   ([Automattic/mongoose#7037](https://github.com/Automattic/mongoose/issues/7037)). See
   [Validation](../guides/validation.md).
@@ -251,13 +251,13 @@ await PostsModel.collection.updateMany({}, { $unset: { __v: '' } })
   ([Mongoose docs](https://mongoosejs.com/docs/api/model.html#Model.findOneAndUpdate%28%29)). Mongoose's
   `new: true` is the driver's `returnDocument: 'after'`.
 - **Discriminator key**: Mongoose adds its own field, `__t` by default
-  ([Mongoose docs](https://mongoosejs.com/docs/discriminators.html#discriminator-keys)). In mongozod
+  ([Mongoose docs](https://mongoosejs.com/docs/discriminators.html#discriminator-keys)). In MongoZod
   the key of a `z.discriminatedUnion` is a field of the schema, so for documents written by Mongoose
   it is `__t`, or the `discriminatorKey` of its schema (see
   [Document types](../guides/document-types.md)).
 - **Errors**: a validation throws Zod's `ZodError`, not a `ValidationError`, and there is no
   `CastError`. The driver's errors, such as a duplicate key, are the same in both.
-- **Transactions**: mongozod takes the session in the options of each operation, `{ session }`, also
+- **Transactions**: MongoZod takes the session in the options of each operation, `{ session }`, also
   when Mongoose's `transactionAsyncLocalStorage` is on (see
   [Share the connection](./index.md#share-the-connection)).
 

@@ -120,7 +120,7 @@ await PostsModel.updateOne(
 - **The root** is a `z.discriminatedUnion` of `z.object`s, whose options can be other
   `z.discriminatedUnion`s, for [subtypes](#subtypes).
 - **The key** is the one you pass to `z.discriminatedUnion`, like Mongoose's `discriminatorKey`. It
-  is a field of the schema like any other: mongozod adds no field of its own, unlike the `__t` that
+  is a field of the schema like any other: MongoZod adds no field of its own, unlike the `__t` that
   Mongoose adds ([Mongoose docs](https://mongoosejs.com/docs/discriminators.html)).
 - **Shared fields** go in a base object that each type extends with `.extend()`, as Zod recommends
   ([Zod docs](https://zod.dev/api#intersections)). An intersection, with `z.intersection()` or

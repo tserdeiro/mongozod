@@ -4,7 +4,7 @@ description: Add plugins to a model, pass the options and the context they take,
 ---
 
 A plugin hooks into the operations of a model: it can change their arguments and their results,
-wrap them, add options, ask each call for a context and add methods to the model. mongozod ships
+wrap them, add options, ask each call for a context and add methods to the model. MongoZod ships
 [`softDelete`](../plugins/soft-delete.md), and [Writing plugins](../plugins/writing-plugins.md)
 shows how to write your own.
 
@@ -91,12 +91,12 @@ fields of [`timestamps`](./timestamps.md).
 
 A plugin can add options to the operations of a group. The `logger` of this page adds `log` to the
 reads, so `find(filter, { log: false })` compiles and `deleteMany(filter, { log: false })` does not.
-mongozod validates each option with the schema of its plugin, with its defaults, and throws a
+MongoZod validates each option with the schema of its plugin, with its defaults, and throws a
 `ZodError` when one does not fit. It removes them before calling the driver.
 
-A plugin option cannot be named like an option of the driver, of mongozod (`context`, `populate`,
+A plugin option cannot be named like an option of the driver, of MongoZod (`context`, `populate`,
 `schema`, `timestamps`, `updatePipeline`) or of another plugin of the model: it does not compile, and
-`mongozod()` throws an `Error` for the names of mongozod and of other plugins.
+`mongozod()` throws an `Error` for the names of MongoZod and of other plugins.
 
 ## Context
 

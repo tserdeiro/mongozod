@@ -3,7 +3,7 @@ title: Transactions
 description: Run several operations atomically with the driver's withSession and withTransaction, passing the session to each operation.
 ---
 
-mongozod has no transaction helper of its own: a transaction is the driver's. Start a session with
+MongoZod has no transaction helper of its own: a transaction is the driver's. Start a session with
 `client.withSession()`, run the operations in `session.withTransaction()`, and pass `{ session }`
 to each operation of a model, as you would to a collection of the driver.
 
@@ -82,7 +82,7 @@ Transactions need a replica set or a sharded cluster, as the
 
 An operation without `{ session }` runs outside the transaction, without an error: it doesn't see
 the transaction's writes, and its own writes stay even when the transaction aborts. The `session`
-option goes next to the driver's other options and mongozod's:
+option goes next to the driver's other options and MongoZod's:
 
 ```ts
 await client.withSession((session) =>

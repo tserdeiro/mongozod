@@ -1,9 +1,9 @@
 ---
 title: AI agents
-description: Point a coding agent at the docs installed with mongozod, and the mistakes agents trained on Mongoose tend to make.
+description: Point a coding agent at the docs installed with MongoZod, and the mistakes agents trained on Mongoose tend to make.
 ---
 
-A coding agent may know Mongoose well and mongozod not at all, or know an older version of it. The
+A coding agent may know Mongoose well and MongoZod not at all, or know an older version of it. The
 docs ship inside the package, so an agent can read the ones that match the version you installed,
 without a network request.
 
@@ -24,7 +24,7 @@ node_modules/mongozod/dist/docs/
 └── api/
 ```
 
-Updating mongozod updates them.
+Updating MongoZod updates them.
 
 ## Tell your agent
 
@@ -74,13 +74,13 @@ npx skills add tserdeiro/mongozod --skill migrate-from-mongoose
 
 ## Common mistakes
 
-Agents trained on Mongoose code tend to write it with mongozod. What to expect, and what to ask for
+Agents trained on Mongoose code tend to write it with MongoZod. What to expect, and what to ask for
 instead:
 
 - **Mongoose's API**: `new Model(…).save()`, `Model.create()`, `findById()`, `.lean()` and
   `.exec()` don't exist. A model has the driver's operations: `insertOne`, `findOne({ _id })`,
   `updateOne`, and reads already return plain objects. See [Operations](../guides/operations.md).
-- **A string where an `ObjectId` goes**: mongozod doesn't cast filters, so `{ _id: '65f…' }` on an
+- **A string where an `ObjectId` goes**: MongoZod doesn't cast filters, so `{ _id: '65f…' }` on an
   `ObjectId` field doesn't compile. Parse what a client sends with
   [`mz.filter`](../guides/endpoint-inputs.md) or `mz.objectId()`, or build it with
   `new ObjectId(id)`.
