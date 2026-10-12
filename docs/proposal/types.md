@@ -297,8 +297,11 @@ Los tipos siguen la regla de [Tipos](#tipos). Además:
   `by` dentro de las llaves vacías, también más abajo y en un array de objetos. El editor deja el
   string afuera de las sugerencias de una unión: con el mensaje solo, sugería los métodos de
   `String`, y compilándola, solo los identificadores del archivo. Con una key escrita la forma
-  anidada no sugiere las otras; la forma con punto, `'meta.by'`, sí. Cuesta unas 490
-  instanciaciones con TypeScript 7 en el proyecto típico de `check-type-cost`, y ninguna con 5.5.
+  anidada no sugiere las otras; la forma con punto, `'meta.by'`, sí. Un campo sin campos fijos
+  adentro, como un record, un escalar o una intersección, tiene solo el mensaje, y dentro de sus
+  llaves el editor sugiere los métodos de `String`: en un record, elegir uno, como `length`, compila
+  como una key del record. Cuesta unas 490 instanciaciones con TypeScript 7 en el proyecto típico de
+  `check-type-cost`, y ninguna con 5.5.
 - **Proyección estricta**: no compila lo que MongoDB acepta pero responde distinto: un índice, un
   path que no existe, `$slice` o `$elemMatch` sobre algo que no es array, un string (MongoDB lo
   devuelve como valor literal) y un `$` que atraviesa dos arrays. Las expresiones de agregación se

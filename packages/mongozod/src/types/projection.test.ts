@@ -1,3 +1,4 @@
+import type { None } from '../model/model'
 import type { ProjectionCheck } from './projection'
 import type { Document } from 'mongodb'
 
@@ -118,6 +119,14 @@ test('what MongoDB accepts but answers differently does not compile', () => {
   project({ prop: {} })
   // @ts-expect-error an empty sub-projection of a field without fields (51270)
   project({ plugin: {} })
+
+  // Its message and its fields: the editor suggests the fields, and leaves the string out.
+  expectTypeOf<ProjectionCheck<typeof pluginSchema, { prop: None }>>().toEqualTypeOf<{
+    prop:
+      | '"prop" takes a field inside: an empty sub-projection fails'
+      | { nestedProp: unknown }
+      | { other: unknown }
+  }>()
 
   const kept = { plugin: 0 }
 
