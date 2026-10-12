@@ -36,6 +36,11 @@ const hexToObjectId = z.codec(z.hex().length(24), objectIdInstance, {
  * clients. `bson` is a peer dependency, of the major of your driver: 7 for `mongodb` 7, 6 for
  * `mongodb` 6.
  *
+ * Compare two with `.equals()` and check a value with `ObjectId.isValid()`, not with `instanceof`:
+ * in an ES module app, what `bson` builds and what the driver reads are instances of two builds of
+ * the same class, its ES module one and its CommonJS one. The same goes for `Decimal128` and
+ * `UUID`. Importing `ObjectId` from `mongodb` gives the driver's.
+ *
  * @example
  *   import { ObjectId } from 'bson'
  *   import * as mz from 'mongozod/mzod'

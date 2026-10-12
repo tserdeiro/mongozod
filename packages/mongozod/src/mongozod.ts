@@ -117,6 +117,9 @@ export interface MongozodOptions<
    * A `z.bigint()` needs a client or a `Db` with `useBigInt64: true`, or every operation throws an
    * `Error`: without it, the driver reads a long as a number. The driver reads back neither a
    * `Set` nor a `Map`, so a set is `mz.set()`, an array without repeats, and a map is `z.record()`.
+   * An async refinement that queries the database runs without the session of a transaction, so it
+   * reads outside of it: a check that has to see the transaction goes in a plugin's `before` hook,
+   * which gets the `session` in its options.
    */
   schema: S
 
