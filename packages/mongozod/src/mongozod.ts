@@ -740,9 +740,21 @@ export function mongozod(
           throw error
         })
 
+      // MongoDB creates an index on the metaField and the timeField of a time-series collection.
+      const [info] = await getDb()
+        .listCollections({ name: options.collection }, { nameOnly: false })
+        .toArray()
+      const timeseries: Document | undefined = info?.options?.timeseries
+      const automatic =
+        timeseries?.metaField &&
+        JSON.stringify({ [timeseries.metaField]: 1, [timeseries.timeField]: 1 })
+
       return {
         extraIndexes: existing.filter(
-          (index) => index.name !== '_id_' && !names.includes(index.name ?? '')
+          (index) =>
+            index.name !== '_id_' &&
+            !names.includes(index.name ?? '') &&
+            JSON.stringify(index.key) !== automatic
         ),
         indexes: names
       }

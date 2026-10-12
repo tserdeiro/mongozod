@@ -74,6 +74,18 @@ describe('indexes', () => {
     expect(await NotesModel.collection.indexExists('legacy')).toBe(true)
   })
 
+  test('leaves out the index MongoDB creates on a time-series collection', async () => {
+    const MetricsModel = mongozod({
+      collection: 'metrics',
+      db,
+      schema: z.object({ at: z.date(), sensor: z.string(), value: z.number() })
+    })
+
+    await db.createCollection('metrics', { timeseries: { metaField: 'sensor', timeField: 'at' } })
+
+    expect(await MetricsModel.sync()).toEqual({ extraIndexes: [], indexes: [] })
+  })
+
   test('fails with the error of the server when an existing one differs', async () => {
     await NotesModel.collection.createIndex({ slug: 1 })
 

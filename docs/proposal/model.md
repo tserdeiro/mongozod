@@ -144,7 +144,10 @@ const { extraIndexes } = await PluginsModel.sync()
   86 con el mismo nombre y otras opciones. `createIndexes` es atómico, así que no se crea ninguno.
   Un índice con otro nombre y otras opciones sí se crea, y el viejo queda entre los que sobran.
 - **Lo que devuelve**: `{ indexes, extraIndexes }`, los nombres de los declarados, creados o ya
-  existentes, y los índices que la colección tiene y el modelo no declara, salvo el del `_id`. El
+  existentes, y los índices que la colección tiene y el modelo no declara, salvo el del `_id` y el
+  que MongoDB crea solo sobre el `metaField` y el `timeField` de una colección time-series
+  (verificado). Las time-series, las capped y la collation por defecto se crean con el driver,
+  antes de `sync()`. El
   script que lo llama decide si los loguea: la librería no escribe en la consola.
 - **`jsonSchema`**: `true` aplica `validationLevel: 'strict'` y `validationAction: 'error'`, los
   defaults de MongoDB, y también acepta `{ validationLevel: 'moderate' }`, que no valida los updates
