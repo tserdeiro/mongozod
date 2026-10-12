@@ -1,7 +1,7 @@
 import type { SchemaAt } from '../schema/schema-at'
 import type { PathSuggestions } from '../types/path-suggestions'
 import type { Side, ValueOf } from './filter'
-import type { OutsideArraysProblem } from './internal/outside-arrays'
+import type { ElementPath, OutsideArraysProblem } from './internal/outside-arrays'
 import type * as core from 'zod/v4/core'
 
 import { z } from 'zod'
@@ -38,9 +38,28 @@ type UpdatePathCheck<S, Op, P> = P extends string
     : OutsideArraysProblem<S, P, 'mz.update'>
   : never
 
-type PathsCheck<S, Op, L extends ReadonlyArray<unknown>> = {
-  [I in keyof L]: UpdatePathCheck<S, Op, L[I]>
-}
+/**
+ * The paths an operator takes: the suggested ones, which `UpdatePathCheck` accepts, but those that
+ * name an element, as a field whose key is a number.
+ */
+type AcceptedPath<S, Op> = Exclude<
+  Op extends '$inc'
+    ? PathsWhere<S, 'number'>
+    : Op extends '$unset'
+      ? PathsWhere<S, 'optional'>
+      : UpdatePath<S>,
+  ElementPath
+>
+
+/**
+ * Each declared path, or why the operator does not take it. A list of accepted paths is returned as
+ * it is, which is what mapping it would give, without checking each path again while the
+ * declarations are inferred.
+ */
+type PathsCheck<S, Op, L extends ReadonlyArray<unknown>> =
+  L extends ReadonlyArray<AcceptedPath<S, Op>>
+    ? L
+    : { [I in keyof L]: UpdatePathCheck<S, Op, L[I]> }
 
 /**
  * Checks the declarations of `mz.update`: each operator is `$set`, `$unset` or `$inc`, and each of

@@ -4,15 +4,13 @@ import type * as core from 'zod/v4/core'
 import { schemaAt } from '../../schema/schema-at'
 
 /** A path with an index or a positional operator, which name an element of an array. */
-type NamesElement<P extends string> = P extends
+export type ElementPath =
   | `${number}`
   | `${number}.${string}`
   | `${string}.${number}`
   | `${string}.${number}.${string}`
   | `$${string}`
   | `${string}.$${string}`
-  ? true
-  : false
 
 /**
  * Why a path of a builder is not a field outside arrays, or `never` when it is one. A client never
@@ -20,7 +18,7 @@ type NamesElement<P extends string> = P extends
  */
 export type OutsideArraysProblem<S, P extends string, B extends string> = string extends P
   ? 'a path must be a literal'
-  : NamesElement<P> extends true
+  : P extends ElementPath
     ? `"${P}" names an element of an array: ${B} takes paths outside arrays`
     : [SchemaAt<S, P, 'update'>] extends [never]
       ? [SchemaAt<S, P, 'filter'>] extends [never]

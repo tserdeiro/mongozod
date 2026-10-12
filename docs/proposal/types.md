@@ -190,7 +190,7 @@ mensajes de error ni lo que sugiere el editor:
 - **Listas válidas, tal cual**: un chequeo que recibe una lista sin problemas la devuelve sin
   mapearla, que es lo que daría el mapeo. Mientras infiere el argumento, TypeScript evalúa el chequeo
   de cada elemento una y otra vez. `mz.filter` devuelve así una lista de operadores que aplican, sin
-  `$elemMatch`.
+  `$elemMatch`, y `mz.update`, una de paths sugeridos para su operador que no nombran un elemento.
 - **`arrayFilters`**: cuando las opciones traen un array, la base no lo tipa como
   `ReadonlyArray<Document>`, y el chequeo pide que cada entrada sea un `Document`. Así no se
   intersectan dos arrays. Una entrada que no es un documento, como `null`, da un error más corto, que
