@@ -149,14 +149,20 @@ function walk(
 
 /**
  * Resolves a path of an update like its types do: through every array with a positional operator,
- * and at each discriminated union, only into the types that the filter, or the `arrayFilters`
- * entry of its `$[id]`, allows. A path written in every one of them leads to all their schemas.
+ * the `$` once, and at each discriminated union, only into the types that the filter, or the
+ * `arrayFilters` entry of its `$[id]`, allows. A path written in every one of them leads to all
+ * their schemas.
  */
 export function resolveUpdatePath(
   schema: core.$ZodType,
   path: string,
   context: UpdateContext
 ): UpdatePath {
+  // MongoDB rejects a second one (code 2).
+  if (path.split('.').filter((segment) => segment === '$').length > 1) {
+    return { kind: 'error', message: `"${path}": the positional $ goes once in a path` }
+  }
+
   const steps = walk(schema, path.split('.'), { kind: 'filter', prefix: '' }, context, '', true)
 
   if (steps.every((found) => found.kind === 'missing')) {

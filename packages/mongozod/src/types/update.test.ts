@@ -104,6 +104,9 @@ test('$set takes the input at each path, with positional operators and records',
   update({}, { $set: { 'connections.syncedAt': new Date() } })
   // @ts-expect-error $[c] needs arrayFilters
   update({}, { $set: { 'connections.$[c].syncedAt': new Date() } })
+  // @ts-expect-error the positional $ goes once in a path
+  update({ 'connections._id': 'c' }, { $set: { 'connections.$.accounts.$.enabled': true } })
+  update({ 'connections._id': 'c' }, { $set: { 'connections.$.accounts.$[].enabled': true } })
   update(
     {},
     // @ts-expect-error an identifier starts with a lowercase letter

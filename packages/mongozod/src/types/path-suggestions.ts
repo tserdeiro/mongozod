@@ -13,7 +13,7 @@ export type PathSuggestions<S, M extends PathMode> = Suggestions<
 >
 
 /** A path with the positional `$`, which MongoDB takes once in a path. */
-type Positional = '$' | `$.${string}` | `${string}.$` | `${string}.$.${string}`
+export type Positional = '$' | `$.${string}` | `${string}.$` | `${string}.$.${string}`
 
 type Suggestions<S, M extends PathMode, D extends unknown[] = []> = D['length'] extends 6
   ? never

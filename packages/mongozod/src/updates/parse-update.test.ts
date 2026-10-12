@@ -346,6 +346,20 @@ describe('operators', () => {
     ])
   })
 
+  test('take the positional $ once in a path, as MongoDB does', async () => {
+    const orderSchema = z.object({
+      items: z.array(z.object({ tags: z.array(z.string()) }))
+    })
+    const filter = { 'items.tags': 'a' }
+
+    expect(await parseUpdate(orderSchema, filter, { $set: { 'items.$.tags.$[]': 'z' } })).toEqual({
+      $set: { 'items.$.tags.$[]': 'z' }
+    })
+    expect(
+      await issuesOf(() => parseUpdate(orderSchema, filter, { $set: { 'items.$.tags.$': 'z' } }))
+    ).toEqual([['$set items.$.tags.$', '"items.$.tags.$": the positional $ goes once in a path']])
+  })
+
   test('reject a pipeline, which the model takes before with updatePipeline: true', async () => {
     expect(await issuesOf(() => parseUpdate(pluginSchema, {}, [{ $set: { title: 'x' } }]))).toEqual(
       [['', 'an update is an object of operators, or a pipeline with updatePipeline: true']]

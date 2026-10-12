@@ -13,7 +13,7 @@ import type {
 import type { Unwrap } from '../schema/unwrap-schema'
 import type { ConditionCheck, ElementConditionCheck, ElementSchema, KeyCheck } from './filter'
 import type { Loose } from './loose'
-import type { PathSuggestions } from './path-suggestions'
+import type { PathSuggestions, Positional } from './path-suggestions'
 import type { ProjectionCheck } from './projection'
 import type { SortCheck } from './sort'
 import type { Document } from 'mongodb'
@@ -258,19 +258,32 @@ type HasIdentifier<P extends string> = P extends `${infer Seg}.${infer Rest}`
       : true
     : false
 
+/** Whether a path names the positional `$` twice, which MongoDB rejects (code 2). */
+type TwicePositional<K extends string> = K extends `$.${infer Rest}`
+  ? Rest extends Positional
+    ? true
+    : false
+  : K extends `${string}.$.${infer Rest}`
+    ? Rest extends Positional
+      ? true
+      : false
+    : false
+
 /**
  * The schemas a path of an update writes, one 1-tuple per type the filter allows, or why it
  * cannot be written.
  */
 type Targets<S, K extends string, F, AF, Op> = string extends K
   ? 'an update key must be a literal path'
-  : [SchemaAt<S, K, 'update'>] extends [never]
-    ? NotAPath<K>
-    : HasIdentifier<K> extends true
-      ? [AF] extends [never]
-        ? `"${K}" uses an identifier: pass arrayFilters`
+  : TwicePositional<K> extends true
+    ? `"${K}": the positional $ goes once in a path`
+    : [SchemaAt<S, K, 'update'>] extends [never]
+      ? NotAPath<K>
+      : HasIdentifier<K> extends true
+        ? [AF] extends [never]
+          ? `"${K}" uses an identifier: pass arrayFilters`
+          : ResolvedTargets<S, K, F, AF, Op>
         : ResolvedTargets<S, K, F, AF, Op>
-      : ResolvedTargets<S, K, F, AF, Op>
 
 type ResolvedTargets<S, K extends string, F, AF, Op> =
   Resolve<S, K, F, AF> extends infer R

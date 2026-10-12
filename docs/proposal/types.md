@@ -18,8 +18,8 @@
   recursivos. Generarlos todos, como hace el driver, no compila con `blueprints`. `arrayFilters` se
   tipa según los `$[id]` del update, y la proyección ajusta el tipo del resultado a lo que responde
   MongoDB. Las sugerencias del editor se calculan aparte desde el schema: hasta 6 niveles, con `$` y
-  `$[]` en los arrays de los updates, el `$` una sola vez por path, como lo toma MongoDB (código 2), los campos del elemento dentro de `$pull`, y sin entrar en
-  `z.custom`, records, `z.lazy` ni transforms. `arrayFilters` no sugiere: haría falta intersectar
+  `$[]` en los arrays de los updates, el `$` una sola vez por path, los campos del elemento dentro
+  de `$pull`, y sin entrar en `z.custom`, records, `z.lazy` ni transforms. `arrayFilters` no sugiere: haría falta intersectar
   dos arrays (ver [Costo de los tipos](#costo-de-los-tipos)), así que queda para la fase 7, con las
   sugerencias de los operadores. Una key
   de tipo `string` no compila: tiene que ser literal. Una key con patrón bajo un record o un
@@ -275,7 +275,9 @@ Los tipos siguen la regla de [Tipos](#tipos). Además:
   frenan en los transforms y en `z.custom()`, que no tienen un schema para lo que hay adentro.
 - **Por operación**: los filtros atraviesan arrays y aceptan índices. Los updates no los
   atraviesan, porque el servidor responde con el código 28, y usan un índice, `$`, `$[]` o
-  `$[id]`. La proyección los atraviesa, pero no toma índices.
+  `$[id]`. El `$` va una vez por path: con dos, como `items.$.tags.$`, MongoDB 8.2 rechaza el update
+  con el código 2 (verificado), así que no compila y lanza un `ZodError`, como dos `$` en una
+  proyección. La proyección los atraviesa, pero no toma índices.
 - **Proyección en una variable**: `const projection = { password: 0 }` tipa el `0` como `number`,
   que no compila: el error dice que se tipe `0 | 1` o se declare con `as const`, también para un
   virtual. Una subproyección vacía, como `{ meta: {} }`, compila, y MongoDB la rechaza con el código
