@@ -126,7 +126,10 @@ El orden de implementación. Al cerrar una fase, se marca acá en el mismo cambi
    4. El flujo de releases (hecho): el de [Herramientas](./structure.md#herramientas). Los 135
       changesets se juntan en uno, porque nadie usó lo que describen, y la versión es la 0.2.0:
       Changesets calcula la 0.1.0, que usó el autor anterior. Es la única que se publica a mano,
-      con `pnpm changeset publish`, porque el trusted publisher necesita que el paquete exista.
+      porque el trusted publisher necesita que el paquete exista: el `.tgz` de `pnpm pack`, que
+      reemplaza los `workspace:*`, con `npm publish`, y la tag `mongozod@0.2.0` a mano, porque
+      `pnpm changeset publish` no lee el stub del nombre despublicado (ver
+      [Qué se verificó](./verified.md)).
 
    Con ella van, como dice [Documentación](./documentation.md):
    1. El README del paquete y de la raíz (hecho): qué es, cómo se instala, un ejemplo mínimo y que la API

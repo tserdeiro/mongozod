@@ -192,7 +192,11 @@
   referencia):
   - `mongozod` lo publicó otro autor en 2023 y lo despublicó entero en 2025. Sus versiones, de la
     0.0.1 a la 0.1.1 y de la 1.0.0 a la 1.0.3, no se pueden volver a usar. La política de npm no
-    dice si otra cuenta puede tomar un nombre despublicado, así que se confirma al publicar.
+    dice si otra cuenta puede tomar un nombre despublicado; se confirmó al publicar la 0.2.0, el
+    12 de octubre de 2026. Mientras el registry solo tiene el stub del despublicado, sin
+    `dist-tags`, pnpm falla al leerlo (`ERR_PNPM_RESOLVING_NPM_RESOLVER_DECODE_ERROR`), y con él
+    `pnpm changeset publish`. El primer `npm publish` devolvió un 409 «Failed to save packument»
+    sin publicar, y el segundo, minutos después, publicó.
   - Un paquete sin scope siempre es público. `mongo-zod` y `mongodb-zod` no existen; `zod-mongo` y
     `mongoose-zod`, sí.
   - En el editor, con `mz` como único export, escribir `mz` ofrece el import, y `filter` no se
