@@ -14,9 +14,9 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/tserdeiro/mongozod/tree/main/packages/docs">Docs</a>
+  <a href="https://mongozod.dev/docs">Docs</a>
   &nbsp;•&nbsp;
-  <a href="https://github.com/tserdeiro/mongozod/blob/main/packages/docs/mongoose/index.md">Migrating from Mongoose</a>
+  <a href="https://mongozod.dev/docs/mongoose">Migrating from Mongoose</a>
   &nbsp;•&nbsp;
   <a href="https://x.com/tserdeiro">𝕏</a>
 </p>
@@ -56,7 +56,7 @@ driver's operations, options and results, and the driver stays at hand for every
 | Nested discriminators | [The most upvoted open issue](https://github.com/Automattic/mongoose/issues/2851)                                                                           | A `z.discriminatedUnion` inside another, up to three levels                                |
 | Driver                | Mongoose's own API on top of the driver                                                                                                                     | The driver's signatures, options and results, and the driver itself for everything else    |
 
-Both run on the same connection, so you can [migrate one model at a time](https://github.com/tserdeiro/mongozod/blob/main/packages/docs/mongoose/index.md).
+Both run on the same connection, so you can [migrate one model at a time](https://mongozod.dev/docs/mongoose).
 
 ## Installation
 
@@ -176,9 +176,9 @@ export async function listPosts(body: unknown) {
 
 ## Documentation
 
-Read the [documentation](https://github.com/tserdeiro/mongozod/tree/main/packages/docs) for the
+Read the [documentation](https://mongozod.dev/docs) for the
 guides, the recipes and the API reference, and
-[Migrating from Mongoose](https://github.com/tserdeiro/mongozod/blob/main/packages/docs/mongoose/index.md)
+[Migrating from Mongoose](https://mongozod.dev/docs/mongoose)
 to move a project over.
 
 The docs also ship in the package, in `node_modules/mongozod/dist/docs/`, at the installed version.
