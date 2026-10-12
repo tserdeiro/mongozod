@@ -241,8 +241,11 @@ manda `{ createdAt, _id }` del último elemento de la página.
     - **Chequeos**: un campo opcional o nullable, dentro de un array o que guarda un array no
       compila y lanza un `Error` al declararlo. MongoDB ordena un array por uno de sus elementos, y
       un rango lo toma si cualquiera pasa, así que la paginación repetiría y saltearía documentos
-      (verificado: 6 documentos en páginas de 2 daban 7 vistos y 4 únicos). Los tipos piden `_id`, pero no ven el orden de las keys de un objeto:
-      que `_id` sea el último lo chequea el runtime.
+      (verificado: 6 documentos en páginas de 2 daban 7 vistos y 4 únicos). Los tipos piden `_id`,
+      pero no ven el orden de las keys de un objeto: que `_id` sea el último lo chequea el runtime.
+      Un campo con un `.transform()` que devuelve un array, como un string que se parte por comas,
+      lo rechazan los tipos, que ven su salida, y no el runtime: la salida de un transform no se ve
+      sin parsear un valor, y rechazar todo transform dejaría afuera los codecs, como `mz.date()`.
     - **Formato**: el cliente manda los valores de orden del último documento,
       `{ createdAt, _id }`, y el router recibe el `$or` de la página siguiente. La primera página no
       lo manda. Con tRPC, el input lo puede llamar `cursor`, la key que espera `useInfiniteQuery`.
