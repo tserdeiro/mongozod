@@ -195,6 +195,8 @@ mensajes de error ni lo que sugiere el editor:
   `ReadonlyArray<Document>`, y el chequeo pide que cada entrada sea un `Document`. Así no se
   intersectan dos arrays. Una entrada que no es un documento, como `null`, da un error más corto, que
   la señala.
+- **Un recorrido de sugerencias**: `PathSuggestions` solo distingue los updates, así que filtros y
+  proyecciones comparten el mismo recorrido del schema.
 
 ## Paths con punto
 
