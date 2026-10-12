@@ -11,3 +11,6 @@ allowBuilds:
   lefthook: true
   # Downloads the MongoDB binary the tests run against.
   mongodb-memory-server: true
+  # Not needed: Fumadocs MDX runs esbuild from its platform package, an optional dependency, and
+  # pnpm fails an install in CI on a build script nobody approved or denied.
+  esbuild: false
