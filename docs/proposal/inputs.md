@@ -216,9 +216,12 @@ manda `{ createdAt, _id }` del último elemento de la página.
    `{ $lte: undefined }`, se rechaza, y un campo marcado con `.required()` sigue rechazando
    `undefined`.
 8. **`mz.update`: `$set`, `$unset` e `$inc`**, con las reglas del modelo: `$unset` solo en campos
-   opcionales y `$inc` solo en números, entero si el campo es entero. Hoy los clientes mandan campos
-   enteros, y wortise manda `null` para borrar 8 campos; `$inc` es el contador atómico, que con
-   `$set` pisaría escrituras concurrentes.
+   opcionales o en keys que un record o un catchall pueden no tener, y `$inc` solo en números,
+   entero si el campo es entero. Esas keys las toma el runtime, como los updates del modelo; los
+   tipos todavía no, porque el editor no las sugiere: queda para la fase 7 del
+   [roadmap](./roadmap.md). Antes el runtime lanzaba que la key era requerida. Hoy los clientes
+   mandan campos enteros, y wortise manda `null` para borrar 8 campos; `$inc` es el contador
+   atómico, que con `$set` pisaría escrituras concurrentes.
    - **Paths fuera de arrays**: ni índices ni operadores posicionales, que arma el router.
    - **Vacío**: un update sin operadores falla, como en el driver. `{ $set: {} }` pasa, porque
      MongoDB lo acepta y no hace nada.

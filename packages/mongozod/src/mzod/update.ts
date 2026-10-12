@@ -6,6 +6,7 @@ import type * as core from 'zod/v4/core'
 
 import { z } from 'zod'
 
+import { isDynamicKey } from '../schema/schema-at'
 import { isDecimal, isInteger, isNumber, isOptional } from '../schema/schema-kinds'
 import { withoutChecks } from '../schema/without-checks'
 
@@ -134,7 +135,8 @@ function valueOf(schema: core.$ZodType, operator: string, path: string): core.$Z
       return valueSchema(targets)
 
     case '$unset':
-      if (!targets.every(isOptional)) {
+      // A key of a record or a catchall may be missing, as the model's updates take it.
+      if (!targets.every(isOptional) && !isDynamicKey(schema, path)) {
         throw new Error(`mz.update: "${path}" is required, so it cannot be unset`)
       }
 

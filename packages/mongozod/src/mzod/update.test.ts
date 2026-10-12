@@ -129,6 +129,20 @@ describe('the declarations', () => {
     )
   })
 
+  test('$unset takes a key a record or a catchall may lack, as the model does', () => {
+    const settingsSchema = z.object({
+      labels: z.record(z.string(), z.string()),
+      meta: z.object({ source: z.string() }).catchall(z.string())
+    })
+    // The types take only the paths the editor suggests: the rest wait for phase 7 of the roadmap.
+    // @ts-expect-error a key of a record is not suggested
+    const settingsUpdate = update(settingsSchema, { $unset: ['labels.home', 'meta.extra'] })
+
+    expect(z.parse(settingsUpdate, { $unset: { 'labels.home': '', 'meta.extra': '' } })).toEqual({
+      $unset: { 'labels.home': '', 'meta.extra': '' }
+    })
+  })
+
   test('a path never names an element of an array: the router builds those', () => {
     // @ts-expect-error a path through an array
     expect(() => update(noteSchema, { $set: ['items.status'] })).toThrow(
