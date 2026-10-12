@@ -202,7 +202,8 @@ export type MiddlewareInput<C> = {
 
 /**
  * A plugin of a model. Built with `definePlugin`, usually from a function that takes the plugin's
- * own configuration.
+ * own configuration. A plugin typed with its `Fields` fills none of them unless `Fills` names them,
+ * as `definePlugin` infers it; typed as any plugin, it takes the plugins that fill some.
  */
 export interface Plugin<
   Id extends string = string,
@@ -210,7 +211,9 @@ export interface Plugin<
   Options extends GroupSchemas = GroupSchemas,
   Context extends GroupSchemas = GroupSchemas,
   Methods extends object = object,
-  Fills extends ReadonlyArray<keyof Fields & string> = ReadonlyArray<keyof Fields & string>
+  Fills extends ReadonlyArray<keyof Fields & string> = string extends keyof Fields
+    ? ReadonlyArray<keyof Fields & string>
+    : readonly []
 > {
   /** Identifies the plugin in error messages. */
   id: Id

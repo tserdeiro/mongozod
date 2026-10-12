@@ -73,7 +73,11 @@ opcionales, igual que los campos de `timestamps`: quien llama no los pasa, y si 
 importación, el plugin decide si los pisa. El schema los sigue validando después de los hooks, así
 que un plugin que no completa uno lanza un `ZodError`. Un nombre que no está en `fields` no compila
 y lanza un `Error` al definir el modelo. Un plugin tipado como `Plugin`, sin su tipo propio, no
-completa ninguno para los tipos: si no, cualquier campo quedaría opcional.
+completa ninguno para los tipos: si no, cualquier campo quedaría opcional. Tampoco uno tipado con sus
+`fields` y sin `Fills`, el sexto parámetro, como el que devuelve una función anotada
+`Plugin<'tenant', { tenantId: z.ZodString }>`: los que completa los nombra `Fills`, como los infiere
+`definePlugin`. Antes los completaba todos, y un insert sin el campo compilaba y lanzaba el
+`ZodError` del schema.
 
 Los tipos no saben qué hooks escribe el plugin, así que cubrirlos es su trabajo: `insertOne`,
 `insertMany`, `replaceOne`, `findOneAndReplace`, y el `insertOne` y el `replaceOne` de `bulkWrite`,

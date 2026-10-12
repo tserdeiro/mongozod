@@ -253,6 +253,11 @@ describe('cursors', () => {
   })
 })
 
+/** A factory typed with its fields, as the plugins that take a configuration are. */
+function tenantFields(): Plugin<'tenant', { tenantId: z.ZodString }> {
+  return definePlugin({ fields: { tenantId: z.string() }, id: 'tenant' })
+}
+
 describe('the fields a plugin fills', () => {
   const tenantContext = z.object({ tenantId: z.string() })
   const tenant = definePlugin({
@@ -299,7 +304,7 @@ describe('the fields a plugin fills', () => {
     }>()
   })
 
-  test('are none for a plugin typed as any plugin, which does not say which', () => {
+  test('are none for a plugin typed without them, which does not say which', () => {
     const plugins: Plugin[] = [
       definePlugin({ fields: { tenantId: z.string() }, fills: ['tenantId'], id: 'fills' })
     ]
@@ -310,11 +315,20 @@ describe('the fields a plugin fills', () => {
       schema: projectSchema
     })
 
-    expectTypeOf<InsertOf<typeof AnyPluginsModel>>().toEqualTypeOf<{
-      _id: string
-      tenantId: string
-      title: string
-    }>()
+    const TypedModel = mongozod({
+      collection: 'projects',
+      db,
+      plugins: [tenantFields()],
+      schema: projectSchema
+    })
+    const required = { _id: 'p1', tenantId: 't1', title: 'One' }
+
+    expectTypeOf<InsertOf<typeof AnyPluginsModel>>().toEqualTypeOf<typeof required>()
+    expectTypeOf<InsertOf<typeof TypedModel>>().toEqualTypeOf<typeof required>()
+    expectTypeOf(() =>
+      // @ts-expect-error the plugin does not fill tenantId
+      TypedModel.insertOne({ _id: 'p1', title: 'One' })
+    ).toBeFunction()
   })
 
   test('are still validated, and are fields of the plugin', async () => {
