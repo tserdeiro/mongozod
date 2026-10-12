@@ -677,11 +677,14 @@ type ArrayFiltersCheck<X, AF> = { [I in keyof AF]: EntryCheck<X, AF[I]> }
 /**
  * Checks the entries of `arrayFilters`. An array of them is not intersected with the driver's
  * `Document[]`, which would make the compiler compare every method of both, so each entry checks
- * that it is a document.
+ * that it is a document. An array that is not a tuple, as in the options a function passes on with
+ * `UpdateOptionsArg`, does not say its entries one by one, so it is taken as it is.
  */
 type ArrayFiltersEntries<X, AF> =
   AF extends ReadonlyArray<unknown>
-    ? { [I in keyof AF]: AF[I] extends Document ? EntryCheck<X, AF[I]> : Document }
+    ? number extends AF['length']
+      ? AF
+      : { [I in keyof AF]: AF[I] extends Document ? EntryCheck<X, AF[I]> : Document }
     : ArrayFiltersCheck<X, AF>
 
 /** Checks the entries of `arrayFilters` against the identifiers of an update. */

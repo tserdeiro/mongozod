@@ -9,7 +9,16 @@ type does not compile, and a projection narrows what a read returns.
 
 ```ts
 import type { Document } from 'mongodb'
-import type { DocOf, FilterOf, InsertOf, ReadOf, ReadOptionsArg, SortOf, UpdateOf } from 'mongozod'
+import type {
+  DocOf,
+  FilterOf,
+  InsertOf,
+  ReadOf,
+  ReadOptionsArg,
+  SortOf,
+  UpdateOf,
+  UpdateOptionsArg
+} from 'mongozod'
 
 import { ObjectId } from 'mongodb'
 import { mongozod } from 'mongozod'
@@ -303,6 +312,7 @@ types it from the model:
 | `SortOf<M, Sort>`       | The constraint of a sort that a function passes to the model.                                     |
 | `UpdateOf<M, U, F, O>`  | The constraint of an update, given its filter and its options.                                    |
 | `ReadOptionsArg<M>`     | The options argument of the reads, with the `context` its plugins ask for.                        |
+| `UpdateOptionsArg<M>`   | The options argument of the updates, with the `context` its plugins ask for.                      |
 | `Input<S>`, `Output<S>` | The input and the output of a schema.                                                             |
 
 `M` is the type of a model, such as `typeof PostsModel`.
@@ -367,6 +377,16 @@ async function hasDrafts(authorId: ObjectId, ...options: ReadOptionsArg<typeof P
 }
 
 await hasDrafts(authorId, { maxTimeMS: 1000 })
+```
+
+`UpdateOptionsArg` does the same for an update:
+
+```ts
+async function publishAll(authorId: ObjectId, ...options: UpdateOptionsArg<typeof PostsModel>) {
+  return PostsModel.updateMany({ authorId }, { $set: { status: 'published' } }, ...options)
+}
+
+await publishAll(authorId, { upsert: false })
 ```
 
 A function generic over any model, such as a repository that compares a model with

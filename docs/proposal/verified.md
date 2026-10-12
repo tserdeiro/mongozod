@@ -778,3 +778,7 @@
     5.5. El `NotAString` del parámetro quedaba sin resolver sobre el genérico. Con la unión con
     `object` compila, y los mensajes y las sugerencias de un sort, una proyección o un `populate` en
     un string son los mismos; agregarlo a `SortOf` daba TS2313.
+  - Esparcir `...options: UpdateOptionsArg<typeof M>` en un update daba TS2345 en todos los modelos
+    probados, con y sin `timestamps` o `softDelete`, en `updateOne` y `updateMany`, y con TypeScript
+    7 y 5.5: el chequeo de `arrayFilters` recorría el `readonly Document[]` de las opciones como un
+    objeto, con `length` y `toString`. No apareció el caso que había compilado.

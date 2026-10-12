@@ -1,4 +1,4 @@
-import type { FilterOf, InsertOf, ReadOf, SortOf, UpdateOf } from './model'
+import type { FilterOf, InsertOf, ReadOf, SortOf, UpdateOf, UpdateOptionsArg } from './model'
 
 import { MongoClient } from 'mongodb'
 import { expect, expectTypeOf, test } from 'vitest'
@@ -68,6 +68,22 @@ test('SortOf passes a sort to the options of a read and to its cursor', () => {
     void sortPosts({ createdAt: -1, title: 1 })
     // @ts-expect-error "titel" is not a path of the document
     void sortPosts({ titel: 1 })
+  }).toBeTypeOf('function')
+})
+
+/** Services that pass the options of an update on, such as its session. */
+function publishPosts(...options: UpdateOptionsArg<typeof PostsModel>) {
+  return PostsModel.updateMany({ title: 'Draft' }, { $set: { title: 'Final' } }, ...options)
+}
+
+function finishTasks(...options: UpdateOptionsArg<typeof TasksModel>) {
+  return TasksModel.updateMany({ title: 'Draft' }, { $set: { title: 'Done' } }, ...options)
+}
+
+test('UpdateOptionsArg passes the options of an update on', () => {
+  expect(() => {
+    void publishPosts({ upsert: false })
+    void finishTasks()
   }).toBeTypeOf('function')
 })
 

@@ -16,8 +16,11 @@
   que aparece en el código, igual que la validación en runtime. Vale para filtros, updates,
   `arrayFilters` y proyecciones. Así no hace falta un límite de niveles y se cubren los schemas
   recursivos. Generarlos todos, como hace el driver, no compila con `blueprints`. `arrayFilters` se
-  tipa según los `$[id]` del update, y la proyección ajusta el tipo del resultado a lo que responde
-  MongoDB. Las sugerencias del editor se calculan aparte desde el schema: hasta 6 niveles, con `$` y
+  tipa según los `$[id]` del update, entrada por entrada cuando es una tupla; un array que no dice
+  sus entradas, como el de las opciones que una función pasa con `UpdateOptionsArg`, se toma tal
+  cual: recorrerlo como objeto daba `"toString" is not an identifier of the update`. La proyección
+  ajusta el tipo del resultado a lo que responde MongoDB. Las sugerencias del editor se calculan
+  aparte desde el schema: hasta 6 niveles, con `$` y
   `$[]` en los arrays de los updates, el `$` una sola vez por path, los campos del elemento dentro
   de `$pull`, y sin entrar en `z.custom`, records, `z.lazy` ni transforms. `arrayFilters` no sugiere: haría falta intersectar
   dos arrays (ver [Costo de los tipos](#costo-de-los-tipos)), así que queda para la fase 7, con las

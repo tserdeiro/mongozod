@@ -636,7 +636,7 @@ const publishing = definePlugin({
       filter: F,
       ...options: UpdateOptionsArg<M>
     ) {
-      return this.updateMany(filter, { $set: { status: 'published' } }, options[0])
+      return this.updateMany(filter, { $set: { status: 'published' } }, ...options)
     }
   }
 })
