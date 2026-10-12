@@ -19,10 +19,12 @@ export function checkRoot(schema: core.$ZodType): void {
   if (!found) return
 
   const { type } = found._zod.def
+  // The type of a definition is the name of its function, but `template_literal`.
+  const name = type === 'template_literal' ? 'templateLiteral' : type
 
   throw new Error(
     type === 'pipe'
       ? 'the schema of a model is a z.object or a z.discriminatedUnion of objects: a transform of the whole document does not run on updates, so a field computed from others goes in .overwrite()'
-      : `the schema of a model is a z.object or a z.discriminatedUnion of objects, not a z.${type}()`
+      : `the schema of a model is a z.object or a z.discriminatedUnion of objects, not a z.${name}()`
   )
 }

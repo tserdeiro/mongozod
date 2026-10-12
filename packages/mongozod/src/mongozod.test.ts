@@ -854,6 +854,10 @@ describe('schemas', () => {
     ).toThrow(
       'the schema of a model is a z.object or a z.discriminatedUnion of objects, not a z.optional()'
     )
+    expect(() =>
+      // @ts-expect-error a template literal, named as its function
+      mongozod({ collection: 'articles', db, schema: z.templateLiteral(['a-', z.string()]) })
+    ).toThrow('not a z.templateLiteral()')
 
     // A field computed from others goes in .overwrite(), which keeps the object.
     const ArticlesModel = mongozod({
