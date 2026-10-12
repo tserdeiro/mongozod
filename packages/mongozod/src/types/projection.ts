@@ -1,7 +1,7 @@
 import type { None } from '../model/model'
 import type { Def, FieldAt, NotAPath } from '../schema/schema-at'
 import type { Unwrap } from '../schema/unwrap-schema'
-import type { Simplify, UnionToIntersection } from '../utils/type-helpers'
+import type { IsOptionalKey, Simplify, UnionToIntersection } from '../utils/type-helpers'
 import type { ElementConditionCheck, ElementSchema } from './filter'
 import type { Leaf } from './loose'
 import type { PathSuggestions } from './path-suggestions'
@@ -188,8 +188,6 @@ type Tail<E, K extends string> = E extends [`${K}.${infer Rest}`, infer Own] ? [
 
 type LeafKind<E, K extends string> = E extends [K, infer Own] ? Own : never
 
-type IsOptional<T, K extends keyof T> = Pick<T, K> extends Required<Pick<T, K>> ? false : true
-
 /** Inclusion: only the projected paths. A parent that is `null` is left out, as MongoDB does. */
 type Include<T, E> =
   T extends ReadonlyArray<infer El>
@@ -217,7 +215,7 @@ type Include<T, E> =
         >
 
 type IncludedOptional<T, K extends keyof T, E> =
-  IsOptional<T, K> extends true
+  IsOptionalKey<T, K> extends true
     ? true
     : [LeafKind<E, K & string>] extends [never]
       ? null extends T[K]
@@ -292,7 +290,7 @@ type IsSingle<V> = [V] extends [0]
 
 /** Whether the projection is written in the code, with every key and value known. */
 export type IsLiteral<P> = {
-  [K in keyof P]-?: IsOptional<P, K> extends true
+  [K in keyof P]-?: IsOptionalKey<P, K> extends true
     ? false
     : P[K] extends { $elemMatch: unknown } | { $meta: unknown } | { $slice: unknown }
       ? true

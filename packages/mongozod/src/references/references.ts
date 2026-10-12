@@ -12,7 +12,7 @@ import type {
   SuggestedProjection
 } from '../types/projection'
 import type { SortCheck, SuggestedSort } from '../types/sort'
-import type { NotAString, Simplify } from '../utils/type-helpers'
+import type { IsOptionalKey, NotAString, Simplify } from '../utils/type-helpers'
 import type { Virtuals } from './virtuals'
 import type { ClientSession, Db, Document, FindOptions, Flatten, WithId } from 'mongodb'
 
@@ -403,7 +403,7 @@ type PopulatedLevel<T, R, Pop, Prefix extends string> =
             ? `${Prefix}${K}` extends infer Path extends keyof Pop & keyof R
               ?
                   | PopulatedValue<T[K], R[Path], Exclude<Pop[Path], undefined>>
-                  | (Pick<Pop, Path> extends Required<Pick<Pop, Path>> ? never : T[K])
+                  | (IsOptionalKey<Pop, Path> extends true ? T[K] : never)
               : [Extract<keyof Pop, `${Prefix}${K}.${string}`>] extends [never]
                 ? T[K]
                 : PopulatedLevel<T[K], R, Pop, `${Prefix}${K}.`>
@@ -415,13 +415,13 @@ type PopulatedLevel<T, R, Pop, Prefix extends string> =
  * arrives at runtime may not have asked for.
  */
 type ForeignPopulated<R, Pop> = {
-  [
-    K in ForeignKeys<R> & keyof Pop as Pick<Pop, K> extends Required<Pick<Pop, K>> ? K : never
-  ]: Array<ReadOf<R[K], Exclude<Pop[K], undefined>>>
+  [K in ForeignKeys<R> & keyof Pop as IsOptionalKey<Pop, K> extends true ? never : K]: Array<
+    ReadOf<R[K], Exclude<Pop[K], undefined>>
+  >
 } & {
-  [
-    K in ForeignKeys<R> & keyof Pop as Pick<Pop, K> extends Required<Pick<Pop, K>> ? never : K
-  ]?: Array<ReadOf<R[K], Exclude<Pop[K], undefined>>>
+  [K in ForeignKeys<R> & keyof Pop as IsOptionalKey<Pop, K> extends true ? K : never]?: Array<
+    ReadOf<R[K], Exclude<Pop[K], undefined>>
+  >
 }
 
 /**
@@ -429,12 +429,14 @@ type ForeignPopulated<R, Pop> = {
  * document `D`, populated, which a `populate` that arrives at runtime may not have asked for.
  */
 type LocalPopulated<D, R, Pop> = {
-  [
-    K in LocalKeys<R> & keyof Pop as Pick<Pop, K> extends Required<Pick<Pop, K>> ? K : never
-  ]: PopulatedValue<StoredAt<D, LocalField<R[K]>>, R[K], Exclude<Pop[K], undefined>>
+  [K in LocalKeys<R> & keyof Pop as IsOptionalKey<Pop, K> extends true ? never : K]: PopulatedValue<
+    StoredAt<D, LocalField<R[K]>>,
+    R[K],
+    Exclude<Pop[K], undefined>
+  >
 } & {
   [
-    K in LocalKeys<R> & keyof Pop as Pick<Pop, K> extends Required<Pick<Pop, K>> ? never : K
+    K in LocalKeys<R> & keyof Pop as IsOptionalKey<Pop, K> extends true ? K : never
   ]?: PopulatedValue<StoredAt<D, LocalField<R[K]>>, R[K], Exclude<Pop[K], undefined>>
 }
 
