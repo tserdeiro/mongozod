@@ -13,6 +13,7 @@ import type {
   SuggestedProjection
 } from '../types/projection'
 import type { SortCheck, SuggestedSort } from '../types/sort'
+import type { FoundSchema } from '../types/update'
 import type {
   IsOptionalKey,
   NotAString,
@@ -405,10 +406,13 @@ export type PopulatedProjection<P, Pop, R> = [keyof Pop] extends [never]
       : P
     : P
 
-/** A populated document, as its model reads it with the options of the `populate`. */
+/**
+ * A populated document, as its model reads it with the options of the `populate`: of the types of
+ * document its `filter` allows.
+ */
 type ReadOf<T, X> = X extends unknown
   ? ReadDocument<
-      TargetSchema<T>,
+      FoundSchema<TargetSchema<T>, X extends { filter: infer F } ? F : unknown>,
       TargetVirtuals<T>,
       TargetReferences<T>,
       X extends { projection: infer P } ? P : None,

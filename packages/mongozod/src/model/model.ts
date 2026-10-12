@@ -16,6 +16,7 @@ import type { ProjectionCheck, SuggestedProjection } from '../types/projection'
 import type { SortCheck, SuggestedSort } from '../types/sort'
 import type {
   ArrayFiltersEntriesCheck,
+  FoundSchema,
   ModelUpdate,
   SuggestedUpdate,
   UpdateCheck,
@@ -125,6 +126,8 @@ interface ReadSuggestions<S, V, R> {
 type ProjectionOf<O> = O extends { projection: infer P } ? P : unknown
 
 type PopulateOf<O> = O extends { populate: infer Pop } ? Pop : None
+
+type FilterOfOptions<O> = O extends { filter: infer F } ? F : unknown
 
 /**
  * The document a read returns: projected, with the virtuals it asks for or keeps and the references
@@ -252,13 +255,15 @@ type ReferencesOf<M> = M extends { readonly references: infer R } ? R : None
 
 /**
  * A document as a read of a model returns it, given the `projection` and the `populate` of its
- * options, for a function that takes or returns one, such as a service or an API response.
+ * options, and the `filter` that fixes the type of document of a union, for a function that takes
+ * or returns one, such as a service or an API response.
  *
  * @example
  *   type Order = ReadOf<typeof OrdersModel, { populate: { customer: true } }>
+ *   type Purchase = ReadOf<typeof EventsModel, { filter: { type: 'purchase' } }>
  */
 export type ReadOf<M, O = unknown> = ReadDocument<
-  SchemaOf<M>,
+  FoundSchema<SchemaOf<M>, FilterOfOptions<O>>,
   VirtualsOf<M>,
   ReferencesOf<M>,
   ProjectionOf<O>,
@@ -426,7 +431,7 @@ export interface Model<
   >(
     filter?: F & SuggestedFilter<S>,
     ...options: OptionsArg<PL, 'read', ReadOptions<S, FindOptions, Sort, P, V, R, Pop> & Abortable>
-  ): ModelFindCursor<ReadDocument<S, V, R, P, Pop>, S, V, R, Pop>
+  ): ModelFindCursor<ReadDocument<FoundSchema<S, F>, V, R, P, Pop>, S, V, R, Pop, FoundSchema<S, F>>
 
   /** Finds the first document that matches the filter. */
   'findOne'<
@@ -441,7 +446,7 @@ export interface Model<
       'read',
       ReadOptions<S, Omit<FindOneOptions, 'timeoutMode'>, Sort, P, V, R, Pop> & Abortable
     >
-  ): Promise<ReadDocument<S, V, R, P, Pop> | null>
+  ): Promise<ReadDocument<FoundSchema<S, F>, V, R, P, Pop> | null>
 
   /** Deletes the first document that matches the filter and returns it. */
   'findOneAndDelete'<

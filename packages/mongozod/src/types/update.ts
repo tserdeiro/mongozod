@@ -97,6 +97,41 @@ type Allowed<U, Sc extends Scope, F, AF> = [
       IntersectAll<ScopeConstraints<Sc, F, AF, DiscriminatorOf<U>>>
     >
 
+/**
+ * The discriminators of a union and of the unions nested in it, up to the three levels of a
+ * `ModelSchema`.
+ */
+type Discriminators<S, Depth extends unknown[] = []> = Depth['length'] extends 3
+  ? never
+  : [DiscriminatorOf<S>] extends [never]
+    ? never
+    : DiscriminatorOf<S> | Discriminators<OptionsOf<S>, [...Depth, 1]>
+
+/**
+ * The types of document a filter allows: at each discriminated union, the options whose
+ * discriminator it fixes with an equality, `$eq` or `$in`, at its top level or inside `$and`.
+ */
+type AllowedTypes<S, F> = [DiscriminatorOf<S>] extends [never]
+  ? S
+  : // Any schema, as the one of the signature that implements a model, has no options to choose.
+    string extends DiscriminatorOf<S>
+    ? S
+    : Allowed<S, { kind: 'filter'; prefix: '' }, F, never> extends infer A
+      ? A extends unknown
+        ? AllowedTypes<A, F>
+        : never
+      : never
+
+/**
+ * The schema of the documents a filter finds: the types of document it allows, the same ones an
+ * update writes, or the whole schema when it fixes no discriminator.
+ */
+export type FoundSchema<S extends ModelSchema, F> = [DiscriminatorOf<S>] extends [never]
+  ? S
+  : [ConstraintsAt<F, Discriminators<S>>] extends [never]
+    ? S
+    : Extract<AllowedTypes<S, F>, ModelSchema>
+
 type Extend<Sc extends Scope, Seg extends string> = Sc extends {
   kind: 'filter'
   prefix: infer P extends string

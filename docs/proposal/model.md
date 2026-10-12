@@ -412,6 +412,12 @@ await EventsModel.updateOne({}, { $set: { url } })
   primer nivel o dentro de `$and`, que es como los routers de adsgpt componen los filtros. Los
   campos que tienen todos los tipos no necesitan filtro, y un valor tiene que servir para todos los
   tipos permitidos.
+- **Lecturas**: `find`, `findOne`, `.project()` y el `filter` de `populate` devuelven los tipos que
+  permite el filtro, con la misma regla de los updates: `find({ kind: 'click' })` tipa clicks, sin
+  el submodelo de Mongoose (`Event.discriminator()`). `ReadOf` toma el mismo `filter`, como
+  `ReadOf<typeof EventsModel, { filter: { kind: 'click' } }>`. `$or` y `$ne` no lo fijan, y las
+  `findOneAnd*` devuelven la unión entera. Cuesta unas 135 instanciaciones en el proyecto típico de
+  `check-type-cost`, y un 10 % más en un archivo de lecturas sobre uniones.
 - **Discriminador**: no se cambia con un update, porque el documento quedaría sin los campos de su
   nuevo tipo; se reemplaza con `replaceOne`. Mongoose tampoco deja actualizarlo, salvo con
   `overwriteDiscriminatorKey`. En un upsert, `$setOnInsert` sí puede fijarlo.

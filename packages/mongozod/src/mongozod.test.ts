@@ -1,3 +1,4 @@
+import type { ReadOf } from './index'
 import type { Db, WithId } from 'mongodb'
 
 import { AsyncLocalStorage } from 'node:async_hooks'
@@ -615,6 +616,52 @@ describe('schemas', () => {
         timestamps: { createdAt: true }
       })
     ).toThrow('timestamps needs the field "createdAt" in the schema')
+  })
+
+  test('a read returns the types of document its filter allows, like an update writes', async () => {
+    const car = z.object({ kind: z.literal('car'), wheels: z.number().int() })
+    const VehiclesModel = mongozod({
+      collection: 'vehicles',
+      db,
+      schema: z.discriminatedUnion('kind', [
+        z.discriminatedUnion('fuel', [
+          car.extend({ fuel: z.literal('electric'), kwh: z.number() }),
+          car.extend({ fuel: z.literal('gas'), liters: z.number() })
+        ]),
+        z.object({ gears: z.number().int(), kind: z.literal('bike') })
+      ])
+    })
+
+    await VehiclesModel.insertMany([
+      { fuel: 'electric', kind: 'car', kwh: 60, wheels: 4 },
+      { gears: 21, kind: 'bike' }
+    ])
+
+    const cars = await VehiclesModel.find({ kind: 'car' }, { projection: { _id: 0 } })
+    const electric = await VehiclesModel.findOne({
+      $and: [{ kind: { $in: ['car'] } }, { fuel: { $eq: 'electric' } }]
+    })
+    const [bike] = await VehiclesModel.find({ kind: 'bike' }).project({ _id: 0, gears: 1 })
+
+    expect(cars).toEqual([{ fuel: 'electric', kind: 'car', kwh: 60, wheels: 4 }])
+    expect(electric?.kwh).toBe(60)
+    expect(bike).toEqual({ gears: 21 })
+    expectTypeOf(cars).toEqualTypeOf<
+      Array<
+        | { fuel: 'electric'; kind: 'car'; kwh: number; wheels: number }
+        | { fuel: 'gas'; kind: 'car'; liters: number; wheels: number }
+      >
+    >()
+    expectTypeOf(electric).toEqualTypeOf<WithId<{
+      fuel: 'electric'
+      kind: 'car'
+      kwh: number
+      wheels: number
+    }> | null>()
+    expectTypeOf(bike).toEqualTypeOf<{ gears: number } | undefined>()
+    expectTypeOf<ReadOf<typeof VehiclesModel, { filter: { kind: 'bike' } }>>().toEqualTypeOf<
+      WithId<{ gears: number; kind: 'bike' }>
+    >()
   })
 
   test('awaits async refinements in every write, such as one that checks the database', async () => {

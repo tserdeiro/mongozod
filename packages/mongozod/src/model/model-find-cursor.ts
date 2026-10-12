@@ -26,7 +26,8 @@ export type FindOpener = <T>(args: FindArgs) => AsyncGenerator<T[], void, void>
  * The cursor of `find`: chains `sort`, `limit`, `skip` and `project` like the driver's
  * `FindCursor`, and can be awaited for the array of its documents. The other modifiers go in the
  * options of `find`. `S` is the schema of the model, `V` its virtuals and `R` its references, which
- * check the keys of `sort` and `project`, and `Pop` the `populate` of the read.
+ * check the keys of `sort` and `project`, `Pop` the `populate` of the read and `Found` the types of
+ * document its filter allows.
  *
  * The modifiers set the options of `find`, which the plugins see when the cursor starts: after it
  * starts, they throw an `Error`, like the driver's.
@@ -36,7 +37,8 @@ export class ModelFindCursor<
   S extends ModelSchema = ModelSchema,
   V = None,
   R = None,
-  Pop = None
+  Pop = None,
+  Found extends ModelSchema = S
 > extends ModelCursor<T> {
   readonly #args: FindArgs
   readonly #open: FindOpener
@@ -79,12 +81,15 @@ export class ModelFindCursor<
    */
   project<const P extends ProjectionCheck<S, P, V>>(
     projection: P & SuggestedProjection<S, V> & KeepsPopulated<P, Pop>
-  ): ModelFindCursor<ReadDocument<S, V, R, P, Pop>, S, V, R, Pop>
-  project(projection: Document): ModelFindCursor<Document, S, V, R, Pop> {
+  ): ModelFindCursor<ReadDocument<Found, V, R, P, Pop>, S, V, R, Pop, Found>
+  project(projection: Document): ModelFindCursor<Document, S, V, R, Pop, Found> {
     if (this.started) throw new Error('the cursor already started: set project before reading it')
 
     const options = { ...this.#args.options, projection }
 
-    return new ModelFindCursor<Document, S, V, R, Pop>({ ...this.#args, options }, this.#open)
+    return new ModelFindCursor<Document, S, V, R, Pop, Found>(
+      { ...this.#args, options },
+      this.#open
+    )
   }
 }
