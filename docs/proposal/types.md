@@ -228,7 +228,8 @@ Los tipos siguen la regla de [Tipos](#tipos). Además:
   path que no existe, `$slice` o `$elemMatch` sobre algo que no es array, un string (MongoDB lo
   devuelve como valor literal) y un `$` que atraviesa dos arrays. Las expresiones de agregación se
   usan con `aggregate`, salvo `{ $meta: 'textScore' }`, que agrega la relevancia de una búsqueda de
-  texto como un campo `number`. La proyección va en las opciones de `find`, `findOne` y los
+  texto como un campo `number`: en un campo del documento reemplaza su valor, como en MongoDB 8.2
+  (verificado), y en un path con punto no compila, porque MongoDB lo pone dentro del objeto. La proyección va en las opciones de `find`, `findOne` y los
   `findOneAnd*`, o en `.project()`, que reemplaza a la de `find` como en el driver, y ajusta el tipo
   de lo que devuelven. Una proyección vacía devuelve el documento entero. Si incluye o excluye se
   decide como en MongoDB 8.2 (verificado): sin otras inclusiones ni exclusiones, un `_id: 1` la

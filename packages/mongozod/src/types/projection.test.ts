@@ -305,6 +305,17 @@ describe('the cursor and the other operations', () => {
 
     expect(ranked).toEqual([{ score: expect.any(Number), tags: ['x', 'y', 'z'] }])
     expectTypeOf(ranked).toEqualTypeOf<Array<{ score: number; tags: string[] }>>()
+
+    // On a field of the document, the score replaces its value.
+    const replaced = await PluginsModel.findOne(
+      { $text: { $search: 'x' } },
+      { projection: { tags: { $meta: 'textScore' } } }
+    )
+
+    expect(replaced).toEqual({ ...stored, tags: expect.any(Number) })
+    expectTypeOf(replaced).toEqualTypeOf<Flat<Omit<Plugin, 'tags'> & { tags: number }> | null>()
+    // @ts-expect-error MongoDB puts the score inside the object
+    project({ 'prop.score': { $meta: 'textScore' } })
   })
 
   test('a projection that arrives at runtime leaves any field on its paths optional', async () => {

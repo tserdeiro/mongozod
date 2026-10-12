@@ -162,7 +162,9 @@ type Check<S, P, E, Prefix extends string, V = None> = {
           : P[K] extends { $elemMatch: infer C }
             ? ElemMatchCheck<S, `${Prefix}${K}`, C, E>
             : P[K] extends { $meta: unknown }
-              ? { $meta: 'textScore' }
+              ? `${Prefix}${K}` extends `${string}.${string}`
+                ? `"${Prefix}${K}": $meta takes a top-level field`
+                : { $meta: 'textScore' }
               : IsAny<P[K]> extends true
                 ? P[K]
                 : P[K] extends object
@@ -237,7 +239,7 @@ type IncludeValue<V, E, K extends string> = [LeafKind<E, K>] extends [never]
   ? Include<Exclude<V, null | undefined>, Tail<E, K>>
   : V
 
-/** Exclusion: everything but the excluded paths. */
+/** Exclusion: everything but the excluded paths, and the ones whose value `$meta` replaces. */
 type ExcludePaths<T, E> =
   T extends ReadonlyArray<infer El>
     ? ExcludePaths<El, E>[]
@@ -248,7 +250,7 @@ type ExcludePaths<T, E> =
             [
               K in keyof T as [LeafKind<E, K & string>] extends [never]
                 ? K
-                : [LeafKind<E, K & string>] extends ['exclude' | 'elemMatch']
+                : [LeafKind<E, K & string>] extends ['exclude' | 'elemMatch' | 'meta']
                   ? never
                   : K
             ]: K extends Head<E>
@@ -289,7 +291,10 @@ export type Mode<E> = [Extract<KindsBesidesId<E>, 'include' | 'positional'>] ext
 /** The entries that shape the document: `$meta` adds a field of its own. */
 type Shaping<E> = E extends ['_id', Kind] | [string, 'meta'] ? never : E
 
-/** The fields `{ $meta: 'textScore' }` adds, with the relevance of a text search. */
+/**
+ * The fields `{ $meta: 'textScore' }` adds, with the relevance of a text search. On a field of the
+ * document, the score replaces its value.
+ */
 type MetaFields<E> = { [K in E extends [infer Path extends string, 'meta'] ? Path : never]: number }
 
 type IsSingle<V> = [V] extends [0]
@@ -349,8 +354,8 @@ type ProjectedOption<O, P> =
               ? Include<Omit<O, '_id'>, Shaping<Entries<P>>>
               : Pick<O, '_id' & keyof O> & Include<Omit<O, '_id'>, Shaping<Entries<P>>>
             : ['_id', 'exclude'] extends Entries<P>
-              ? ExcludePaths<Omit<O, '_id'>, Shaping<Entries<P>>>
-              : ExcludePaths<O, Shaping<Entries<P>>>)
+              ? ExcludePaths<Omit<O, '_id'>, Exclude<Entries<P>, ['_id', Kind]>>
+              : ExcludePaths<O, Exclude<Entries<P>, ['_id', Kind]>>)
       >
 
 /**
