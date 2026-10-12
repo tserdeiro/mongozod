@@ -185,7 +185,9 @@ borrado que `softDelete` convirtió en update, y `audit` no ve un borrado que no
 El `update` de una operación con `updatePipeline: true` es un pipeline, un array de etapas: un hook
 que lee o cambia el update tiene que contemplarlo, por ejemplo agregando una etapa `$set` en vez de
 escribir en el `$set` del update. Por eso `update` se tipa como `Document | Document[]`, y
-`updatePipeline` es una opción de mongozod, que ningún plugin puede declarar.
+`updatePipeline` es una opción de mongozod, que ningún plugin puede declarar: no compila y
+`mongozod()` lanza un `Error`, como con `context`, `populate`, `schema` y `timestamps`. Antes los
+tipos no la tenían entre las opciones de mongozod, y solo lanzaba al definir el modelo.
 
 En un hook de grupo, `args` y `result` son la unión de las operaciones del grupo. Un `before` que
 solo cambia el filtro funciona tal cual, porque todas las operaciones del grupo lo tienen. Para

@@ -782,3 +782,5 @@
     probados, con y sin `timestamps` o `softDelete`, en `updateOne` y `updateMany`, y con TypeScript
     7 y 5.5: el chequeo de `arrayFilters` recorría el `readonly Document[]` de las opciones como un
     objeto, con `length` y `toString`. No apareció el caso que había compilado.
+  - Un plugin con una opción `updatePipeline` compilaba y `mongozod()` lanzaba: la lista de runtime
+    de las opciones de mongozod la tenía, y el tipo no. Ahora no compila.

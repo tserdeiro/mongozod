@@ -28,8 +28,8 @@ interface DriverOptions {
     | keyof UpdateOptions
 }
 
-/** The options mongozod takes besides the driver's. */
-type OwnOptions = 'context' | 'populate' | 'schema' | 'timestamps'
+/** The options mongozod takes besides the driver's, as `OWN_OPTIONS` at runtime. */
+type OwnOptions = 'context' | 'populate' | 'schema' | 'timestamps' | 'updatePipeline'
 
 type FieldProblem<O, Id extends string, K extends string, F> = O extends unknown
   ? K extends keyof O

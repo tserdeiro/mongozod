@@ -582,6 +582,20 @@ describe('the option', () => {
         schema: noteSchema
       })
     ).toThrow('own: "populate" is an option of mongozod')
+    expect(() =>
+      // @ts-expect-error updatePipeline is an option of mongozod
+      mongozod({
+        collection: 'notes',
+        db,
+        plugins: [
+          definePlugin({
+            id: 'own',
+            options: { update: z.object({ updatePipeline: z.boolean() }) }
+          })
+        ],
+        schema: noteSchema
+      })
+    ).toThrow('own: "updatePipeline" is an option of mongozod')
     expectTypeOf(() =>
       // @ts-expect-error session is an option of the driver
       mongozod({
