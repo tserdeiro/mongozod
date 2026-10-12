@@ -5,16 +5,32 @@ import Link from 'next/link'
 const example = `import { ObjectId } from 'mongodb'
 import { mongozod } from 'mongozod'
 import * as mz from 'mongozod/mzod'
-import { z } from 'zod'
+import * as z from 'zod'
 
 const postSchema = z.object({
-  _id: mz.objectId().default(() => new ObjectId()),
-  title: z.string().min(1),
-  status: z.enum(['draft', 'published']).default('draft'),
-  tags: z.array(z.string()).default([])
+
+  _id: mz.objectId()
+    .default(() => new ObjectId()),
+
+  title: z.string()
+    .min(1),
+
+  status: z.enum(['draft', 'published'])
+    .default('draft'),
+
+  tags: z.string()
+    .array()
+    .default([])
 })
 
-const PostsModel = mongozod({ collection: 'posts', db, schema: postSchema })
+const PostsModel = mongozod({
+
+  collection: 'posts',
+
+  db,
+
+  schema: postSchema
+})
 
 // Validated with the schema: _id, status and tags come from their defaults
 const { document: post } = await PostsModel.insertOne({ title: 'Hello, MongoDB' })
@@ -27,7 +43,13 @@ const titles = await PostsModel.find({ tags: 'mongodb' }, { projection: { title:
 
 // An endpoint takes MongoDB syntax, limited to what it declares
 const listPostsInput = z.object({
-  filter: mz.filter(postSchema, { status: ['$eq'], tags: ['$in'] }).default({})
+
+  filter: mz
+    .filter(postSchema, {
+      status: ['$eq'],
+      tags: ['$in']
+    })
+    .default({})
 })`
 
 const features = [

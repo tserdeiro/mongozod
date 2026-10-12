@@ -7,10 +7,6 @@ export function baseOptions(): BaseLayoutProps {
     nav: {
       title: <span className="font-semibold tracking-tight">{appName}</span>
     },
-    githubUrl,
-    links: [
-      { text: 'Docs', url: '/docs', active: 'nested-url' },
-      { text: 'From Mongoose', url: '/docs/mongoose' }
-    ]
+    githubUrl
   }
 }
