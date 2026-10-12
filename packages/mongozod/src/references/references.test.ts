@@ -1057,6 +1057,40 @@ describe('a one-to-many reference', () => {
     expectTypeOf(ids).toEqualTypeOf<{ _id: string; posts: Array<{ _id: string }> } | null>()
   })
 
+  test('keeps a foreignField with a dot, whatever the projection does with it', async () => {
+    const RepliesModel = mongozod({
+      collection: 'replies',
+      db,
+      schema: z.object({
+        _id: z.string(),
+        ref: z.object({ author: z.string(), post: z.string() }),
+        text: z.string()
+      })
+    })
+    const WritersModel = mongozod({
+      collection: 'authors',
+      db,
+      references: { replies: { foreignField: 'ref.author', model: () => RepliesModel } },
+      schema: authorSchema
+    })
+
+    await RepliesModel.insertOne({ _id: 'r1', ref: { author: 'u1', post: 'p1' }, text: 'Hi' })
+
+    const repliesWith = (projection: Document) =>
+      WritersModel.findOne({ _id: 'u1' }, { populate: { replies: { projection } } }).then(
+        (writer) => writer?.replies
+      )
+
+    expect(await repliesWith({ ref: 1 })).toEqual([
+      { _id: 'r1', ref: { author: 'u1', post: 'p1' } }
+    ])
+    expect(await repliesWith({ text: 1 })).toEqual([{ _id: 'r1', text: 'Hi' }])
+    expect(await repliesWith({ ref: 0 })).toEqual([{ _id: 'r1', text: 'Hi' }])
+    expect(await repliesWith({ ref: { author: 0 } })).toEqual([
+      { _id: 'r1', ref: { post: 'p1' }, text: 'Hi' }
+    ])
+  })
+
   test('is a key that is not a field, with a localField of the schema', () => {
     expect(() =>
       mongozod({

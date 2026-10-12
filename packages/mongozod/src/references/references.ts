@@ -854,25 +854,86 @@ function finderOf(model: () => ReferencedModel, key: string) {
 }
 
 /**
- * The projection of a one-to-many query, which keeps the `foreignField` that maps each document
- * back, and whether to remove it afterwards because the projection leaves it out.
+ * A projection without an entry, in the dotted form or the nested one, copying only the objects on
+ * its way: its values may be BSON values, such as the `ObjectId` of an `$elemMatch`.
  */
-function keepingField(projection: Document | undefined, path: string) {
-  if (!projection) return { projection, strip: false }
-
-  const value = projection[path]
-
-  if (value === 0 || value === false) {
-    const { [path]: _excluded, ...rest } = projection
-
-    return { projection: rest, strip: true }
+function withoutEntry(projection: Document, entry: string): Document {
+  if (Object.hasOwn(projection, entry)) {
+    return Object.fromEntries(Object.entries(projection).filter(([key]) => key !== entry))
   }
 
-  if (value !== undefined) return { projection, strip: false }
+  const [head = '', ...tail] = entry.split('.')
+  const inner = projection[head]
 
-  return isInclusion(projectionEntries(projection))
-    ? { projection: { ...projection, [path]: 1 }, strip: true }
-    : { projection, strip: false }
+  if (!isPlainObject(inner) || tail.length === 0) return projection
+
+  const kept = withoutEntry(inner, tail.join('.'))
+
+  // An empty sub-projection fails (code 51270).
+  return Object.keys(kept).length > 0
+    ? { ...projection, [head]: kept }
+    : withoutEntry(projection, head)
+}
+
+/** Whether a path of a projection is a field or an object above it. */
+function coversPath(entry: string, path: string) {
+  return path === entry || path.startsWith(`${entry}.`)
+}
+
+/**
+ * The projection of a one-to-many query, which keeps the `foreignField` that maps each document
+ * back, and what to remove afterwards that the projection leaves out: an exclusion of the field or
+ * of an object above it, which the query drops, or the field an inclusion did not ask for, which it
+ * adds, with the objects it leaves empty.
+ */
+function keepingField(
+  projection: Document | undefined,
+  path: string
+): { projection: Document | undefined; strip: string[]; prune: boolean } {
+  if (!projection) return { projection, prune: false, strip: [] }
+
+  const entries = projectionEntries(projection)
+  const excluded = entries
+    .filter(([entry, kind]) => kind === 'exclude' && coversPath(entry, path))
+    .map(([entry]) => entry)
+
+  if (excluded.length > 0) {
+    const kept = excluded.reduce(withoutEntry, projection)
+
+    return { projection: kept, prune: false, strip: excluded }
+  }
+
+  if (!isInclusion(entries) || entries.some(([entry]) => coversPath(entry, path))) {
+    return { projection, prune: false, strip: [] }
+  }
+
+  return { projection: { ...projection, [path]: 1 }, prune: true, strip: [path] }
+}
+
+/**
+ * Removes the paths a one-to-many query asked for and the projection leaves out, and, when it added
+ * them, the objects above them it leaves empty, which the projection did not ask for either.
+ */
+function stripKept(
+  documents: readonly Document[],
+  { prune, strip }: ReturnType<typeof keepingField>
+) {
+  for (const path of strip) {
+    for (const document of documents) removePath(document, path)
+
+    // Above an added path, from the deepest object up: the projection did not ask for them.
+    const segments = prune ? path.split('.') : []
+
+    for (let end = segments.length - 1; end > 0; end--) {
+      for (const document of documents) {
+        eachHolder(document, segments.slice(0, end), (holder, field) => {
+          const value = holder[field]
+
+          if (isPlainObject(value) && Object.keys(value).length === 0) delete holder[field]
+        })
+      }
+    }
+  }
 }
 
 /**
@@ -920,7 +981,7 @@ async function populateForeign(
       })
     )
 
-    if (kept.strip) for (const document of found.flat()) removePath(document, foreignField)
+    stripKept(found.flat(), kept)
 
     return
   }
@@ -948,7 +1009,7 @@ async function populateForeign(
     document[key] = [...matched].toSorted((a, b) => (position.get(a) ?? 0) - (position.get(b) ?? 0))
   }
 
-  if (kept.strip) for (const document of found) removePath(document, foreignField)
+  stripKept(found, kept)
 }
 
 /**
