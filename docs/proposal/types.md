@@ -180,7 +180,9 @@ mensajes de error ni lo que sugiere el editor:
   argumento. Con `readonly ['$eq'] & ReadonlyArray<…>`, TypeScript compara cada método de los dos
   arrays al chequear las propiedades de la intersección. Por eso, para un path que `mz.filter`
   declara, la sugerencia es su propia lista, que chequea `FilterFieldsCheck`. El editor sugiere lo
-  mismo, porque infiere sin el argumento que se está escribiendo.
+  mismo, porque infiere sin el argumento que se está escribiendo. `mz.update` hace lo mismo, pero solo
+  cuando todos los paths de la lista son sugeridos: la sugerencia rechaza los que no sugiere, como los
+  de más de 6 niveles, y así sigue.
 - **Keys opcionales**: si una key es opcional se pregunta con `object extends Pick<T, K>`, que no
   compara el tipo de la propiedad. `Pick<T, K> extends Required<Pick<T, K>>` da lo mismo, pero en
   TS 5.5 reinstancia la cadena del output de Zod en cada key: era el tipo más caro de las

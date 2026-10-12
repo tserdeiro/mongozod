@@ -64,11 +64,22 @@ type PathsWhere<S, Is extends 'number' | 'optional'> = {
     : never
 }[UpdatePath<S>]
 
+/**
+ * The list `U` declares under an operator when every path in it is suggested, or the suggested
+ * one, which rejects the rest: intersected with another array type, the compiler would compare
+ * every method of both.
+ */
+type DeclaredOr<U, Op extends UpdateOperator, Suggested> = U extends {
+  [K in Op]: infer L extends Suggested
+}
+  ? L
+  : Suggested
+
 /** The paths the editor suggests under each operator of `mz.update`. */
-export interface SuggestedUpdateFields<S> {
-  $inc?: ReadonlyArray<PathsWhere<S, 'number'>>
-  $set?: ReadonlyArray<UpdatePath<S>>
-  $unset?: ReadonlyArray<PathsWhere<S, 'optional'>>
+export interface SuggestedUpdateFields<S, U> {
+  $inc?: DeclaredOr<U, '$inc', ReadonlyArray<PathsWhere<S, 'number'>>>
+  $set?: DeclaredOr<U, '$set', ReadonlyArray<UpdatePath<S>>>
+  $unset?: DeclaredOr<U, '$unset', ReadonlyArray<PathsWhere<S, 'optional'>>>
 }
 
 type UpdateValue<T, Op, D extends Side> = Op extends '$set'
@@ -133,7 +144,7 @@ function valueOf(schema: core.$ZodType, operator: string, path: string): core.$Z
  */
 export function update<S extends core.$ZodType, const U extends UpdateFieldsCheck<S, U>>(
   schema: S,
-  operators: U & SuggestedUpdateFields<S>
+  operators: U & SuggestedUpdateFields<S, U>
 ): z.ZodType<UpdateShape<S, U, 'output'>, UpdateShape<S, U, 'input'>>
 
 export function update(
