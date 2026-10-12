@@ -74,17 +74,26 @@ export function indexesOf(
 ): IndexDescription[] {
   const declared = indexes?.((key, options) => ({ ...options, key })) ?? []
 
+  const isPath = (path: string) => path === '_id' || schemaAt(schema, path, 'filter').length > 0
+
   for (const { key, weights } of declared) {
     const paths = [...(key instanceof Map ? key.keys() : Object.keys(key))]
 
     if (paths.length === 0) throw new Error('an index takes at least one key')
 
-    for (const path of [...paths, ...Object.keys(weights ?? {})]) {
+    for (const path of paths) {
       // A wildcard indexes every field, or every field under a path.
       const field = path.replace(/(^|\.)\$\*\*$/, '')
 
-      if (field && field !== '_id' && schemaAt(schema, field, 'filter').length === 0) {
+      if (field && !isPath(field)) {
         throw new Error(`index key "${path}" is not a path of the document`)
+      }
+    }
+
+    // A weight takes a path or `$**`, but not a wildcard under a path (code 67).
+    for (const path of Object.keys(weights ?? {})) {
+      if (path !== '$**' && !isPath(path)) {
+        throw new Error(`weights: "${path}" is not a path of the document`)
       }
     }
   }

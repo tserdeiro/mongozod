@@ -142,7 +142,8 @@ const { extraIndexes } = await PluginsModel.sync()
   `partialFilterExpression` se chequea como el filtro del modelo; el servidor rechaza los operadores
   que no acepta un índice parcial, como `$ne` (código 67). Las keys de los `weights` de un índice de
   texto también son paths, con el editor sugiriéndolos. En runtime, una clave o un peso que no es un
-  path, o un índice sin claves, `index({})`, lanza un `Error` al definir el modelo. El índice sin
+  path, o un índice sin claves, `index({})`, lanza un `Error` al definir el modelo. Un peso toma un
+  path o `$**`, pero no un comodín bajo un path, como `author.$**`, que MongoDB rechaza (código 67). El índice sin
   claves no se rechaza en los tipos: el problema aparecería entre las keys que sugiere el editor
   mientras se escribe cualquier índice. `expireAfterSeconds` en un campo que no es fecha sigue sin
   chequearse: MongoDB lo acepta y no borra nada.

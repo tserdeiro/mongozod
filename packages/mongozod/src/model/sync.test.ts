@@ -111,6 +111,17 @@ describe('indexes', () => {
         schema: noteSchema
       })
     ).toThrow('index key "titel" is not a path of the document')
+    expect(() =>
+      mongozod({
+        collection: 'notes',
+        db,
+        indexes: (index) => [
+          // @ts-expect-error a weight takes a path or $**, not a wildcard under a path
+          index({ '$**': 'text' }, { weights: { 'author.$**': 2 } })
+        ],
+        schema: noteSchema
+      })
+    ).toThrow('weights: "author.$**" is not a path of the document')
     expectTypeOf(() =>
       mongozod({
         collection: 'notes',
@@ -140,7 +151,7 @@ describe('indexes', () => {
         ],
         schema: noteSchema
       })
-    ).toThrow('index key "titel" is not a path of the document')
+    ).toThrow('weights: "titel" is not a path of the document')
     expect(() =>
       mongozod({
         collection: 'notes',
