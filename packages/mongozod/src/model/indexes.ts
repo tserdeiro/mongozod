@@ -24,6 +24,25 @@ type IndexKeyCheck<S, K> = {
         : never
 }
 
+/** The `weights` of a text index: each key is a path of the document, or `$**`. */
+type WeightsCheck<S, W> = {
+  [P in keyof W]: P extends '$**'
+    ? number
+    : P extends string
+      ? [FieldAt<S, P, 'filter'>] extends [never]
+        ? NotAPath<P>
+        : number
+      : never
+}
+
+/**
+ * When the key is empty, a property named after the problem, which the key lacks, so that the error
+ * shows it: a check in a generic's constraint cannot be conditional on it.
+ */
+type NotEmpty<K> = [keyof K] extends [never]
+  ? { 'an index takes at least one key': never }
+  : unknown
+
 /** The keys the editor suggests in an index. The checks come from `IndexKeyCheck`. */
 type SuggestedIndexKey<S> = {
   [P in PathSuggestions<S, 'filter'> | '_id' | '$**']?: IndexDirection
@@ -39,17 +58,19 @@ type IndexOptions = Omit<IndexDescription, 'key'>
  */
 export type IndexFunction<S> = <
   const K extends IndexKeyCheck<S, K>,
-  const F extends FilterCheck<S, F>
+  const F extends FilterCheck<S, F>,
+  const W extends WeightsCheck<S, W>
 >(
-  key: K & SuggestedIndexKey<S>,
-  options?: Omit<IndexOptions, 'partialFilterExpression'> & {
+  key: K & SuggestedIndexKey<S> & NotEmpty<K>,
+  options?: Omit<IndexOptions, 'partialFilterExpression' | 'weights'> & {
     partialFilterExpression?: F & SuggestedFilter<S>
+    weights?: W & { [P in PathSuggestions<S, 'filter'> | '$**']?: number }
   }
 ) => IndexDescription
 
 /**
- * The indexes of a model, from its `indexes` callback. Throws an `Error` when a key is not a path
- * of the document.
+ * The indexes of a model, from its `indexes` callback. Throws an `Error` when an index has no key,
+ * or when a key or a key of its `weights` is not a path of the document.
  */
 export function indexesOf(
   schema: core.$ZodType,
@@ -59,8 +80,12 @@ export function indexesOf(
 ): IndexDescription[] {
   const declared = indexes?.((key, options) => ({ ...options, key })) ?? []
 
-  for (const { key } of declared) {
-    for (const path of key instanceof Map ? key.keys() : Object.keys(key)) {
+  for (const { key, weights } of declared) {
+    const paths = [...(key instanceof Map ? key.keys() : Object.keys(key))]
+
+    if (paths.length === 0) throw new Error('an index takes at least one key')
+
+    for (const path of [...paths, ...Object.keys(weights ?? {})]) {
       // A wildcard indexes every field, or every field under a path.
       const field = path.replace(/(^|\.)\$\*\*$/, '')
 

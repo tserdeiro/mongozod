@@ -114,10 +114,30 @@ describe('indexes', () => {
       mongozod({
         collection: 'notes',
         db,
+        // @ts-expect-error an index takes at least one key
+        indexes: (index) => [index({})],
+        schema: noteSchema
+      })
+    ).toThrow('an index takes at least one key')
+    expect(() =>
+      mongozod({
+        collection: 'notes',
+        db,
+        indexes: (index) => [
+          // @ts-expect-error "titel" is not a path of the document
+          index({ '$**': 'text' }, { weights: { 'author.name': 2, 'titel': 5 } })
+        ],
+        schema: noteSchema
+      })
+    ).toThrow('index key "titel" is not a path of the document')
+    expect(() =>
+      mongozod({
+        collection: 'notes',
+        db,
         indexes: (index) => [
           index({ '$**': 1 }),
           index({ 'author.$**': 1 }),
-          index({ slug: 'text' }, { name: 'search' })
+          index({ slug: 'text' }, { name: 'search', weights: { slug: 10 } })
         ],
         schema: noteSchema
       })
