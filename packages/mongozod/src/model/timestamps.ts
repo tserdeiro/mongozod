@@ -76,11 +76,14 @@ type Problems<S, N extends TimestampNames> =
 /**
  * Checks that the schema declares the fields `timestamps` writes, in every type of document, taking
  * and returning a `Date`. They need no `.default()`: inserts take them as optional. A problem
- * becomes a property the options lack, so the error shows it.
+ * becomes a property the options lack, so the error shows it. Without `timestamps` there is nothing
+ * to check.
  */
-export type TimestampsCheck<S, T> = [Problems<S, TimestampNamesOf<T>>] extends [never]
+export type TimestampsCheck<S, T> = [T] extends [false]
   ? unknown
-  : { [P in Problems<S, TimestampNamesOf<T>>]: never }
+  : [Problems<S, TimestampNamesOf<T>>] extends [never]
+    ? unknown
+    : { [P in Problems<S, TimestampNamesOf<T>>]: never }
 
 /** The fields an update cannot write while `timestamps` is on: `$setOnInsert` can give `createdAt`. */
 export type LockedFields<N extends TimestampNames, Op, O> = O extends { timestamps: false }

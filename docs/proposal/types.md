@@ -203,6 +203,8 @@ mensajes de error ni lo que sugiere el editor:
   `$elemMatch`, la única rama que las lee.
 - **Modificadores homomórficos**: una inclusión conserva el `?` de cada campo con un mapped type
   homomórfico, en vez de preguntar por cada key.
+- **Sin `timestamps`, sin chequeo**: `TimestampsCheck` no busca los campos cuando la opción está
+  apagada.
 
 ## Paths con punto
 
