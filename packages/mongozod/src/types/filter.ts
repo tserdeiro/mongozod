@@ -2,8 +2,11 @@ import type { Def, FieldAt, NotAPath, Wrapper } from '../schema/schema-at'
 import type { UndefinedIfOptional } from '../utils/type-helpers'
 import type { Leaf, Loose } from './loose'
 import type { PathSuggestions } from './path-suggestions'
-import type { Binary, BSONRegExp, BSONType, BSONTypeAlias, Document } from 'mongodb'
+import type { Binary, BSONRegExp, BSONType, Document } from 'bson'
 import type * as core from 'zod/v4/core'
+
+/** The name of a BSON type, as the driver defines it. */
+type BSONTypeAlias = keyof typeof BSONType
 
 export type Element<V> = V extends ReadonlyArray<infer E> ? E : never
 

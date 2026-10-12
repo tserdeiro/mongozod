@@ -132,7 +132,8 @@ manda `{ createdAt, _id }` del último elemento de la página.
      `/mz`, que no se entendía, `/zod`, que hacía esperar un `z` reexportado, `/schemas` y
      `/validations`, que no dicen qué valida, y `/query-syntax`, el nombre de Feathers, que no
      convenció. No importa el driver, así los schemas de validación siguen sirviendo en web y en
-     native.
+     native. Sus tipos tampoco: toman `Document`, `ObjectId`, `Binary` y los tipos BSON de `bson`,
+     que el driver reexporta, así un proyecto web no carga las declaraciones del driver.
 2. **Sin fallbacks en el router, con la API de Zod.** Los constructores no tienen props propias
    para lo que pasa cuando el cliente no manda algo: lo decide el proyecto con Zod. Una lista usa
    `.default({})` en `mz.filter` y `mz.after`, así el router solo junta filtros con `$and`, sin

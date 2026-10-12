@@ -1,4 +1,4 @@
-import type { ObjectId } from 'mongodb'
+import type { ObjectId } from 'bson'
 
 import { z } from 'zod'
 import * as core from 'zod/v4/core'
