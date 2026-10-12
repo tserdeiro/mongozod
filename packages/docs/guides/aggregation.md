@@ -154,7 +154,19 @@ references with `$lookup`:
 const withAuthors = await PostsModel.aggregate(
   [
     { $match: { status: 'published' } },
-    { $lookup: { from: 'users', localField: 'authorId', foreignField: '_id', as: 'author' } },
+    {
+
+      $lookup: {
+
+        from: 'users',
+
+        localField: 'authorId',
+
+        foreignField: '_id',
+
+        as: 'author'
+      }
+    },
     { $unwind: '$author' },
     { $project: { 'title': 1, 'author.name': 1 } }
   ],

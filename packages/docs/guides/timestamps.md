@@ -84,7 +84,12 @@ const PostViewsModel = mongozod({
 
   schema: viewSchema,
 
-  timestamps: { createdAt: 'viewed_at', updatedAt: false }
+  timestamps: {
+
+    createdAt: 'viewed_at',
+
+    updatedAt: false
+  }
 })
 
 await PostViewsModel.insertOne({ postId: post._id })

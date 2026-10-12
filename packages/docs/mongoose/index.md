@@ -89,7 +89,12 @@ const PostsModel = mongozod({
 
   references: {
 
-    authorId: { collection: 'users', schema: userSchema }
+    authorId: {
+
+      collection: 'users',
+
+      schema: userSchema
+    }
   },
 
   timestamps: true

@@ -71,7 +71,12 @@ const UsersModel = mongozod({
   references: {
 
     // One-to-many: the posts whose `authorId` stores the `_id` of the user.
-    posts: { model: () => PostsModel, foreignField: 'authorId' }
+    posts: {
+
+      model: () => PostsModel,
+
+      foreignField: 'authorId'
+    }
   }
 })
 
@@ -158,7 +163,12 @@ const PostsModel = mongozod({
 
   references: {
 
-    authorId: { collection: 'user', schema: authUserSchema }
+    authorId: {
+
+      collection: 'user',
+
+      schema: authUserSchema
+    }
   }
 })
 
@@ -327,7 +337,12 @@ const CommentsModel = mongozod({
 
   references: {
 
-    post: { model: () => PostsModel, localField: 'postId' }
+    post: {
+
+      model: () => PostsModel,
+
+      localField: 'postId'
+    }
   }
 })
 

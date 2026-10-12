@@ -151,7 +151,12 @@ const PostsModel = mongozod({
 
     authorId: () => UsersModel,
 
-    comments: { model: () => CommentsModel, foreignField: 'postId' }
+    comments: {
+
+      model: () => CommentsModel,
+
+      foreignField: 'postId'
+    }
   },
 
   timestamps: true
