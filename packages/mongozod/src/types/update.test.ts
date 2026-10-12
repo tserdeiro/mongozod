@@ -209,6 +209,9 @@ test('a key typed as a pattern under a record, and an index of a tuple', () => {
 })
 
 const listSchema = z.object({
+  items: z.array(z.object({ name: z.string().optional() })),
+  name: z.string().optional(),
+  nickname: z.string().optional(),
   notes: z.array(z.string().nullable()),
   pair: z.tuple([z.string(), z.number().optional()]).optional()
 })
@@ -227,6 +230,11 @@ test('$unset sets an element to null, which it has to take, and $rename moves no
   updateList({}, { $unset: { 'pair.1': '' } })
   // @ts-expect-error MongoDB cannot move an element of an array
   updateList({}, { $rename: { 'pair.1': 'pair' } })
+  // @ts-expect-error nor a field inside one (code 2)
+  updateList({}, { $rename: { 'items.0.name': 'name' } })
+  // @ts-expect-error nor write one (code 2)
+  updateList({}, { $rename: { name: 'items.0.name' } })
+  updateList({}, { $rename: { name: 'nickname' } })
   expect(true).toBe(true)
 })
 

@@ -97,8 +97,11 @@ valor tiene que servir para su operador y su campo. Se aplica en `updateOne`, `u
 | `$rename`                              | De un campo opcional a otro que guarda el mismo tipo: el servidor mueve el valor guardado, sin parsearlo.          |
 
 - **Elementos de un array**: sobre un índice, `$`, `$[]` o `$[id]`, `$unset` deja `null` en el
-  elemento, así que solo se acepta si el elemento toma `null`; y `$rename` no mueve un elemento
-  (código 2). Verificado con MongoDB 8.2.6, también en una tupla.
+  elemento, así que solo se acepta si el elemento toma `null`; y `$rename` no mueve un elemento ni
+  un path adentro de uno, como `items.0.name`, ni escribe en ellos (código 2). Verificado con
+  MongoDB 8.2.6, también en una tupla. En una unión de un array y un objeto, como `u.0`, los tipos lo
+  toman y el runtime lo rechaza si alguna de las opciones es un array: el lado seguro, en un caso
+  raro.
 
 - **El `_id`**: solo `$setOnInsert` lo escribe, y entero; `mz.update` no lo toma. El servidor
   rechaza cambiarlo con el código 66, también un path adentro como `_id.a` y el destino de un

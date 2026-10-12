@@ -289,6 +289,8 @@ describe('operators', () => {
 
   test('$unset an element to null, which it has to take, and $rename none', async () => {
     const listSchema = z.object({
+      items: z.array(z.object({ name: z.string().optional() })),
+      name: z.string().optional(),
       notes: z.array(z.string().nullable()),
       pair: z.tuple([z.string(), z.number().optional()]),
       tags: z.array(z.string())
@@ -301,11 +303,16 @@ describe('operators', () => {
         parseUpdate(
           listSchema,
           {},
-          { $rename: { 'pair.1': 'other' }, $unset: { 'pair.1': '', 'tags.$[]': '' } }
+          {
+            $rename: { 'items.0.name': 'name', 'name': 'items.$.name', 'pair.1': 'other' },
+            $unset: { 'pair.1': '', 'tags.$[]': '' }
+          }
         )
       )
     ).toEqual([
-      ['$rename pair.1', '"pair.1" is an element of an array, which $rename cannot move'],
+      ['$rename items.0.name', '"items.0.name" is in an array, which $rename cannot move'],
+      ['$rename name', '"items.$.name" is in an array, which $rename cannot move to'],
+      ['$rename pair.1', '"pair.1" is in an array, which $rename cannot move'],
       [
         '$unset pair.1',
         '$unset sets "pair.1", an element of an array, to null, which it does not take'

@@ -371,31 +371,44 @@ type SplitLast<
 > = K extends `${infer Head}.${infer Rest}` ? SplitLast<Rest, `${Prefix}${Head}.`> : [Prefix, K]
 
 /**
- * Whether a path names an element of an array or a tuple, which `$unset` sets to `null` and
- * `$rename` cannot move, as MongoDB does.
+ * Whether a path names an element of an array or a tuple, which `$unset` sets to `null`, as MongoDB
+ * does.
  */
 type NamesElement<S, K extends string> =
   SplitLast<K> extends [`${infer Parent}.`, ElementSegment]
     ? IsArray<SchemaAt<S, Parent, 'update'>>
     : false
 
+/**
+ * Whether a path names an element of an array or a tuple, or a path inside one, which `$rename`
+ * neither moves nor writes, as MongoDB does (code 2).
+ */
+type InElement<S, K extends string> =
+  NamesElement<S, K> extends true
+    ? true
+    : SplitLast<K> extends [`${infer Parent}.`, string]
+      ? InElement<S, Parent>
+      : false
+
 type ArrayOnly<T, K extends string, Then> =
   AllAre<T, 'array'> extends true ? Then : `"${K}" is not an array`
 
 type RenameCheck<S, T, K extends string, To> =
-  NamesElement<S, K> extends true
-    ? `"${K}" is an element of an array, which $rename cannot move`
+  InElement<S, K> extends true
+    ? `"${K}" is in an array, which $rename cannot move`
     : AllAre<T, 'optional'> extends false
       ? `"${K}" is required, so it cannot be renamed`
       : To extends string
         ? [SchemaAt<S, To, 'update'>] extends [never]
           ? NotAPath<To>
-          : // The server moves the stored value as it is, without parsing it for its new path.
-            NonNullable<core.output<T extends [infer Sub] ? Sub : never>> extends core.output<
-                SchemaAt<S, To, 'update'>
-              >
-            ? To
-            : `"${K}" and "${To}" have different types`
+          : InElement<S, To> extends true
+            ? `"${To}" is in an array, which $rename cannot move to`
+            : // The server moves the stored value as it is, without parsing it for its new path.
+              NonNullable<core.output<T extends [infer Sub] ? Sub : never>> extends core.output<
+                  SchemaAt<S, To, 'update'>
+                >
+              ? To
+              : `"${K}" and "${To}" have different types`
         : 'takes the new path'
 
 /** The value one operator takes at one path. `undefined` is dropped at runtime, so it compiles. */

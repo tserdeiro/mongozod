@@ -258,7 +258,7 @@ const ELEMENT = /^(?:\d+|\$(?:\[[a-zA-Z0-9]*\])?)$/
 
 /**
  * Whether the last segment of an update path names an element of an array or a tuple, which
- * `$unset` sets to `null` and `$rename` cannot move, as MongoDB does.
+ * `$unset` sets to `null`, as MongoDB does.
  */
 export function namesElement(schema: core.$ZodType, path: string): boolean {
   const segments = path.split('.')
@@ -271,4 +271,14 @@ export function namesElement(schema: core.$ZodType, path: string): boolean {
       .flatMap(variants)
       .some((holder) => holder instanceof core.$ZodArray || holder instanceof core.$ZodTuple)
   )
+}
+
+/**
+ * Whether an update path names an element of an array or a tuple, or a path inside one, which
+ * `$rename` neither moves nor writes, as MongoDB does (code 2).
+ */
+export function inElement(schema: core.$ZodType, path: string): boolean {
+  const segments = path.split('.')
+
+  return segments.some((_, index) => namesElement(schema, segments.slice(0, index + 1).join('.')))
 }

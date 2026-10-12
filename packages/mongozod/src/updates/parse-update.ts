@@ -5,7 +5,7 @@ import type * as core from 'zod/v4/core'
 import { z } from 'zod'
 
 import { safeParseWritten } from '../model/parse-document'
-import { isDynamicKey, namesElement, schemaAt } from '../schema/schema-at'
+import { inElement, isDynamicKey, namesElement, schemaAt } from '../schema/schema-at'
 import {
   elementsOf,
   isDecimal,
@@ -241,8 +241,8 @@ async function parseField(
         : fail(at, `"${path}" is not an array`, value)
 
     case '$rename':
-      if (namesElement(schema, path)) {
-        return fail(at, `"${path}" is an element of an array, which $rename cannot move`, value)
+      if (inElement(schema, path)) {
+        return fail(at, `"${path}" is in an array, which $rename cannot move`, value)
       }
 
       if (!schemas.every(isOptional) && !isDynamicKey(schema, path)) {
@@ -251,9 +251,13 @@ async function parseField(
 
       if (typeof value !== 'string') return fail(at, '$rename takes the new path', value)
 
-      return schemaAt(schema, value, 'update').length > 0
-        ? { value }
-        : fail(at, `"${value}" is not a path of the document`, value)
+      if (schemaAt(schema, value, 'update').length === 0) {
+        return fail(at, `"${value}" is not a path of the document`, value)
+      }
+
+      return inElement(schema, value)
+        ? fail(at, `"${value}" is in an array, which $rename cannot move to`, value)
+        : { value }
 
     default:
       return fail(at, `"${operator}" is not an update operator`, value)
