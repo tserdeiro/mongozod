@@ -68,7 +68,8 @@ export interface MongozodOptions<
    * database of each request, such as a tenant's from an `AsyncLocalStorage`: keep a `Db` per
    * tenant, since `client.db(name)` builds a new one each time. A cursor runs in the async context
    * it is created in, like a promise: read after its request, it still reads the tenant's
-   * database, also for `populate` and the hooks of the plugins.
+   * database, also for `populate` and the hooks of the plugins, and one created outside of a
+   * request reads the default database, even when read inside one.
    */
   db: Db | (() => Db)
 

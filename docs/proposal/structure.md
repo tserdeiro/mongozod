@@ -70,7 +70,7 @@
   replica set de un miembro, porque las transacciones lo necesitan, con MongoDB 8.2.6 fijado en el
   `package.json` del paquete. Los tests reciben su URI con `inject('mongoUri')`.
 - **lefthook** corre lint, formato, tipos y tests antes de cada commit.
-- **CI** (GitHub Actions, con `pnpm/setup`): lint, formato, tipos y build; los tests en Node 22.12
+- **CI** (GitHub Actions, con `pnpm/setup`): lint, formato, tipos y build; los tests en Node 22.15
   (el mínimo), 24 y 26, y en Bun con `bun --bun vitest run`. Un job instala el driver 6.20, el más
   bajo del peer, con bson 6, y corre con ellos los tipos, los tests y el build. Después del build,
   `pnpm check-dist-types` compila con TS 5.5 y 7 un consumidor de los `.d.ts` publicados

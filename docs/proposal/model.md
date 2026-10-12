@@ -49,9 +49,11 @@ export const NotesModel = mongozod({
   referencias. Atar solo la base del cursor dejaba el `populate` y los hooks en el contexto de la
   lectura: un cursor leído afuera traía los documentos del tenant con los referenciados de la base
   por defecto, sin error (verificado). La función se llama en la primera lectura, así que un error
-  suyo rechaza la lectura, como en `findOne`, cuya promesa ya corre en su contexto.
-  `AsyncLocalStorage.snapshot()` es estable desde Node 22.15; en 22.12, el mínimo, es la misma
-  función sobre `AsyncResource`, sin aviso. Mongoose ata cada modelo a una conexión y
+  suyo rechaza la lectura, como en `findOne`, cuya promesa ya corre en su contexto. Al revés, un
+  cursor creado fuera de un request, como en un helper que lo arma antes de entrar al `run`, lee la
+  base por defecto aunque se lea dentro. `AsyncLocalStorage.snapshot()` es estable desde Node 22.15,
+  y por eso es el mínimo del paquete: en 22.12 a 22.14 figuraba como experimental. Mongoose ata cada
+  modelo a una conexión y
   resuelve los tenants con `useDb()` y un modelo por tenant, que acá también funciona. Desde el `Db`
   se llega al cliente (`db.client`), que hace falta para sesiones y transacciones.
 - **`indexes`**: los índices que crea `sync()`, con las claves tipadas contra el schema. Ver
