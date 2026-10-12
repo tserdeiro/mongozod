@@ -305,3 +305,25 @@ La última columna de cada tabla dice qué commit resolvió cada hallazgo de est
 1. **T1 y T2** antes del push: los dos rompen código válido, y T1 lo usa wortise.
 2. **T3**: subir `engines` a `>=22.15.0`, o anotarlo en el changeset.
 3. Las demás de severidad baja, cuando se toque su área.
+
+## Ronda 4
+
+Una cuarta revisión de los 10 commits que corrigieron T1 a T10 (`ba889ac..88818fe`, locales). Los
+chequeos del repo pasan (314 tests, costo de tipos 66.370 con TS 7 y 73.673 con 5.5), también con
+el driver 6.20 y bson 6.10.4 en un worktree aparte. Las reproducciones de la ronda 3 dan lo
+esperado:
+
+- **T1**: el mismo `_id` entero en el filtro y en `$setOnInsert` pasa, también en el `bulkWrite`
+  de wortise; otro valor y una parte del `_id` se rechazan con un mensaje propio, como el servidor
+  (66). Un `$or` de dos ramas con el mismo `_id` pasa en los dos.
+- **T2**: la factory anotada que devuelve `definePlugin({ fills })` compila, y una anotada sin
+  `fills` sigue pidiendo el campo (S2).
+- **T3**: `engines`, la matriz del CI y los docs piden Node 22.15; solo quedan menciones de 22.12
+  en registros históricos (`phases-1-4.md`, `verified.md`).
+- **T5, T7 a T10**: tests y docs como se pedía.
+
+Un hallazgo nuevo, de severidad baja:
+
+| Id  | Commit    | Hallazgo                                                                                                                                                                                                                                                                                                                                                                                                                                                                            | Corrección                                                                                                                                                                                                                                                                                                            |
+| --- | --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| U1  | `6e5a682` | Con un `_id` objeto, el runtime compara el `_id` del filtro con el de `$setOnInsert` después de que Zod lo reordena con las keys del schema. Un filtro con las keys en otro orden, `{ _id: { shop, day } }`, rechaza el mismo `_id` escrito igual en `$setOnInsert` con «another _id», que el servidor acepta; y `types.md` dice que el runtime compara las keys en orden, como el servidor. Es raro: ese filtro tampoco encuentra los documentos guardados en el orden del schema. | `d0d1d43`: se sigue rechazando, con su propio mensaje: el `_id` que manda mongozod es el que parsea Zod, en el orden del schema, y con él el servidor rechaza el caso del filtro en otro orden (66, verificado). Comparar el `_id` como se escribió lo dejaría pasar hasta el servidor. `types.md` dice cómo compara. |
