@@ -417,7 +417,9 @@ await EventsModel.updateOne({}, { $set: { url } })
 - **Paths**: cada key se busca en todos los tipos, y la proyección se tipa tipo por tipo.
 - **Updates**: cada campo que escribe un update tiene que estar en todos los tipos que permite el
   filtro. El filtro fija el tipo con una igualdad, `$eq` o `$in` sobre el discriminador, en su
-  primer nivel o dentro de `$and`, que es como los routers de adsgpt componen los filtros. Los
+  primer nivel o dentro de `$and`, que es como los routers de adsgpt componen los filtros. Un tipo
+  queda permitido si su discriminador toma alguno de esos valores: uno con
+  `type: z.enum(['view', 'impression'])` queda con `{ type: 'view' }`, como lo elige el runtime. Los
   campos que tienen todos los tipos no necesitan filtro, y un valor tiene que servir para todos los
   tipos permitidos.
 - **Lecturas**: `find`, `findOne`, `.project()` y el `filter` de `populate` devuelven los tipos que

@@ -664,6 +664,35 @@ describe('schemas', () => {
     >()
   })
 
+  test('a type whose discriminator is an enum is allowed when the filter fixes one of its values', async () => {
+    const EventsModel = mongozod({
+      collection: 'events',
+      db,
+      schema: z.discriminatedUnion('type', [
+        z.object({ type: z.literal('click'), x: z.number() }),
+        z.object({ type: z.enum(['impression', 'view']), url: z.string() })
+      ])
+    })
+
+    await EventsModel.insertMany([
+      { type: 'click', x: 1 },
+      { type: 'view', url: 'https://a.b' }
+    ])
+    await EventsModel.updateOne({ type: 'view' }, { $set: { url: 'https://c.d' } })
+
+    const views = await EventsModel.find({ type: 'view' }, { projection: { _id: 0 } })
+    const both = await EventsModel.find({ type: { $in: ['click', 'view'] } })
+
+    expect(views).toEqual([{ type: 'view', url: 'https://c.d' }])
+    expect(both).toHaveLength(2)
+    expectTypeOf(views).toEqualTypeOf<Array<{ type: 'impression' | 'view'; url: string }>>()
+    expectTypeOf<(typeof both)[number]['type']>().toEqualTypeOf<'click' | 'impression' | 'view'>()
+    await expect(
+      // @ts-expect-error not every type the filter allows has url
+      EventsModel.updateOne({ type: { $in: ['click', 'view'] } }, { $set: { url: 'x' } })
+    ).rejects.toBeInstanceOf(z.ZodError)
+  })
+
   test('takes the keys of a record typed as a pattern, and the indexes of a tuple', async () => {
     const ItemsModel = mongozod({
       collection: 'items',

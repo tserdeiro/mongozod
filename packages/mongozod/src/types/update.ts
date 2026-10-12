@@ -87,10 +87,14 @@ type FixAt<Sc extends Scope, D extends string> = Sc extends {
       ? `reach "${Path}" with $[id] and fix "id.${P}${D}" in arrayFilters`
       : never
 
+/**
+ * The options whose discriminator can take one of the values `V`: one with a `z.enum` takes
+ * several, and stays when any of them is fixed, as the runtime picks it.
+ */
 type OptionWith<O, D extends string, V> = O extends unknown
-  ? core.output<SchemaAt<O, D, 'filter'>> extends V
-    ? O
-    : never
+  ? [Extract<core.output<SchemaAt<O, D, 'filter'>>, V>] extends [never]
+    ? never
+    : O
   : never
 
 /** The options of a union that the scope allows: all of them when it fixes nothing. */
