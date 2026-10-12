@@ -796,7 +796,13 @@ describe('schemas', () => {
         // @ts-expect-error a transform of the whole document
         schema: articleSchema.transform((note) => ({ ...note, slug: note.title.toLowerCase() }))
       })
-    ).toThrow('the schema of a model is a z.object or a z.discriminatedUnion of objects')
+    ).toThrow('a transform of the whole document does not run on updates')
+    expect(() =>
+      // @ts-expect-error an optional document
+      mongozod({ collection: 'articles', db, schema: articleSchema.optional() })
+    ).toThrow(
+      'the schema of a model is a z.object or a z.discriminatedUnion of objects, not a z.optional()'
+    )
 
     // A field computed from others goes in .overwrite(), which keeps the object.
     const ArticlesModel = mongozod({
