@@ -14,6 +14,7 @@ import {
 import { z } from 'zod'
 
 import { mongozod } from '../mongozod'
+import { definePlugin } from '../plugins/plugin'
 
 const client = new MongoClient(inject('mongoUri'), { monitorCommands: true })
 const db = client.db('mongozod-references')
@@ -470,6 +471,47 @@ describe('batches', () => {
     } finally {
       await session.endSession()
     }
+  })
+  test('share the context of the read, which the plugins of each model validate', async () => {
+    const tenants: string[] = []
+    const tenant = definePlugin({
+      context: { read: z.object({ tenantId: z.string() }) },
+      hooks: {
+        read: {
+          before({ context }) {
+            tenants.push(context.tenantId)
+          }
+        }
+      },
+      id: 'tenant'
+    })
+    const TenantAccountsModel = mongozod({
+      collection: 'accounts',
+      db,
+      plugins: [tenant],
+      references: { created: { foreignField: 'createdBy', model: () => TenantTransactionsModel } },
+      schema: accountSchema
+    })
+    const TenantTransactionsModel = mongozod({
+      collection: 'transactions',
+      db,
+      plugins: [tenant],
+      references: { createdBy: () => TenantAccountsModel },
+      schema: transactionSchema
+    })
+
+    const transaction = await TenantTransactionsModel.findOne(
+      { _id: 't1' },
+      { context: { tenantId: 'wortise' }, populate: { createdBy: { projection: { email: 1 } } } }
+    )
+    const account = await TenantAccountsModel.findOne(
+      { _id: 'a1' },
+      { context: { tenantId: 'adsgpt' }, populate: { created: { projection: { amount: 1 } } } }
+    )
+
+    expect(transaction?.createdBy).toEqual({ _id: 'a1', email: 'ana@example.com' })
+    expect(account?.created).toEqual([{ _id: 't1', amount: 10 }])
+    expect(tenants).toEqual(['wortise', 'wortise', 'adsgpt', 'adsgpt'])
   })
 })
 

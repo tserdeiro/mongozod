@@ -257,8 +257,11 @@ export function mongozod(
     virtuals: virtualsOf(options.schema, options.virtuals)
   }
 
-  /** Plans a read and splits its options: `populate` is mongozod's, the rest go to the driver. */
-  function readOptions(operationOptions: Document = {}) {
+  /**
+   * Plans a read and splits its options: `populate` is mongozod's, the rest go to the driver. The
+   * reads of `populate` share the session and the context of the operation.
+   */
+  function readOptions(operationOptions: Document = {}, operationContext?: unknown) {
     const { populate, ...driverOptions } = operationOptions
 
     // Mongoose takes these as strings; the driver would sort by a field named like the string.
@@ -273,7 +276,10 @@ export function mongozod(
 
     if (issues.length > 0) throw new z.ZodRealError(issues)
 
-    const plan = planRead(context, driverOptions.projection, populate, driverOptions.session)
+    const plan = planRead(context, driverOptions.projection, populate, {
+      context: operationContext,
+      session: driverOptions.session
+    })
 
     if (plan.projection) driverOptions.projection = plan.projection
 
@@ -389,7 +395,7 @@ export function mongozod(
   }
 
   function openFind(args: Document): BatchSource<Document> {
-    const { driverOptions, plan } = readOptions(args.options)
+    const { driverOptions, plan } = readOptions(args.options, args.context)
     const cursor = getCollection().find<Document>(args.filter, driverOptions)
 
     return batchSource(cursor, plan.process ?? ((batch) => batch))
@@ -424,7 +430,7 @@ export function mongozod(
   function findOne(filter: Document, findOptions?: Document): Promise<WithId<Document> | null>
   function findOne(filter: Document = {}, findOptions: Document = {}) {
     return operate('findOne', { filter, options: findOptions }, async (args) => {
-      const { driverOptions, plan } = readOptions(args.options)
+      const { driverOptions, plan } = readOptions(args.options, args.context)
       const document = await getCollection().findOne(args.filter, driverOptions)
 
       if (document && plan.process) await plan.process([document])
@@ -446,7 +452,7 @@ export function mongozod(
     deleteOptions: Document = {}
   ): Promise<ModifyResult | WithId<Document> | null> {
     return operate('findOneAndDelete', { filter, options: deleteOptions }, (args) => {
-      const { driverOptions, plan } = readOptions(args.options)
+      const { driverOptions, plan } = readOptions(args.options, args.context)
 
       return findOneAnd(plan, driverOptions, (metadataOptions) =>
         getCollection().findOneAndDelete(args.filter, metadataOptions)
@@ -473,7 +479,7 @@ export function mongozod(
 
     return operate('findOneAndReplace', operationArgs, async (args) => {
       const { driverOptions: writeDriverOptions, stamps } = writeOptions(args.options)
-      const { driverOptions, plan } = readOptions(writeDriverOptions)
+      const { driverOptions, plan } = readOptions(writeDriverOptions, args.context)
       const document = await parseReplacement(
         args.filter,
         args.replacement,
@@ -505,7 +511,7 @@ export function mongozod(
   ): Promise<ModifyResult | WithId<Document> | null> {
     return operate('findOneAndUpdate', { filter, options: updateOptions, update }, async (args) => {
       const { driverOptions: writeDriverOptions, ...write } = writeOptions(args.options)
-      const { driverOptions, plan } = readOptions(writeDriverOptions)
+      const { driverOptions, plan } = readOptions(writeDriverOptions, args.context)
       const parsed = await parseModelUpdate(
         args.filter,
         args.update,

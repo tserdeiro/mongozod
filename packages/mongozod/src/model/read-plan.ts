@@ -1,6 +1,6 @@
-import type { ReferenceTarget } from '../references/references'
+import type { PopulateScope, ReferenceTarget } from '../references/references'
 import type { Virtual } from '../references/virtuals'
-import type { ClientSession, Db, Document } from 'mongodb'
+import type { Db, Document } from 'mongodb'
 import type * as core from 'zod/v4/core'
 
 import { z } from 'zod'
@@ -76,7 +76,7 @@ export function planRead(
   context: ReadContext,
   projection: Document | undefined,
   populate: unknown,
-  session: ClientSession | undefined
+  scope: PopulateScope
 ): ReadPlan {
   const references = populateEntries(populate, context.references)
 
@@ -195,7 +195,7 @@ export function planRead(
 
       for (const document of documents) for (const field of strip) delete document[field]
 
-      await populateDocuments(documents, references, context.db, session)
+      await populateDocuments(documents, references, context.db, scope)
 
       for (const document of documents) for (const path of stripAfter) removePath(document, path)
 

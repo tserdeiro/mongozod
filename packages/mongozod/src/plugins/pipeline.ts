@@ -110,10 +110,13 @@ function prepare(plugins: readonly AnyPlugin[], operation: Operation, args: Docu
   return { args: { ...args, options }, contexts }
 }
 
-/** The arguments for the core: without the context and the options of the plugins. */
+/**
+ * The arguments for the core: options without the context and the options of the plugins, which
+ * the driver does not take, and the context apart, for the reads of `populate`.
+ */
 function forCore(plugins: readonly AnyPlugin[], operation: Operation, args: Document) {
   const group = groupOf(operation)
-  const { context: _context, ...options } = args.options ?? {}
+  const { context, ...options } = args.options ?? {}
 
   for (const plugin of plugins) {
     const schema = group && plugin.options?.[group]
@@ -121,7 +124,7 @@ function forCore(plugins: readonly AnyPlugin[], operation: Operation, args: Docu
     for (const name of Object.keys(schema ? schema._zod.def.shape : {})) delete options[name]
   }
 
-  return { ...args, options }
+  return { ...args, context, options }
 }
 
 /** The hooks of a plugin for an operation, from the general to the particular. */

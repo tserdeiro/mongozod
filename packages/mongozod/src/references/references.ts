@@ -785,6 +785,16 @@ export function removePath(document: unknown, path: string): void {
   })
 }
 
+/**
+ * What the reads of `populate` share with the read that asks for them: its session, so that they
+ * see the writes of its transaction, and its context, which the plugins of each referenced model
+ * validate in their part.
+ */
+export interface PopulateScope {
+  context: unknown
+  session: ClientSession | undefined
+}
+
 /** The `find` of the model a reference returns, which `populate` reads with. */
 function finderOf(model: () => ReferencedModel, key: string) {
   const find = finders.get(model())
@@ -831,7 +841,7 @@ async function populateForeign(
   key: string,
   target: ForeignReference,
   { filter, limit, populate, projection, sort }: PopulateOptions,
-  session: ClientSession | undefined
+  { context, session }: PopulateScope
 ): Promise<void> {
   const localField = target.localField ?? '_id'
   const { foreignField } = target
@@ -840,6 +850,7 @@ async function populateForeign(
   const find = finderOf(target.model, key)
 
   if (kept.projection) options.projection = kept.projection
+  if (context !== undefined) options.context = context
   if (session) options.session = session
   if (sort) options.sort = sort
   if (populate) options.populate = populate
@@ -899,17 +910,17 @@ async function populateForeign(
  * Replaces each reference of the documents with the document it points to, in place, with one `$in`
  * query per reference. A missing document, or one the `filter` leaves out, becomes `null`, and an
  * array keeps the ones found, in its order or in the one of `sort`. The queries share the session
- * of the read, so they see the writes of its transaction.
+ * and the context of the read.
  */
 export async function populateDocuments(
   documents: readonly Document[],
   entries: readonly PopulateEntry[],
   db: () => Db,
-  session: ClientSession | undefined
+  scope: PopulateScope
 ): Promise<void> {
   await Promise.all(
     entries.map(([key, target, options]) => {
-      if (isForeign(target)) return populateForeign(documents, key, target, options, session)
+      if (isForeign(target)) return populateForeign(documents, key, target, options, scope)
 
       if (isLocal(target)) {
         // It takes what the localField stores, and then populates it as a stored reference.
@@ -919,10 +930,10 @@ export async function populateDocuments(
           if (stored !== undefined) document[key] = stored
         }
 
-        return populateStored(documents, key, target.model, options, db, session)
+        return populateStored(documents, key, target.model, options, db, scope)
       }
 
-      return populateStored(documents, key, target, options, db, session)
+      return populateStored(documents, key, target, options, db, scope)
     })
   )
 }
@@ -937,7 +948,7 @@ async function populateStored(
   target: (() => ReferencedModel) | { collection: string; schema: ModelSchema },
   options: PopulateOptions,
   db: () => Db,
-  session: ClientSession | undefined
+  { context, session }: PopulateScope
 ): Promise<void> {
   const { filter, limit, populate, projection, sort } = options
   const segments = key.split('.')
@@ -964,11 +975,13 @@ async function populateStored(
   let found: Document[]
 
   if (typeof target === 'function') {
+    const modelOptions: Document = { ...findOptions }
+
     // The target model populates its own references, which validates the nested `populate`.
-    found = await finderOf(target, key)(
-      query,
-      populate ? { ...findOptions, populate } : findOptions
-    )
+    if (populate) modelOptions.populate = populate
+    if (context !== undefined) modelOptions.context = context
+
+    found = await finderOf(target, key)(query, modelOptions)
   } else {
     found = await db().collection(target.collection).find(query, findOptions).toArray()
   }

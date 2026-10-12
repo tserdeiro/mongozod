@@ -241,7 +241,8 @@ plugins definen el mismo método, o uno se llama como un miembro del modelo, com
 - **Contexto**: cada plugin recibe la salida de su propio schema: si `audit` pide `{ actor }` y otro
   plugin `{ tenant }`, `audit` ve solo `{ actor }`. Quien llama manda un único `context` con todo.
   El `context` sigue en las opciones tal como se escribió, así un hook que despacha otra operación
-  con `args.options` lo reenvía, y el núcleo lo quita antes de llamar al driver.
+  con `args.options` lo reenvía, y el núcleo lo quita antes de llamar al driver. `populate` también
+  lo reenvía a las lecturas de los modelos de destino.
 - **Opciones**: los hooks ven las opciones de los plugins ya validadas, con sus defaults y
   transforms, y el núcleo las quita antes de llamar al driver. Una opción de plugin que se llama
   como una del driver, de mongozod (`context`, `populate`, `schema`, `timestamps`) o de otro plugin

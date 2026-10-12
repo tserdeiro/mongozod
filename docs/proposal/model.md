@@ -272,7 +272,8 @@ await TransactionsModel.find(
 - **Consultas**: una `$in` por referencia y por lote del servidor, con cada id una vez y la sesión
   de la lectura, así ve las escrituras de su transacción, salvo una uno a muchos con `limit`, que
   hace una por documento. Las referencias de un lote se consultan
-  en paralelo.
+  en paralelo. También llevan el `context` de la lectura, y los plugins de cada modelo de destino
+  validan su parte, como un multi-tenant que pide el tenant en las lecturas de los dos modelos.
 - **Con una proyección**: una inclusión trae igual las referencias que se populan, como trae los
   campos de un virtual, salvo que ya incluya la referencia o un objeto de arriba, como `items`: pedir
   las dos sería una colisión de paths para MongoDB. Una exclusión que deja afuera una referencia que
