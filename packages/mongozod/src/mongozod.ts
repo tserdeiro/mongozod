@@ -31,6 +31,7 @@ import { z } from 'zod'
 import * as core from 'zod/v4/core'
 
 import { checkFieldNames } from './model/check-field-names'
+import { checkRoot } from './model/check-root'
 import { checkStoredTypes } from './model/check-stored-types'
 import { indexesOf } from './model/indexes'
 import { toJsonSchema } from './model/json-schema'
@@ -213,6 +214,7 @@ export function mongozod(
     virtuals?: Virtuals
   }
 ): Model<ModelSchema> {
+  checkRoot(options.schema)
   checkFieldNames(options.schema)
   checkStoredTypes(options.schema)
   checkReferences(options.schema, options.references)

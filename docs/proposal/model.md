@@ -14,7 +14,9 @@ export const NotesModel = mongozod({
 ```
 
 - **`schema`**: un `z.object`, o una `z.discriminatedUnion` de objetos o de otras uniones, de Zod o de Zod Mini, que
-  describe el documento tal como se guarda. Con una unión, la colección guarda varios tipos de
+  describe el documento tal como se guarda. Otra cosa no compila, y sin tipos lanza un `Error` al
+  definir el modelo: un `.transform()` del documento entero no corre en los updates, que escriben
+  paths. Un campo que se calcula de otros va en `.overwrite()`, que conserva el objeto. Con una unión, la colección guarda varios tipos de
   documento. El `_id` se genera con su `.default()`, como
   `z.uuidv4().default(() => crypto.randomUUID())`, que conviene definir una vez y reusar. Si el
   schema no lo declara, el driver genera un ObjectId. Un `z.bigint()` pide un cliente o un `Db` con

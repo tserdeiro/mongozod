@@ -653,6 +653,28 @@ describe('schemas', () => {
     expect((await BigIntLedgersModel.findOne({}))?.entries).toEqual([{ amount: 2n ** 60n }])
   })
 
+  test('rejects a schema that is not a document, such as a transform of one', async () => {
+    const articleSchema = z.object({ slug: z.string().optional(), title: z.string() })
+
+    expect(() =>
+      mongozod({
+        collection: 'articles',
+        db,
+        // @ts-expect-error a transform of the whole document
+        schema: articleSchema.transform((note) => ({ ...note, slug: note.title.toLowerCase() }))
+      })
+    ).toThrow('the schema of a model is a z.object or a z.discriminatedUnion of objects')
+
+    // A field computed from others goes in .overwrite(), which keeps the object.
+    const ArticlesModel = mongozod({
+      collection: 'articles',
+      db,
+      schema: articleSchema.overwrite((note) => ({ ...note, slug: note.title.toLowerCase() }))
+    })
+
+    expect((await ArticlesModel.insertOne({ title: 'Hello' })).document.slug).toBe('hello')
+  })
+
   test('rejects a z.set() or a z.map(), which the driver does not read back', () => {
     expect(() =>
       mongozod({ collection: 'notes', db, schema: z.object({ tags: z.set(z.string()) }) })
