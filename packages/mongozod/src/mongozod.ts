@@ -26,6 +26,8 @@ import type {
   WithId
 } from 'mongodb'
 
+import { AsyncLocalStorage } from 'node:async_hooks'
+
 import { MongoServerError } from 'mongodb'
 import { z } from 'zod'
 import * as core from 'zod/v4/core'
@@ -35,7 +37,7 @@ import { checkRoot } from './model/check-root'
 import { checkStoredTypes } from './model/check-stored-types'
 import { indexesOf } from './model/indexes'
 import { toJsonSchema } from './model/json-schema'
-import { batchSource, ModelCursor } from './model/model-cursor'
+import { batchSource, inContext, ModelCursor } from './model/model-cursor'
 import { ModelFindCursor } from './model/model-find-cursor'
 import { parseDocument } from './model/parse-document'
 import { parseEach } from './model/parse-each'
@@ -64,7 +66,9 @@ export interface MongozodOptions<
    * The driver's database, or a function that returns it. The function is called on every
    * operation, so the model can be defined before the connection is ready, and it can return the
    * database of each request, such as a tenant's from an `AsyncLocalStorage`: keep a `Db` per
-   * tenant, since `client.db(name)` builds a new one each time.
+   * tenant, since `client.db(name)` builds a new one each time. A cursor runs in the async context
+   * it is created in, like a promise: read after its request, it still reads the tenant's
+   * database, also for `populate` and the hooks of the plugins.
    */
   db: Db | (() => Db)
 
@@ -400,26 +404,21 @@ export function mongozod(
     return runOperation({ model, plugins }, operation, args, run)
   }
 
-  // A cursor reads the database `db` gives when it is created, though it starts on its first read:
-  // a tenant's cursor read outside of its request still reads the tenant's database.
-  function openAggregate(db: Db) {
-    return (args: Document): BatchSource<unknown> => {
-      const { schema, ...driverOptions } = args.options
-      const cursor = getCollection(db).aggregate([...args.pipeline], driverOptions)
+  function openAggregate(args: Document): BatchSource<unknown> {
+    const { schema, ...driverOptions } = args.options
+    const cursor = getCollection().aggregate([...args.pipeline], driverOptions)
 
-      if (!schema) return batchSource(cursor, (batch) => batch)
+    if (!schema) return batchSource(cursor, (batch) => batch)
 
-      return batchSource(cursor, (batch) => batch.map((document) => z.parse(schema, document)))
-    }
+    return batchSource(cursor, (batch) => batch.map((document) => z.parse(schema, document)))
   }
 
-  function openFind(db: Db) {
-    return (args: Document): BatchSource<Document> => {
-      const { driverOptions, plan } = readOptions(args.options, args.context, db)
-      const cursor = getCollection(db).find<Document>(args.filter, driverOptions)
+  function openFind(args: Document): BatchSource<Document> {
+    const db = getDb()
+    const { driverOptions, plan } = readOptions(args.options, args.context, db)
+    const cursor = getCollection(db).find<Document>(args.filter, driverOptions)
 
-      return batchSource(cursor, plan.process ?? ((batch) => batch))
-    }
+    return batchSource(cursor, plan.process ?? ((batch) => batch))
   }
 
   function aggregate<R extends core.$ZodType>(
@@ -432,10 +431,11 @@ export function mongozod(
   ): ModelCursor<Document>
   function aggregate(stages: readonly Document[] = [], aggregateOptions: Document = {}) {
     const args = { options: { ...aggregateOptions }, pipeline: [...stages] }
+    const restore = AsyncLocalStorage.snapshot()
 
-    const open = openAggregate(getDb())
-
-    return new ModelCursor(() => runCursor({ model, plugins }, 'aggregate', args, open))
+    return new ModelCursor(() =>
+      inContext(restore, () => runCursor({ model, plugins }, 'aggregate', args, openAggregate))
+    )
   }
 
   // The operations that return documents have several signatures, like the driver's. TypeScript
@@ -444,10 +444,10 @@ export function mongozod(
   function find(): ModelFindCursor<Document>
   function find(filter: Document, findOptions?: Document): ModelFindCursor<Document>
   function find(filter: Document = {}, findOptions: Document = {}) {
-    const open = openFind(getDb())
+    const restore = AsyncLocalStorage.snapshot()
 
     return new ModelFindCursor({ filter, options: { ...findOptions } }, <T>(args: FindArgs) =>
-      runCursor<T>({ model, plugins }, 'find', { ...args }, open)
+      inContext(restore, () => runCursor<T>({ model, plugins }, 'find', { ...args }, openFind))
     )
   }
 

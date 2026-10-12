@@ -19,6 +19,7 @@ import { z } from 'zod'
 import * as zm from 'zod/mini'
 
 import { mongozod } from './mongozod'
+import { definePlugin } from './plugins/plugin'
 
 const client = new MongoClient(inject('mongoUri'))
 const db = client.db('mongozod')
@@ -543,6 +544,56 @@ describe('db', () => {
 
     expect((await cursor).map((note) => note.title)).toEqual(['Tenant'])
     expect(await pipeline).toMatchObject([{ title: 'Tenant' }])
+  })
+
+  test('runs a cursor in the async context it is created in, like a promise', async () => {
+    const tenants = new AsyncLocalStorage<Db>()
+    const tenantDb = client.db('mongozod-tenant')
+    const seen: Array<Db | undefined> = []
+    const UsersModel = mongozod({
+      collection: 'users',
+      db: () => tenants.getStore() ?? db,
+      schema: z.object({ _id: z.string(), name: z.string() })
+    })
+    const PostsModel = mongozod({
+      collection: 'posts',
+      db: () => tenants.getStore() ?? db,
+      plugins: [
+        definePlugin({
+          hooks: { find: { before: () => void seen.push(tenants.getStore()) } },
+          id: 'tenant'
+        })
+      ],
+      references: { author: () => UsersModel },
+      schema: z.object({ _id: z.string(), author: z.string(), title: z.string() })
+    })
+
+    await tenantDb.dropDatabase()
+    await UsersModel.insertOne({ _id: 'u', name: 'Default' })
+    await tenants.run(tenantDb, async () => {
+      await UsersModel.insertOne({ _id: 'u', name: 'Tenant' })
+      await PostsModel.insertOne({ _id: 'p', author: 'u', title: 'Tenant' })
+    })
+
+    // Read after the request: the hooks and the reads of `populate` still see its tenant.
+    const cursor = tenants.run(tenantDb, () => PostsModel.find({}, { populate: { author: true } }))
+
+    expect(await cursor).toEqual([
+      { _id: 'p', author: { _id: 'u', name: 'Tenant' }, title: 'Tenant' }
+    ])
+    expect(seen).toEqual([tenantDb])
+
+    // The function runs on the first read, which rejects when it throws.
+    const FailingModel = mongozod({
+      collection: 'notes',
+      db: () => {
+        throw new Error('no tenant')
+      },
+      schema: noteSchema
+    })
+    const failing = FailingModel.find({})
+
+    await expect(failing.toArray()).rejects.toThrow('no tenant')
   })
 })
 

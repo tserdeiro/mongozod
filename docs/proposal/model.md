@@ -38,10 +38,17 @@ export const NotesModel = mongozod({
   guarda por `Db`, así que la función conviene que devuelva un `Db` guardado por tenant:
   `client.db(name)` arma uno nuevo cada vez, unos 8 µs. `model.db`, `model.collection`, `sync()`,
   `populate` y el `model.db` de los plugins usan la base que la función devuelve en ese momento, así
-  que un multi-tenant corre `sync()` en cada tenant. Un cursor de `find` o `aggregate` usa la base de
-  cuando se crea, aunque arranque en su primera lectura: así uno creado en el request de un tenant y
-  leído después sigue en su base. Las lecturas de `populate` a otro modelo resuelven la base de ese
-  modelo cuando corren, en la primera lectura. Mongoose ata cada modelo a una conexión y
+  que un multi-tenant corre `sync()` en cada tenant. Un cursor de `find` o `aggregate` arranca en su
+  primera lectura, pero corre en el contexto asíncrono en que se crea, como una promesa, con
+  `AsyncLocalStorage.snapshot()` de Node: su base, los hooks de los plugins y las lecturas de
+  `populate`, también las de otros modelos, ven los stores de un `AsyncLocalStorage` como estaban
+  al crearlo. Así uno creado en el request de un tenant y leído después sigue en su base, con sus
+  referencias. Atar solo la base del cursor dejaba el `populate` y los hooks en el contexto de la
+  lectura: un cursor leído afuera traía los documentos del tenant con los referenciados de la base
+  por defecto, sin error (verificado). La función se llama en la primera lectura, así que un error
+  suyo rechaza la lectura, como en `findOne`, cuya promesa ya corre en su contexto.
+  `AsyncLocalStorage.snapshot()` es estable desde Node 22.15; en 22.12, el mínimo, es la misma
+  función sobre `AsyncResource`, sin aviso. Mongoose ata cada modelo a una conexión y
   resuelve los tenants con `useDb()` y un modelo por tenant, que acá también funciona. Desde el `Db`
   se llega al cliente (`db.client`), que hace falta para sesiones y transacciones.
 - **`indexes`**: los índices que crea `sync()`, con las claves tipadas contra el schema. Ver

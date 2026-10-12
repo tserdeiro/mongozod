@@ -26,6 +26,31 @@ export function batchSource<T>(
 }
 
 /**
+ * The batches of a cursor, each read in the async context that `restore` runs a function in, the
+ * one of the cursor's creation: like a promise, a cursor read after its request still sees the
+ * stores of an `AsyncLocalStorage` as they were then, in its plugins and its `populate`.
+ */
+export async function* inContext<T>(
+  restore: <R>(fn: () => R) => R,
+  open: () => AsyncGenerator<T[], void, void>
+): AsyncGenerator<T[], void, void> {
+  const batches = open()
+
+  try {
+    for (;;) {
+      // oxlint-disable-next-line eslint/no-await-in-loop -- a batch is read after the previous one
+      const read = await restore(() => batches.next())
+
+      if (read.done) return
+
+      yield read.value
+    }
+  } finally {
+    await restore(() => batches.return())
+  }
+}
+
+/**
  * The cursor of `find` and `aggregate`, which can also be awaited for the array of its documents.
  *
  * It starts on the first read: `await` and `toArray()` read every document at once, and `for await`
