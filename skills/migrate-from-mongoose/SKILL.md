@@ -1,6 +1,6 @@
 ---
 name: migrate-from-mongoose
-description: Migrates a Mongoose model to mongozod, one model at a time, on the connection Mongoose already opened and without changing the data MongoDB stores, from its Mongoose schema or, without one, from a $jsonSchema exported from MongoDB Compass or mongodb-schema. Use when asked to move a model, a collection or a project from Mongoose to mongozod, or to replace Mongoose with Zod and the MongoDB driver.
+description: Migrates a Mongoose model to mongozod, one model at a time, on the connection Mongoose already opened and without changing the data MongoDB stores, from its Mongoose schema or, without one, from a $jsonSchema exported from MongoDB Compass or @mongodb-js/mongodb-schema. Use when asked to move a model, a collection or a project from Mongoose to mongozod, or to replace Mongoose with Zod and the MongoDB driver.
 ---
 
 # Migrate a Mongoose model to mongozod
