@@ -246,8 +246,10 @@ mensajes de mongozod ni lo que sugiere el editor:
   apagada.
 - **Funciones genéricas sobre modelos**: no hay un tipo exportado para «cualquier modelo» con
   lecturas tipadas, como un `AnyModel` tipado: un repositorio que compara un modelo contra
-  `Model<any, any, any, any, any>` cuesta unas 100.000 instanciaciones con TypeScript 7 y 254.000
-  con 5.5, la primera vez (medido en los [50 casos de uso](../audits/use-cases.md), C2). Lo que
+  `Model<any, any, any, any, any>` cuesta unas 57.600 instanciaciones con TypeScript 7 y 133.800
+  con 5.5, la primera vez, y unas 100 por cada modelo más (medido el 2026-10-12 con los modelos de
+  los [50 casos de uso](../audits/use-cases.md); C2 midió 100.000 y 254.000 antes de la fase 6.3,
+  que bajó el costo de los tipos). Lo que
   compila sin casts es genérico sobre lo que se lee, con `ReadOf`, `FilterOf` e `InsertOf`, y la
   consulta como callback: `paginate<T>(query: (page) => Promise<T[]>)`. La receta va a estar en la
   guía «Desde Mongoose», de la fase 6 del [roadmap](./roadmap.md).
