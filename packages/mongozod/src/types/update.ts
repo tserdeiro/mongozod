@@ -270,6 +270,24 @@ type TwicePositional<K extends string> = K extends `$.${infer Rest}`
     : false
 
 /**
+ * A segment of a path that starts with `$` and is not a positional operator, such as the key `$x`
+ * of a record, which `SchemaAt` does not reach in an update: no path reaches it, as in the values a
+ * write takes.
+ */
+type DollarKey<K extends string> = K extends `${infer Segment}.${infer Rest}`
+  ? DollarKey<Segment> | DollarKey<Rest>
+  : K extends '$' | `$[${string}`
+    ? never
+    : K extends `$${string}`
+      ? K
+      : never
+
+/** Why a path is not one of the document: it has a key that starts with `$`, or it is not there. */
+type NotAnUpdatePath<K extends string> = [DollarKey<K>] extends [never]
+  ? NotAPath<K>
+  : `"${DollarKey<K>}" cannot be a key: no path reaches a key with a "." or starting with "$"`
+
+/**
  * The schemas a path of an update writes, one 1-tuple per type the filter allows, or why it
  * cannot be written.
  */
@@ -278,7 +296,7 @@ type Targets<S, K extends string, F, AF, Op> = string extends K
   : TwicePositional<K> extends true
     ? `"${K}": the positional $ goes once in a path`
     : [SchemaAt<S, K, 'update'>] extends [never]
-      ? NotAPath<K>
+      ? NotAnUpdatePath<K>
       : HasIdentifier<K> extends true
         ? [AF] extends [never]
           ? `"${K}" uses an identifier: pass arrayFilters`
@@ -400,7 +418,7 @@ type RenameCheck<S, T, K extends string, To> =
       ? `"${K}" is required, so it cannot be renamed`
       : To extends string
         ? [SchemaAt<S, To, 'update'>] extends [never]
-          ? NotAPath<To>
+          ? NotAnUpdatePath<To>
           : InElement<S, To> extends true
             ? `"${To}" is in an array, which $rename cannot move to`
             : // The server moves the stored value as it is, without parsing it for its new path.

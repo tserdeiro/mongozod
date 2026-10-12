@@ -20,7 +20,7 @@ import { withoutChecks } from '../schema/without-checks'
 import { isPlainObject } from '../utils/is-plain-object'
 import { valueKey } from '../utils/value-key'
 
-import { resolveUpdatePath } from './update-path'
+import { dollarKeyProblem, resolveUpdatePath } from './update-path'
 import {
   decidedPaths,
   filterEqualities,
@@ -256,6 +256,10 @@ async function parseField(
       }
 
       if (typeof value !== 'string') return fail(at, '$rename takes the new path', value)
+
+      const unreachable = dollarKeyProblem(value)
+
+      if (unreachable) return fail(at, unreachable, value)
 
       if (schemaAt(schema, value, 'update').length === 0) {
         return fail(at, `"${value}" is not a path of the document`, value)

@@ -129,8 +129,8 @@ await PostsModel.updateOne({ _id: post._id }, { $unset: unset })
 
 The runtime validates each value with the schema of the record's values. Validate a key that a
 client sends before you build the path with it, such as with `z.string().regex(/^[a-z_]+$/)`: a
-`.` in it makes a deeper path, which the update rejects as not a path of the document, and MongoDB
-stores a key that starts with `$`.
+`.` in it makes a deeper path, which the update rejects as not a path of the document, and a key
+that starts with `$` makes the update throw a `ZodError`, as it does in an insert.
 
 ## Common mistakes
 
@@ -139,5 +139,5 @@ stores a key that starts with `$`.
 - **``{ [`reactions.${key}`]: 1 }`` written inline**: TypeScript types the key as `string`, so the
   update doesn't compile. Declare the object with a pattern type, such as
   ``Record<`reactions.${string}`, number>``.
-- **A key from a client used as is**: a `.` makes a deeper path, and a `$` at its start is stored as
-  is. Validate it first.
+- **A key from a client used as is**: a `.` makes a deeper path, and a `$` at its start makes the
+  update throw. Validate it first.

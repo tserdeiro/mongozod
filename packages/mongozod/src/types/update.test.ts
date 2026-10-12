@@ -191,6 +191,14 @@ test('$unset and $rename take a key a record or a catchall may lack', () => {
   updateLabels({}, { $unset: { 'levels.low': '' } })
   // @ts-expect-error source is a required field of meta
   updateLabels({}, { $unset: { 'meta.source': '' } })
+
+  // A key that starts with $ is not a path, as in the values a write takes.
+  // @ts-expect-error "$x" cannot be a key
+  updateLabels({}, { $set: { 'labels.$x': 'X' } })
+  // @ts-expect-error "$x" cannot be a key
+  updateLabels({}, { $unset: { 'meta.$x': '' } })
+  // @ts-expect-error "$new" cannot be a key
+  updateLabels({}, { $rename: { 'labels.old': 'labels.$new' } })
   expect(true).toBe(true)
 })
 

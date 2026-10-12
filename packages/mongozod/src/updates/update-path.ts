@@ -148,6 +148,18 @@ function walk(
 }
 
 /**
+ * Why a path of an update cannot be written when a segment starts with `$` and is not a positional
+ * operator, such as the key `$x` of a record: no path reaches it, as in the values a write takes.
+ */
+export function dollarKeyProblem(path: string): string | undefined {
+  const key = path
+    .split('.')
+    .find((segment) => segment.startsWith('$') && segment !== '$' && !segment.startsWith('$['))
+
+  return key && `"${key}" cannot be a key: no path reaches a key with a "." or starting with "$"`
+}
+
+/**
  * Resolves a path of an update like its types do: through every array with a positional operator,
  * the `$` once, and at each discriminated union, only into the types that the filter, or the
  * `arrayFilters` entry of its `$[id]`, allows. A path written in every one of them leads to all
@@ -158,6 +170,10 @@ export function resolveUpdatePath(
   path: string,
   context: UpdateContext
 ): UpdatePath {
+  const dollarKey = dollarKeyProblem(path)
+
+  if (dollarKey) return { kind: 'error', message: dollarKey }
+
   // MongoDB rejects a second one (code 2).
   if (path.split('.').filter((segment) => segment === '$').length > 1) {
     return { kind: 'error', message: `"${path}": the positional $ goes once in a path` }

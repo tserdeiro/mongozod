@@ -103,12 +103,22 @@ export type TupleStep<Items, Rest, Seg extends string> = Seg extends keyof Items
  * the most common step, go first: each definition has its own `type`, so the order does not change
  * the result.
  */
+/**
+ * The schema under a key that is not declared, of a record, a catchall or an unknown value: an
+ * update does not reach one that starts with `$`, as a write does not take it in a value.
+ */
+type DynamicKey<T, Seg extends string, M extends PathMode> = M extends 'update'
+  ? Seg extends `$${string}`
+    ? never
+    : T
+  : T
+
 type Step<S, Seg extends string, M extends PathMode> =
   Def<S> extends infer X
     ? X extends { shape: infer Shape; type: 'object' }
       ? Seg extends keyof Shape
         ? Shape[Seg]
-        : ExtraKey<S>
+        : DynamicKey<ExtraKey<S>, Seg, M>
       : X extends { innerType: infer I; type: Wrapper }
         ? Step<I, Seg, M>
         : X extends { element: infer E; type: 'array' }
@@ -118,10 +128,10 @@ type Step<S, Seg extends string, M extends PathMode> =
             : X extends { getter: () => infer L; type: 'lazy' }
               ? Step<L, Seg, M>
               : X extends { type: 'any' | 'unknown' }
-                ? S
+                ? DynamicKey<S, Seg, M>
                 : X extends { keyType: infer K; type: 'record'; valueType: infer V }
                   ? Seg extends core.output<K>
-                    ? V
+                    ? DynamicKey<V, Seg, M>
                     : never
                   : X extends { items: infer Items; rest: infer Rest; type: 'tuple' }
                     ? M extends 'projection'

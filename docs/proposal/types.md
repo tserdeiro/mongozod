@@ -324,7 +324,10 @@ Los tipos siguen la regla de [Tipos](#tipos). Además:
 - **Nombres de campo**: `mongozod()` lanza un `Error` si el schema tiene un campo con `.` o que
   empieza con `$`, porque ningún path llegaría a él. Al escribir, se rechaza cualquier key así en lo
   que se escribe: la de un record, un catchall, un `looseObject`, un `z.unknown()` o un `z.json()`,
-  en los inserts, los reemplazos y los valores de los updates.
+  en los inserts, los reemplazos y los valores de los updates. También en el path de un update, en
+  tipos y en runtime: `$inc: { 'reactions.$x': 1 }` pasaba, y MongoDB 8.2 guarda la key `$x`
+  (verificado). Un segmento con `$` que no es `$`, `$[]` ni `$[id]` no es un path, también en el
+  destino de un `$rename`.
 - **Inputs**: `mz` acepta paths con punto declarados uno por uno en la lista blanca. Los operadores
   posicionales y `arrayFilters` no se exponen a clientes en la v1: los arma el router. Por eso
   `mz.update` y `mz.after` solo toman paths fuera de arrays.

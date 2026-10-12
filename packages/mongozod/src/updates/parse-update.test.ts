@@ -57,6 +57,11 @@ async function issuesOf(run: () => Promise<unknown>) {
   return []
 }
 
+/** The issue of a key that starts with `$`, which no path reaches. */
+function dollarKey(key: string) {
+  return `"${key}" cannot be a key: no path reaches a key with a "." or starting with "$"`
+}
+
 describe('values', () => {
   test('are parsed with the schema at their path, transforms and defaults included', async () => {
     const update = await parseUpdate(
@@ -285,6 +290,24 @@ describe('operators', () => {
     ).toEqual([
       ['$unset levels.low', '"levels.low" is required, so it cannot be unset'],
       ['$unset meta.source', '"meta.source" is required, so it cannot be unset']
+    ])
+
+    // A key that starts with $ is not a path, as in the values a write takes: MongoDB stores it.
+    expect(
+      await issuesOf(() =>
+        parseUpdate(
+          schema,
+          {},
+          {
+            $rename: { 'labels.old': 'labels.$new' },
+            $set: { 'labels.$x': 'X', 'meta.$y': 'Y' }
+          }
+        )
+      )
+    ).toEqual([
+      ['$rename labels.old', dollarKey('$new')],
+      ['$set labels.$x', dollarKey('$x')],
+      ['$set meta.$y', dollarKey('$y')]
     ])
   })
 

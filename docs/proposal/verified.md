@@ -766,3 +766,8 @@
   - Una proyección que pide solo un virtual que lee el `_id`, `{ id: 1 }`, llegaba al servidor como
     `{}` y devolvía todo el documento; con `{ _id: 0, id: 1 }`, todo menos el `_id`. Ahora llega
     como `{ _id: 1 }`, que MongoDB lee como una inclusión.
+  - `$inc: { 'reactions.$x': 1 }` y `$set` sobre la key `$x` de un record o de un catchall pasaban
+    la validación, y MongoDB 8.2 guarda `$x`, como lo guarda con el driver solo; el insert de
+    `{ reactions: { $x: 1 } }` ya se rechazaba. Ahora un segmento con `$` que no es posicional no
+    compila y lanza un `ZodError` con el mismo mensaje que en un valor, también en el destino de un
+    `$rename`.
