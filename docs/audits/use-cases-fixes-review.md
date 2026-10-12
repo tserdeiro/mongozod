@@ -261,3 +261,47 @@ corren»), sin decir que eso mezcla tenants. **Corrección**: que el `populate` 
 3. **S8**, y decidir R16, R20 y R24, o escribir por qué quedan.
 4. Las de severidad baja, cuando se toque su área.
 5. Commitear este informe, con la tabla de estado.
+
+## Ronda 3
+
+Una tercera revisión de los 20 commits que corrigieron S1 a S18 (`68d967b..ba889ac`, locales): los
+chequeos del repo, también con el driver 6.20 (tipos, 313 tests y el consumidor de `dist`), las
+reproducciones de la ronda 2 con un tarball de `ba889ac`, y dos revisiones por área. Los dos
+hallazgos de severidad media se reprodujeron dos veces.
+
+- **S1 queda bien.** Un cursor cierra en el servidor con `break`, `close()` y un `throw`; ve el
+  contexto de su creación en `toArray`, `await`, `.project()`, `aggregate`, los hooks y `populate`;
+  los errores y las transacciones siguen igual; cuesta unos 5 µs por cursor.
+- **S3, S6, S7, S11, S12, S13 y S16 quedan bien**, en tipos y runtime, con las variantes válidas
+  todavía andando contra MongoDB 8.2.
+- **Las refutaciones de S17, S18, R20 y R24 se sostienen** con lo que dicen `types.md`,
+  `structure.md` e `inputs.md`.
+- **Dos fixes rompen código válido** (T1 y T2).
+
+La última columna de cada tabla dice qué commit resolvió cada hallazgo de esta ronda, o por qué no.
+
+### Media
+
+| Id  | Commit    | Hallazgo                                                                                                                                                                                                                                                                                                                                                                                                                          | Corrección                                                                                                          | Corrección de la ronda 3                                                                                                                                                                                            |
+| --- | --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| T1  | `003d273` | S4 rechaza el mismo `_id` en el filtro y en `$setOnInsert`, que MongoDB 8.2 acepta (verificado con el driver). Es el patrón de `wortise-dashboard-monorepo/packages/domain/src/modules/messages/service.ts` y del parser de MongoModel, que dejaría de compilar al migrar. El hallazgo S4 de la ronda 2 era impreciso: el servidor rechaza un `_id` que no coincide o una parte del `_id` en el filtro, no el mismo `_id` entero. | Aceptar el `_id` en `$setOnInsert` cuando el filtro da el mismo `_id` entero con una igualdad; rechazar lo demás.   | `6e5a682`: acepta el mismo `_id` entero, por igualdad, `$eq`, `$in` de un valor, `$and` o `$or` de una rama, y rechaza otro valor o una parte del `_id` en el filtro, en tipos y en runtime, también en `bulkWrite` |
+| T2  | `47e1f78` | Con el default `Fills = readonly []`, una factory anotada `Plugin<'tenant', { tenantId: z.ZodString }>` que devuelve `definePlugin({ …, fills: ['tenantId'] })` ya no compila, con un error ilegible; arreglarla pide escribir los seis parámetros, y `GroupSchemas` no se exporta. No se anuncia.                                                                                                                                | Volver al default anterior y que `FillsOfPlugin` cuente solo un `fills` que sea una tupla, no un array de `string`. | `4883da4`: el default anterior, y solo una tupla completa. Una factory anotada sin `Fills` compila pero no completa: la anotación es la misma con `fills` o sin ellos, así que el doc dice cómo anotarla            |
+
+### Baja
+
+| Id  | Commit    | Hallazgo                                                                                                                                                                                                                                                                                 | Corrección de la ronda 3                                                                                                                                                            |
+| --- | --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| T3  | `46d7693` | `AsyncLocalStorage.snapshot()` es experimental en Node 22.12 a 22.14 y estable desde 22.15, y `engines` pide `>=22.12.0`; el doc lo dice y el changeset no. Un cursor creado fuera de todo contexto y leído dentro de un `run` ahora lee la base por defecto; el changeset no lo nombra. | `825fe5f`: `engines` pide `>=22.15.0`, con el CI, los docs y un changeset `minor`; el changeset de S1 nombra el cursor creado afuera y leído adentro                                |
+| T4  | `003d273` | Un `$or` con ramas del mismo `_id` no se detecta y el servidor da 66; dentro de `$and` u `$or` compila y solo lanza en runtime (documentado).                                                                                                                                            | `6e5a682`: anotado en `types.md`, el `$or` de varias ramas queda como caso raro                                                                                                     |
+| T5  | `5efc7af` | Dentro de `{ campo: { \| } }`, un record, una intersección o un escalar sugieren los métodos de `String`; con un record engaña, porque `{ rec: { length: 1 } }` compila como key. Ningún test cuida la unión que da las sugerencias.                                                     | `f72bd55`: anotado en `types.md`, y un test cuida la unión que da las sugerencias                                                                                                   |
+| T6  | `62cfa90` | En la proyección de `populate`, un `Record<string, 0 \| 1>` no da el mensaje nuevo: el destino es una unión y TypeScript no lo elabora.                                                                                                                                                  | `6de3abe`: a la fase 7; dar el mensaje para todo el objeto vuelve circular la restricción de la proyección (TS2313)                                                                 |
+| T7  | `6ce33e0` | El test de `mongozod/mzod` no ve ``import(`mongodb`)`` ni `import x = require('mongodb')`, y da falsos positivos con `import('mongodb')` en un `@example`, un string o un comentario. `ts.preProcessFile` los resuelve todos.                                                            | `1e9e5bc`: `ts.preProcessFile` de TypeScript 5.5, porque el de TypeScript 7 no lo expone; ve el backtick y el `require`, y ya no falla con un `@example`, un string o un comentario |
+| T8  | `660fa70` | Las cifras de F6 salen de C2, pero hoy la primera comparación con `Model<any…>` cuesta unas 57.600 instanciaciones con TS 7 y 133.800 con 5.5, no 100.000 y 254.000; el doc las da en presente.                                                                                          | `7147b55`: 57.600 y 133.800, medido hoy, con la cifra de C2 como antecedente                                                                                                        |
+| T9  | `2451849` | El motivo de R16 no es exacto: el runtime ya distingue los codecs, así que rechazar un `.transform()` a un array no afectaría a `mz.date()`.                                                                                                                                             | `10dfe8f`: rechazar todo transform dejaría afuera los que devuelven un valor de orden; un codec sí se ve                                                                            |
+| T10 | `c27707f` | «Esos casos guardan `{}`» no vale para `Map`: `z.instanceof(Map).refine()` guarda un objeto con sus entradas.                                                                                                                                                                            | `3762253`                                                                                                                                                                           |
+
+### Qué corregir
+
+1. **T1 y T2** antes del push: los dos rompen código válido, y T1 lo usa wortise.
+2. **T3**: subir `engines` a `>=22.15.0`, o anotarlo en el changeset.
+3. Las demás de severidad baja, cuando se toque su área.
