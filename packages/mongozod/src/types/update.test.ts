@@ -117,6 +117,32 @@ test('$set takes the input at each path, with positional operators and records',
   expect(true).toBe(true)
 })
 
+const labelsSchema = z.object({
+  labels: z.record(z.string(), z.string()),
+  levels: z.record(z.enum(['high', 'low']), z.number()),
+  limits: z.partialRecord(z.enum(['high', 'low']), z.number()),
+  meta: z.object({ source: z.string() }).catchall(z.string())
+})
+
+function updateLabels<
+  const F extends ModelFilter<typeof labelsSchema, F>,
+  const U extends ModelUpdate<typeof labelsSchema, U, F, unknown>
+>(_filter: F, value: U) {
+  return value
+}
+
+test('$unset and $rename take a key a record or a catchall may lack', () => {
+  updateLabels({}, { $rename: { 'labels.old': 'labels.new' } })
+  updateLabels({}, { $unset: { 'labels.home': '', 'limits.low': '', 'meta.extra': '' } })
+  updateLabels({}, { $set: { 'labels.home': 'Home', 'levels.low': 1 } })
+
+  // @ts-expect-error a record of a fixed set of keys has all of them
+  updateLabels({}, { $unset: { 'levels.low': '' } })
+  // @ts-expect-error source is a required field of meta
+  updateLabels({}, { $unset: { 'meta.source': '' } })
+  expect(true).toBe(true)
+})
+
 test('each operator takes the fields it applies to', () => {
   update(
     {},

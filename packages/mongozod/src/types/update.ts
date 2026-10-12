@@ -108,6 +108,18 @@ type Extend<Sc extends Scope, Seg extends string> = Sc extends {
       ? { kind: 'none'; path: Path; prefix: `${P}${Seg}.` }
       : never
 
+/**
+ * The schema of a key its object may lack, which `$unset` can remove: a key of a record whose keys
+ * are not a fixed set, such as `z.record(z.string(), …)`, or one a catchall takes.
+ */
+interface MayLack<V> {
+  _zod: {
+    def: { innerType: V; type: 'optional' }
+    input: core.input<V> | undefined
+    output: core.output<V> | undefined
+  }
+}
+
 /** One segment of an update path: the sub-schema it leads to and the scope after it. */
 type Next<S, Seg extends string, Sc extends Scope, Path extends string> =
   Def<Unwrap<S>> extends infer X
@@ -118,9 +130,10 @@ type Next<S, Seg extends string, Sc extends Scope, Path extends string> =
           ? [Shape[Seg], Extend<Sc, Seg>]
           : [ExtraKey<Unwrap<S>>] extends [never]
             ? never
-            : [ExtraKey<Unwrap<S>>, Extend<Sc, Seg>]
+            : [MayLack<ExtraKey<Unwrap<S>>>, Extend<Sc, Seg>]
         : X extends { type: 'record'; valueType: infer V }
-          ? [V, Extend<Sc, Seg>]
+          ? // Zod types the record of a fixed set of keys with all of them, unless it is partial.
+            [None extends core.output<Unwrap<S>> ? MayLack<V> : V, Extend<Sc, Seg>]
           : X extends { element: infer E; type: 'array' }
             ? Seg extends `$[${infer Id}]`
               ? Id extends ''

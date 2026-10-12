@@ -131,7 +131,9 @@ runtime o código sin tipos. Cada problema se junta en un solo `ZodError`, con e
   se descartan, y si un operador queda vacío se manda así: MongoDB acepta `{}` en todos los
   operadores desde la versión 5.0.
 - **Por operador**: `$unset` y el origen de `$rename` solo en campos opcionales (`.default()` no
-  lo es); `$inc`, `$mul` y `$bit` en números, y un `$inc` o un `$mul` con decimales no va a un campo
+  lo es), y una key que su objeto puede no tener lo es: la de un record cuyas keys no son un
+  conjunto fijo, como `z.record(z.string(), …)` o un `z.partialRecord`, o la de un catchall. Un
+  record con keys de un enum las tiene todas, como lo valida Zod; `$inc`, `$mul` y `$bit` en números, y un `$inc` o un `$mul` con decimales no va a un campo
   entero; `$currentDate` en campos que aceptan una `Date`; los operadores de array en arrays, y
   `$push` y `$addToSet` parsean cada elemento, también en `$each`. Un set de `mz.set()` solo
   agrega con `$addToSet`: `$push` y los paths que escriben uno de sus elementos no se aceptan (ver

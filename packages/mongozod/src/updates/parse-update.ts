@@ -5,7 +5,7 @@ import type * as core from 'zod/v4/core'
 import { z } from 'zod'
 
 import { safeParseWritten } from '../model/parse-document'
-import { schemaAt } from '../schema/schema-at'
+import { isDynamicKey, schemaAt } from '../schema/schema-at'
 import {
   elementsOf,
   isDecimal,
@@ -174,7 +174,7 @@ async function parseField(
       return parseEvery(schemas, value, at)
 
     case '$unset':
-      return schemas.every(isOptional)
+      return schemas.every(isOptional) || isDynamicKey(schema, path)
         ? { value }
         : fail(at, `"${path}" is required, so it cannot be unset`, value)
 
@@ -219,7 +219,7 @@ async function parseField(
         : fail(at, `"${path}" is not an array`, value)
 
     case '$rename':
-      if (!schemas.every(isOptional)) {
+      if (!schemas.every(isOptional) && !isDynamicKey(schema, path)) {
         return fail(at, `"${path}" is required, so it cannot be renamed`, value)
       }
 

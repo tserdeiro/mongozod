@@ -174,6 +174,29 @@ describe('operators', () => {
     ])
   })
 
+  test('$unset and $rename take a key a record or a catchall may lack', async () => {
+    const schema = z.object({
+      labels: z.record(z.string(), z.string()),
+      levels: z.record(z.enum(['high', 'low']), z.number()),
+      limits: z.partialRecord(z.enum(['high', 'low']), z.number()),
+      meta: z.object({ source: z.string() }).catchall(z.string())
+    })
+    const update = {
+      $rename: { 'labels.old': 'labels.new' },
+      $unset: { 'labels.home': '', 'limits.low': '', 'meta.extra': '' }
+    }
+
+    expect(await parseUpdate(schema, {}, update)).toEqual(update)
+    expect(
+      await issuesOf(() =>
+        parseUpdate(schema, {}, { $unset: { 'levels.low': '', 'meta.source': '' } })
+      )
+    ).toEqual([
+      ['$unset levels.low', '"levels.low" is required, so it cannot be unset'],
+      ['$unset meta.source', '"meta.source" is required, so it cannot be unset']
+    ])
+  })
+
   test('keep a set: no $push, and no write to one of its elements', async () => {
     const postSchema = z.object({
       sections: z.array(z.object({ _id: z.string(), labels: set(z.string()) })),

@@ -3,6 +3,7 @@ import type { ObjectId } from 'mongodb'
 import { z } from 'zod'
 import * as core from 'zod/v4/core'
 
+import { variants } from './schema-kinds'
 import { unwrapSchema } from './unwrap-schema'
 
 /**
@@ -202,4 +203,31 @@ export function schemaAt(schema: core.$ZodType, path: string, mode: PathMode): c
         schemas.flatMap((current) => step(current, segment, mode).map(([next]) => next)),
       [schema]
     )
+}
+
+/**
+ * Whether the last segment of a path is a key its object may lack, which `$unset` can remove: a key
+ * of a record whose keys are not a fixed set, as Zod checks them, such as `z.record(z.string(),
+ * …)`, or a key that a catchall takes.
+ */
+export function isDynamicKey(schema: core.$ZodType, path: string): boolean {
+  const segments = path.split('.')
+  const key = segments.pop() ?? ''
+  const parents = segments.length > 0 ? schemaAt(schema, segments.join('.'), 'update') : [schema]
+  const holders = parents.flatMap(variants)
+
+  return (
+    holders.length > 0 &&
+    holders.every((holder) => {
+      if (holder instanceof core.$ZodRecord) {
+        return !holder._zod.def.keyType._zod.values || holder._zod.def.partial === true
+      }
+
+      if (!(holder instanceof core.$ZodObject)) return false
+
+      const { catchall, shape } = holder._zod.def
+
+      return !Object.hasOwn(shape, key) && !!catchall && !(catchall instanceof core.$ZodNever)
+    })
+  )
 }
