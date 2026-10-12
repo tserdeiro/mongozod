@@ -106,7 +106,8 @@ have no virtuals. `aggregate` does not compute them either: a pipeline computes 
 
 - **An inclusion** returns the virtuals it asks for, with `1` or `true`, and no other. mongozod asks
   the server for the fields they read and removes the ones the projection did not ask for:
-  `{ readingMinutes: 1 }` gives `{ _id, readingMinutes }`.
+  `{ readingMinutes: 1 }` gives `{ _id, readingMinutes }`, and `{ _id: 0, path: 1 }`, whose virtual
+  reads only the `_id`, gives `{ path }`.
 - **An exclusion** keeps every virtual, except the ones it excludes, such as `{ path: 0 }`, and the
   ones whose fields it leaves out or changes: `{ body: 0 }` also leaves out `readingMinutes`.
 - **A virtual takes `0`, `1`, `true` or `false`**: any other value throws a `ZodError`.

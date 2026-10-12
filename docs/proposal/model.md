@@ -380,7 +380,10 @@ export const AccountsModel = mongozod({
   viejo, la lectura lanza el `ZodError`, con el path del campo. Omitir el virtual obligaría a tipar
   todos como opcionales.
 - **Proyección**: si pide un virtual, mongozod le pide al servidor los campos del `pick`, lo calcula
-  y devuelve solo lo pedido: `{ fullName: 1 }` da `{ _id, fullName }`. Una exclusión lo mantiene,
+  y devuelve solo lo pedido: `{ fullName: 1 }` da `{ _id, fullName }`. Si el virtual solo lee el
+  `_id`, como el `id` de Mongoose, la proyección que llega al servidor es `{ _id: 1 }`: vacía, MongoDB
+  la lee como la de todo el documento, y `{ id: 1 }` devolvía todos los campos (verificado). Una
+  exclusión lo mantiene,
   salvo que excluya uno de esos campos o una parte. Hoy la tabla de billings de
   wortise-dashboard-monorepo tiene que pedir `firstName` y `lastName` para recibir `fullName`. Un
   virtual toma 0, 1, `true` o `false`.

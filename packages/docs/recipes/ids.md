@@ -143,6 +143,9 @@ const UsersModel = mongozod({
 
 const users = await UsersModel.find()
 // [{ _id: ObjectId('6acd…'), name: 'Ana', id: '6acd…' }]
+
+const ids = await UsersModel.find({}, { projection: { _id: 0, id: 1 } })
+// [{ id: '6acd…' }]
 ```
 
 Reads that return documents compute it, and it isn't stored, so a filter uses the `_id`. When the

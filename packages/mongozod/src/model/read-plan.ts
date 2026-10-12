@@ -128,6 +128,10 @@ export function planRead(
 
       computed.set(name, virtual)
     }
+
+    // An inclusion left without a field, such as one that asks only for a virtual that reads the
+    // `_id`, would be `{}`, which returns every field: the `_id` keeps it an inclusion.
+    if (Object.keys(fields).length === 0) fields._id = 1
   } else {
     for (const entry of references) {
       const field = storedPath(entry)

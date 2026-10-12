@@ -128,6 +128,21 @@ describe('projections', () => {
     }>()
   })
 
+  test('that ask only for one that reads the _id return only it', async () => {
+    const LabeledModel = mongozod({
+      collection: 'accounts',
+      db,
+      schema: accountSchema,
+      virtuals: { label: accountSchema.pick({ _id: true }).transform(({ _id }) => `#${_id}`) }
+    })
+    const labeled = await LabeledModel.findOne({ _id: 'a1' }, { projection: { label: 1 } })
+    const [unlabeled] = await LabeledModel.find({ _id: 'a1' }, { projection: { _id: 0, label: 1 } })
+
+    expect(labeled).toEqual({ _id: 'a1', label: '#a1' })
+    expect(unlabeled).toEqual({ label: '#a1' })
+    expectTypeOf<NonNullable<typeof labeled>>().toEqualTypeOf<{ _id: string; label: string }>()
+  })
+
   test('that exclude keep them, unless they exclude or leave out a field they read', async () => {
     const account = await AccountsModel.findOne({ _id: 'a1' }, { projection: { email: 0 } })
     const withoutName = await AccountsModel.findOne({ _id: 'a1' }, { projection: { firstName: 0 } })

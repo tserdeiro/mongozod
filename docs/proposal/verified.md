@@ -760,3 +760,9 @@
     instrumentada sirve para atribuir el costo de TypeScript 7, que no tiene API de JS.
   - TypeScript corta con TS2589 a los 100 niveles de anidamiento o a los 5 millones de
     instanciaciones por expresión; la llamada más cara del proyecto típico ronda las 10 mil.
+
+- **Lo que encontró la documentación de usuario** (MongoDB 8.2.6, driver 7.7.0, Zod 4.6.5,
+  TypeScript 5.5.4 y 7.0.2): cada punto, con un test que fallaba antes de su arreglo.
+  - Una proyección que pide solo un virtual que lee el `_id`, `{ id: 1 }`, llegaba al servidor como
+    `{}` y devolvía todo el documento; con `{ _id: 0, id: 1 }`, todo menos el `_id`. Ahora llega
+    como `{ _id: 1 }`, que MongoDB lee como una inclusión.
