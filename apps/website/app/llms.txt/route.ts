@@ -13,7 +13,7 @@ export function GET() {
     '',
     '> MongoDB with a Zod schema as the single source of truth for each document: it validates every write, types every read and defines what each endpoint accepts. The Mongoose alternative built on Zod and the official MongoDB driver.',
     '',
-    'Install it with `npm install mongozod zod mongodb bson`. Each page below is Markdown, and the same pages ship in the package, in `node_modules/mongozod/dist/docs/`, at the installed version. All of them in one file: ' +
+    'Install it with `npm install mongozod` (zod, mongodb and bson are peer dependencies). Each page below is Markdown, and the same pages ship in the package, in `node_modules/mongozod/dist/docs/`, at the installed version. All of them in one file: ' +
       `${siteUrl}/llms-full.txt.`,
     '',
     trademarkNotice

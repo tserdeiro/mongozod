@@ -1,13 +1,14 @@
 ---
 title: Installation
-description: Install mongozod with its peer dependencies, and the versions of Node.js, TypeScript and MongoDB it needs.
+description: Install mongozod, and the versions of Node.js, TypeScript, Zod and the MongoDB driver it needs.
 ---
 
-Install mongozod with Zod, the MongoDB driver and `bson`, which are its peer dependencies:
-
 ```npm
-npm install mongozod zod mongodb bson
+npm install mongozod
 ```
+
+mongozod uses the Zod and the MongoDB driver of your project, which are its
+[peer dependencies](#peer-dependencies): npm and pnpm install them when they are missing.
 
 > [!WARNING]
 > mongozod is in 0.x: its API may change in a minor version. Each change is in the changelog of its
@@ -27,6 +28,10 @@ npm install mongozod zod mongodb bson
 Bun works too: the tests also run on its latest version.
 
 ## Peer dependencies
+
+`zod`, `mongodb` and `bson` are peer dependencies, not dependencies of mongozod: it works with the
+copies your project uses, so the `MongoClient` you create and the schemas you write are the ones it
+receives. A second copy of the driver would not even compile when you pass your `Db` to a model.
 
 npm (since version 7) and pnpm install the peer dependencies that are missing, but Yarn does not:
 with Yarn, add `zod`, `mongodb` and `bson` to your `package.json` yourself.

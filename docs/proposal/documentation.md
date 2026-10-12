@@ -46,6 +46,14 @@ bloques de código.
   en su línea de apertura (` ```ts separate `) compila solo, y uno con `nocheck` no compila, como el
   código de Mongoose: el lenguaje es la primera palabra, como dice CommonMark, así que GitHub lo
   colorea igual.
+- El código se escribe para leerse (pedido del maintainer, 2026-10-12): `import * as z from 'zod'`;
+  los objetos que declaran algo (un schema, las opciones de `mongozod()`, un plugin, los campos de
+  `mz.filter`) van una prop por línea, con una línea en blanco tras la llave y entre props; las
+  cadenas de Zod, un método por línea, y `z.string().array()` en vez de `z.array(z.string())`; un
+  schema siempre en su `const`, nunca inline en `mongozod()` o `aggregate()`; sin defaults de
+  relleno como `?? 'mongodb://localhost:27017'`. Los filtros, updates y opciones cortas de una
+  consulta quedan en una línea. Como oxfmt juntaría esas cadenas, `.oxfmtrc.json` no formatea el
+  código dentro de los `.md` (`embeddedLanguageFormatting: "off"`).
 - Las guías con trampas terminan en «Common mistakes».
 - Los nombres son los de MongoDB y Zod, y los links entre páginas son relativos.
 - Cada afirmación sobre Mongoose cita su documentación o su issue.
@@ -102,7 +110,7 @@ qué se pasa ni qué vuelve.
 Como el de [Zod](https://github.com/colinhacks/zod): el nombre, una línea que dice qué es y que es
 la alternativa a Mongoose, «by [@tserdeiro](https://x.com/tserdeiro)», los badges y los links a los
 docs y a la guía de Mongoose; el aviso de marca; «What is mongozod?», «Why not Mongoose?» (una
-tabla corta, con fuentes), «Installation» (con que la API puede cambiar en la 0.x), «Basic usage»
+tabla corta, con fuentes), «Installation» (`npm install mongozod`, con los peers explicados aparte: npm y pnpm los instalan si faltan; y que la API puede cambiar en la 0.x), «Basic usage»
 (definir un modelo, leer y escribir, aceptar consultas de clientes), «Documentation» y «License».
 Los links son absolutos: el mismo archivo se muestra en la raíz de GitHub, por el symlink, y en
 `packages/mongozod` en npm, así que uno relativo apuntaría a lugares distintos. Llevan a las páginas

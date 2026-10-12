@@ -61,12 +61,13 @@ Both run on the same connection, so you can [migrate one model at a time](https:
 ## Installation
 
 ```sh
-npm install mongozod zod mongodb bson
+npm install mongozod
 ```
 
-mongozod needs Node.js 22.15 or later and TypeScript 5.5 or later with `strict`. Its peer dependencies
-are `zod@^4.5.0`, `mongodb@^6.20.0 || ^7.0.0` and `bson` of the same major as the driver. npm and
-pnpm install them; Yarn does not.
+mongozod uses the Zod and the MongoDB driver of your project: `zod@^4.5.0`,
+`mongodb@^6.20.0 || ^7.0.0` and `bson` of the same major as the driver are its peer dependencies,
+which npm and pnpm install when they are missing (with Yarn, add them yourself). It needs Node.js
+22.15 or later and TypeScript 5.5 or later with `strict`.
 
 > [!WARNING]
 > mongozod is in 0.x: its API may change in a minor version.

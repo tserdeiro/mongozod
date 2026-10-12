@@ -108,7 +108,7 @@ export default function HomePage() {
           </Link>
         </div>
         <div className="w-full max-w-md text-left">
-          <ServerCodeBlock code="npm install mongozod zod mongodb bson" lang="sh" />
+          <ServerCodeBlock code="npm install mongozod" lang="sh" />
         </div>
       </section>
 
