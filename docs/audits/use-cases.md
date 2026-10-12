@@ -300,7 +300,7 @@ documento de la propuesta. Las recetas que resuelven el resto quedan en la guía
 | C4        | `ff52185` | Anotado en [Costo de los tipos](../proposal/types.md#costo-de-los-tipos).                                                                                                              |
 | F4        | `c04b819` | Decidido: los índices de una `z.tuple` son paths. Las keys dinámicas compilan si el objeto tipa el patrón (microsoft/TypeScript#13948), documentado.                                   |
 | F5        | `392b4b1` | Decidido: la función de `db` se llama en cada operación, con la colección guardada por `Db`.                                                                                           |
-| F6        | —         | Decidido: un patrón documentado; un tipo para modelos genéricos costaba de 100.000 a 270.000 instanciaciones.                                                                          |
+| F6        | —         | Decidido: un patrón documentado; un tipo para modelos genéricos costaba 100.000 instanciaciones con TS 7 y 254.000 con 5.5 (C2).                                                       |
 | F7        | `65d8b6b` | `InsertOf<typeof Model>`.                                                                                                                                                              |
 | F9        | `2040236` | Decidido: `fills` en `definePlugin`, opcionales como los de `timestamps`.                                                                                                              |
 | F13       | `7f337c1` | Decidido: las lecturas devuelven los tipos que permite el filtro, con la regla de los updates.                                                                                         |
