@@ -1,5 +1,7 @@
 // A typical project: the models of an app, with the reads, writes and endpoint inputs it makes.
 // `check-type-cost` measures what compiling it costs, which is what the editor pays.
+import type { DocOf, ReadOf } from 'mongozod'
+
 import { MongoClient } from 'mongodb'
 import { mongozod } from 'mongozod'
 import * as mz from 'mongozod/mzod'
@@ -193,4 +195,16 @@ export async function report(organization: string) {
   await PluginsModel.deleteOne({ name: { $regex: '^tmp-' }, organization })
 
   return { accounts, tags, total, views }
+}
+
+// What an app does with what it reads: array methods infer from the documents, through the virtuals
+// and the references of their models.
+export function names(
+  accounts: Array<ReadOf<typeof AccountsModel, { populate: { organization: true } }>>,
+  plugins: Array<DocOf<typeof PluginsModel>>
+) {
+  return {
+    accounts: accounts.map((account) => `${account.fullName} (${account.organization?.name})`),
+    plugins: plugins.filter((plugin) => plugin.views > 0).map((plugin) => plugin.name)
+  }
 }

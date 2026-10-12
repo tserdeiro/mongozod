@@ -1,7 +1,7 @@
 import type { ModelSchema, Output } from '../model/model'
 import type { FieldsOf } from '../schema/document-types'
 import type { Entries, IsLiteral, Mode, Projected } from '../types/projection'
-import type { Simplify } from '../utils/type-helpers'
+import type { Simplify, UnionToIntersection } from '../utils/type-helpers'
 import type { Document, WithId } from 'mongodb'
 
 import { z } from 'zod'
@@ -17,8 +17,14 @@ import { schemaAt } from '../schema/schema-at'
  */
 export type Virtuals = Record<string, core.$ZodType>
 
-/** The values of the virtuals of a model. */
-export type VirtualValues<V> = { -readonly [K in keyof V]: core.output<V[K]> }
+/**
+ * The values of the virtuals of a model, built key by key so that each value is resolved: a
+ * `.map()` over a read infers into what a value still depends on, and through the schemas of the
+ * virtuals it computed the variance of Zod's classes, about 90k instantiations.
+ */
+export type VirtualValues<V> = UnionToIntersection<
+  { [K in keyof V]: { -readonly [P in K]: core.output<V[K]> } }[keyof V]
+>
 
 /** The fields a virtual reads: the keys of its input. */
 type NeedsOf<X> = keyof core.input<X> & string
@@ -101,7 +107,10 @@ export type Read<O, V, P> = [keyof V] extends [never]
       ? WithVirtuals<Projected<O, P>, Partial<VirtualValues<V>>>
       : WithVirtuals<
           Projected<O, FieldsProjection<V, P>>,
-          Pick<VirtualValues<V>, ComputedKeys<V, P, Entries<FieldsProjection<V, P>>>>
+          Pick<
+            VirtualValues<V>,
+            ComputedKeys<V, P, Entries<FieldsProjection<V, P>>> & keyof VirtualValues<V>
+          >
         >
 
 /** A virtual at runtime: its schema and the fields it reads. */

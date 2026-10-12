@@ -246,8 +246,14 @@ type TimestampsOf<M> = M extends {
   ? Exclude<N, undefined>
   : NoTimestamps
 
-/** The documents of a model, as stored. */
-export type DocOf<M> = WithId<Output<SchemaOf<M>>>
+/**
+ * The documents of a model, as stored. A conditional, so that the type it gives does not carry the
+ * model as the argument of this alias: inference walks into those arguments, and computing the
+ * variance of a model costs about 150k instantiations.
+ */
+export type DocOf<M> = M extends { readonly schema: infer S extends ModelSchema }
+  ? WithId<Output<S>>
+  : never
 
 type VirtualsOf<M> = M extends { readonly virtuals: infer V } ? V : None
 

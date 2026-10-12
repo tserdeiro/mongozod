@@ -219,6 +219,17 @@ mensajes de mongozod ni lo que sugiere el editor:
   homomórfico, en vez de preguntar por cada key.
 - **Sin `timestamps`, sin chequeo**: `TimestampsCheck` no busca los campos cuando la opción está
   apagada.
+- **Lecturas que no llevan a los schemas ni a los modelos**: un método de array que infiere, como
+  `.map()` o `.find()`, recorre el tipo de cada documento: los argumentos de sus alias y lo que los
+  valores de sus mapped types todavía dependen de la key. Si llega a un schema de Zod o a un modelo,
+  calcula la variance de sus clases, que se paga una vez por programa: unas 90.000 instanciaciones
+  por los virtuals, 100.000 por `populate` y 150.000 por `DocOf`. Por eso `VirtualValues` arma sus
+  valores key por key, ya resueltos; `PopulatedValue` arma su unión en la rama de un condicional,
+  que la deja sin el alias; y `DocOf` es un condicional, que no guarda el modelo como argumento. Con
+  un `.map()` sobre una lectura con virtuals y `populate` y otro sobre `DocOf`, el proyecto típico
+  pasó de 272.784 y 418.704 instanciaciones (0,23 s y 0,76 s de check) a 65.138 y 72.925 (0,06 s y
+  0,25 s), con TypeScript 7 y 5.5. El proyecto los incluye desde entonces, y su límite subió a
+  70.000 y 78.000.
 
 ## Paths con punto
 

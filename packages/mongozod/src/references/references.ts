@@ -420,12 +420,19 @@ type ReadOf<T, X> = X extends unknown
     >
   : never
 
-/** A populated field: the document, or `null` when it is missing; an array keeps the ones found. */
-type PopulatedValue<F, T, X> =
-  | (Exclude<F, null | undefined> extends ReadonlyArray<unknown>
-      ? Array<ReadOf<T, X>>
-      : ReadOf<T, X> | null)
-  | Extract<F, null | undefined>
+/**
+ * A populated field: the document, or `null` when it is missing; an array keeps the ones found. The
+ * union is built in the branch of a resolved conditional, which leaves it without this alias:
+ * inference walks into the arguments of an alias it meets, and computing the variance of this one
+ * costs about 100k instantiations.
+ */
+type PopulatedValue<F, T, X> = [F] extends [unknown]
+  ?
+      | (Exclude<F, null | undefined> extends ReadonlyArray<unknown>
+          ? Array<ReadOf<T, X>>
+          : ReadOf<T, X> | null)
+      | Extract<F, null | undefined>
+  : never
 
 /**
  * One type of document with its references populated, at the paths under `Prefix`: through arrays
