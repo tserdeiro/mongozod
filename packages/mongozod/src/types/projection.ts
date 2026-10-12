@@ -1,7 +1,7 @@
 import type { None } from '../model/model'
 import type { Def, FieldAt, NotAPath } from '../schema/schema-at'
 import type { Unwrap } from '../schema/unwrap-schema'
-import type { IsOptionalKey, Simplify, UnionToIntersection } from '../utils/type-helpers'
+import type { IsAny, IsOptionalKey, Simplify, UnionToIntersection } from '../utils/type-helpers'
 import type { ElementConditionCheck, ElementSchema } from './filter'
 import type { Leaf } from './loose'
 import type { PathSuggestions } from './path-suggestions'
@@ -27,7 +27,10 @@ type CrossesArray<S, P extends string> = P extends `${infer Seg}.${infer Rest}`
 /** What a projection does with a path. */
 export type Kind = 'elemMatch' | 'exclude' | 'include' | 'meta' | 'positional' | 'slice'
 
-/** Every [path, kind] of a projection, dotted or nested. */
+/**
+ * Every [path, kind] of a projection, dotted or nested. A value typed `any`, as in the driver's
+ * `Document`, says nothing about its kind.
+ */
 export type Entries<P, Prefix extends string = ''> = {
   [K in keyof P & string]-?: P[K] extends 0 | false
     ? [`${Prefix}${K}`, 'exclude']
@@ -41,9 +44,11 @@ export type Entries<P, Prefix extends string = ''> = {
           ? [`${Prefix}${K}`, 'elemMatch']
           : P[K] extends { $meta: unknown }
             ? [`${Prefix}${K}`, 'meta']
-            : P[K] extends object
-              ? Entries<P[K], `${Prefix}${K}.`>
-              : never
+            : IsAny<P[K]> extends true
+              ? never
+              : P[K] extends object
+                ? Entries<P[K], `${Prefix}${K}.`>
+                : never
 }[keyof P & string]
 
 type PathOf<E> = E extends [infer Path extends string, Kind] ? Path : never
@@ -158,9 +163,11 @@ type Check<S, P, E, Prefix extends string, V = None> = {
             ? ElemMatchCheck<S, `${Prefix}${K}`, C, E>
             : P[K] extends { $meta: unknown }
               ? { $meta: 'textScore' }
-              : P[K] extends object
-                ? Check<S, P[K], E, `${Prefix}${K}.`>
-                : `"${Prefix}${K}" takes 0, 1, true, false, $slice, $elemMatch or $meta`
+              : IsAny<P[K]> extends true
+                ? P[K]
+                : P[K] extends object
+                  ? Check<S, P[K], E, `${Prefix}${K}.`>
+                  : `"${Prefix}${K}" takes 0, 1, true, false, $slice, $elemMatch or $meta`
     : never
 }
 

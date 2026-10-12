@@ -5,7 +5,8 @@
   [Reemplazos](./operations.md#reemplazos)).
 - **Lecturas**: devuelven el `z.output` del schema, ajustado por la proyección: con `{ title: 1 }`
   el resultado es `{ _id, title }`. Si la proyección llega en runtime, como la de un cliente, los
-  campos que puede dejar afuera quedan opcionales.
+  campos que puede dejar afuera quedan opcionales. Una tipada como el `Document` del driver, o
+  `any`, puede dejar afuera cualquiera, así que todos quedan opcionales.
 - **Filtros, updates y proyecciones**: tienen tipos estrictos propios. Los del driver no alcanzan:
   tanto `Filter<Note>` como `StrictFilter<Note>`, que es experimental, aceptan
   `{ organization: ['a'] }` en un campo string. Los dos heredan de `Document` una firma de índice

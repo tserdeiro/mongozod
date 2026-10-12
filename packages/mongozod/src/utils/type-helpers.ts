@@ -29,3 +29,6 @@ export type UndefinedIfOptional<T, K extends keyof T> =
 export type NotAString<T, Problem extends string> = T extends string
   ? { [K in Problem]: never }
   : unknown
+
+/** Whether `T` is `any`, such as a value of the driver's `Document`, which a check cannot walk. */
+export type IsAny<T> = 0 extends 1 & T ? true : false

@@ -1,4 +1,5 @@
 import type { ProjectionCheck } from './projection'
+import type { Document } from 'mongodb'
 
 import { MongoClient } from 'mongodb'
 import { afterAll, beforeAll, describe, expect, expectTypeOf, inject, test } from 'vitest'
@@ -318,5 +319,13 @@ describe('the cursor and the other operations', () => {
 
     expectTypeOf<Result['_id']>().toEqualTypeOf<string>()
     expectTypeOf<Result['plugin']>().toEqualTypeOf<Plugin['plugin'] | undefined>()
+  })
+
+  test("one typed as the driver's Document leaves every field optional", async () => {
+    const projection: Document = { _id: 0, plugin: 1 }
+    const result = await PluginsModel.findOne({ _id: 'p' }, { projection })
+
+    expect(result).toEqual({ plugin: 'google-ads' })
+    expectTypeOf(result).toEqualTypeOf<Partial<Plugin> | null>()
   })
 })
