@@ -232,8 +232,10 @@ manda `{ createdAt, _id }` del último elemento de la página.
 10. **`mz.after` pide `_id` al final y campos obligatorios.** MongoDB ordena un valor que falta o
     es `null` antes que cualquier otro, y un `$lt` sobre una fecha no lo alcanza, así que esos
     documentos se perderían. Sin un campo único al final, las páginas repiten o saltean empates.
-    - **Chequeos**: un campo opcional o nullable, o dentro de un array, no compila y lanza un
-      `Error` al declararlo. Los tipos piden `_id`, pero no ven el orden de las keys de un objeto:
+    - **Chequeos**: un campo opcional o nullable, dentro de un array o que guarda un array no
+      compila y lanza un `Error` al declararlo. MongoDB ordena un array por uno de sus elementos, y
+      un rango lo toma si cualquiera pasa, así que la paginación repetiría y saltearía documentos
+      (verificado: 6 documentos en páginas de 2 daban 7 vistos y 4 únicos). Los tipos piden `_id`, pero no ven el orden de las keys de un objeto:
       que `_id` sea el último lo chequea el runtime.
     - **Formato**: el cliente manda los valores de orden del último documento,
       `{ createdAt, _id }`, y el router recibe el `$or` de la página siguiente. La primera página no

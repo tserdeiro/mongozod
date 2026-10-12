@@ -76,7 +76,7 @@ describe('the declarations', () => {
     expect(() => after(noteSchema, { _id: -1, createdAt: -1 })).toThrow('the sort ends with _id')
   })
 
-  test('its fields are required, outside arrays', () => {
+  test('its fields are required, of one value, outside arrays', () => {
     // @ts-expect-error a missing color sorts before any other
     expect(() => after(noteSchema, { color: 1, _id: 1 })).toThrow(
       'mz.after: "color" can be missing or null: mz.after sorts by required fields'
@@ -86,6 +86,10 @@ describe('the declarations', () => {
     // @ts-expect-error a field inside an array
     expect(() => after(noteSchema, { 'items.position': 1, '_id': 1 })).toThrow(
       'mz.after: "items.position" goes through an array: mz.after takes paths outside arrays'
+    )
+    // @ts-expect-error MongoDB sorts an array by one of its elements
+    expect(() => after(noteSchema, { items: 1, _id: 1 })).toThrow(
+      'mz.after: "items" is an array: mz.after sorts by fields of one value'
     )
   })
 })

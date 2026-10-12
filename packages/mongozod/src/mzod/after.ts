@@ -2,11 +2,11 @@ import type { SchemaAt } from '../schema/schema-at'
 import type { PathSuggestions } from '../types/path-suggestions'
 import type { Side, ValueOf } from './filter'
 import type { OutsideArraysProblem } from './internal/outside-arrays'
-import type * as core from 'zod/v4/core'
 
 import { z } from 'zod'
+import * as core from 'zod/v4/core'
 
-import { isOptional } from '../schema/schema-kinds'
+import { isOptional, variants } from '../schema/schema-kinds'
 
 import { schemasOutsideArrays } from './internal/outside-arrays'
 import { valueSchema } from './internal/value-schema'
@@ -14,13 +14,20 @@ import { valueSchema } from './internal/value-schema'
 type IsRequired<T> =
   undefined extends core.output<T> ? false : null extends core.output<T> ? false : true
 
+/** Whether a field can store an array, which MongoDB sorts by one of its elements. */
+type HoldsArray<T> = [Extract<core.output<T>, ReadonlyArray<unknown>>] extends [never]
+  ? false
+  : true
+
 type SortKeyCheck<S, K extends string> = [OutsideArraysProblem<S, K, 'mz.after'>] extends [never]
-  ? IsRequired<SchemaAt<S, K, 'update'>> extends true
-    ? -1 | 1
-    : `"${K}" can be missing or null: mz.after sorts by required fields`
+  ? HoldsArray<SchemaAt<S, K, 'update'>> extends true
+    ? `"${K}" is an array: mz.after sorts by fields of one value`
+    : IsRequired<SchemaAt<S, K, 'update'>> extends true
+      ? -1 | 1
+      : `"${K}" can be missing or null: mz.after sorts by required fields`
   : OutsideArraysProblem<S, K, 'mz.after'>
 
-/** Checks the sort of `mz.after`: each key is a required field outside arrays. */
+/** Checks the sort of `mz.after`: each key is a required field of one value, outside arrays. */
 export type AfterSortCheck<S, O> = {
   [K in keyof O]: K extends string ? SortKeyCheck<S, K> : never
 }
@@ -29,7 +36,9 @@ type RequiredPath<S> = {
   [P in Exclude<PathSuggestions<S, 'update'>, `$${string}` | `${string}.$${string}`>]: IsRequired<
     SchemaAt<S, P, 'update'>
   > extends true
-    ? P
+    ? HoldsArray<SchemaAt<S, P, 'update'>> extends true
+      ? never
+      : P
     : never
 }[Exclude<PathSuggestions<S, 'update'>, `$${string}` | `${string}.$${string}`>]
 
@@ -65,8 +74,9 @@ export interface AfterFilter<S, O> {
  *
  * The sort has to end with `_id`, which breaks ties, and its fields have to be required: MongoDB
  * sorts a missing or `null` value before any other, so a range on the next page would never reach
- * those documents. The router sorts the same way, and the project decides with Zod what the first
- * page gets, such as `.default({})`.
+ * those documents. An array does not fit either: MongoDB sorts it by one of its elements, and a
+ * range matches it when any element passes. The router sorts the same way, and the project decides
+ * with Zod what the first page gets, such as `.default({})`.
  *
  * @example
  *   after: mz.after(brandSchema, { createdAt: -1, _id: -1 }).default({})
@@ -91,6 +101,15 @@ export function after(schema: core.$ZodType, sort: Readonly<Record<string, numbe
     }
 
     const targets = schemasOutsideArrays(schema, key, 'mz.after')
+    const holdsArray = targets.some((target) =>
+      variants(target).some(
+        (variant) => variant instanceof core.$ZodArray || variant instanceof core.$ZodTuple
+      )
+    )
+
+    if (holdsArray) {
+      throw new Error(`mz.after: "${key}" is an array: mz.after sorts by fields of one value`)
+    }
 
     if (targets.some((target) => isOptional(target) || z.safeParse(target, null).success)) {
       throw new Error(
