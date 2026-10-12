@@ -132,10 +132,10 @@ El orden de implementación. Al cerrar una fase, se marca acá en el mismo cambi
    3. La guía «Desde Mongoose», en `packages/docs/mongoose/`, para que se lea en GitHub y en el sitio: las
       equivalencias, lo que mongozod hace distinto (sin documentos con `.save()`, sin casting de
       filtros) y las recetas, como el virtual `id` y `__v`. Deja claro que Mongoose y mongozod
-      conviven sobre la misma conexión mientras se migra, modelo por modelo, con el driver 6 de
-      Mongoose 8 o el 7 de Mongoose 9. Trae un «Copy prompt» para que cada equipo le pase la
+      conviven sobre la misma conexión mientras se migra, modelo por modelo, con el driver 6.20 de
+      Mongoose 8.19 en adelante o el 7 de Mongoose 9. Trae un «Copy prompt» para que cada equipo le pase la
       migración a su agente; sin un schema de Mongoose, el agente parte del `$jsonSchema` que arman
-      Compass o `mongodb-schema`. También lista los issues de Mongoose que mongozod resuelve:
+      Compass o `@mongodb-js/mongodb-schema` (el paquete `mongodb-schema` está deprecado). También lista los issues de Mongoose que mongozod resuelve:
       - **Validar los updates:**
         - un upsert sin los campos obligatorios
           ([#7037](https://github.com/Automattic/mongoose/issues/7037));

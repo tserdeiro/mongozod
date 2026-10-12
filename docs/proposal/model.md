@@ -415,7 +415,7 @@ const eventSchema = z.discriminatedUnion('kind', [
 
 await EventsModel.updateOne({ kind: 'click' }, { $set: { url } })
 
-// error: "url" is not in every type the filter allows: fix "kind" in the filter
+// error: "url" is not in every type allowed: fix "kind" in the filter
 await EventsModel.updateOne({}, { $set: { url } })
 ```
 

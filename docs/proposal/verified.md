@@ -576,7 +576,7 @@
 
 - **Reemplazo de Mongoose** (driver 6.20.0 y 7.7.0, bson 7.3.3, Zod 4.6.5, y la documentación y
   el código de Mongoose):
-  - Con el driver 6.20.0, el que usa Mongoose 8 (`mongodb ~6.20.0`), mongozod compila sin errores y
+  - Con el driver 6.20.0, el que usa Mongoose desde la 8.19 (`mongodb ~6.20.0`; la 8.18 usa `~6.18.0`, verificado en npm el 2026-10-12), mongozod compila sin errores y
     pasan los 194 tests, el build, attw, publint y el consumidor de los `.d.ts` con TS 5.5 y 7. Los
     tipos que importa del driver tienen la misma forma en los dos majors; en 6.20, `findOne` además
     acepta `limit`, `batchSize` y `noCursorTimeout`. Cada driver trae su bson: 6.10.4 el 6.20, y el

@@ -52,9 +52,9 @@ driver, como `hint`, `collation`, `comment`, `batchSize` o `maxTimeMS`, van en l
 `find`, que ya los aceptan. El de `aggregate` no encadena nada, porque las etapas van en el
 pipeline.
 
-Con `await` o `toArray()`, los plugins ven todo el resultado de una vez. Con `for await`, los
-`before` corren una vez, porque fijan la consulta, y el `middleware` y los `after` corren por cada
-lote que devuelve el servidor: hasta 101 documentos el primero y hasta 16 MiB los siguientes. Así
+Los `before` corren una vez, porque fijan la consulta, y el `middleware` y los `after` corren por
+cada lote que devuelve el servidor, también con `await` o `toArray()`, que recorren el cursor lote
+por lote: hasta 101 documentos el primero y hasta 16 MiB los siguientes. Así
 `populate` hace una consulta `$in` por referencia y por lote. Un cursor fija su sesión al crearse,
 así que para leer dentro de una transacción se pasa `session` en las opciones de `find`.
 
