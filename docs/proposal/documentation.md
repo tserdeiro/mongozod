@@ -113,8 +113,7 @@ docs y a la guía de Mongoose; el aviso de marca; «What is mongozod?», «Why n
 tabla corta, con fuentes), «Installation» (`npm install mongozod`, con los peers explicados aparte: npm y pnpm los instalan si faltan; y que la API puede cambiar en la 0.x), «Basic usage»
 (definir un modelo, leer y escribir, aceptar consultas de clientes), «Documentation» y «License».
 Los links son absolutos: el mismo archivo se muestra en la raíz de GitHub, por el symlink, y en
-`packages/mongozod` en npm, así que uno relativo apuntaría a lugares distintos. Llevan a las páginas
-en GitHub hasta que el sitio exista, y después a mongozod.dev.
+`packages/mongozod` en npm, así que uno relativo apuntaría a lugares distintos. Llevan a mongozod.dev.
 
 ## Marca
 
@@ -181,7 +180,8 @@ sigue en la fase 7 del [Roadmap](./roadmap.md).
 5. La skill de migración (hecho).
 6. `apps/website` (hecho).
 
-Queda desplegar el sitio en mongozod.dev, decidir cómo publica la versión de npm y no la de
-`main`, y sumar a los JSDoc los links a sus páginas, que apuntan al sitio.
+El sitio está en Vercel, en mongozod.dev, desde el 2026-10-12, y el README y los JSDoc llevan a sus
+páginas: cada export público tiene un `@see` a su entrada de la referencia. Queda decidir cómo
+publica la versión de npm y no la de `main`: por defecto, Vercel despliega cada push a `main`.
 
 Un cambio de la API pública actualiza su página en el mismo commit (ver `AGENTS.md`).
