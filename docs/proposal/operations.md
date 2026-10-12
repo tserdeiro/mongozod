@@ -50,7 +50,8 @@ const projected = await NotesModel.find({ organization: 'o' })
 El cursor de `find` encadena `sort`, `limit`, `skip` y `project`. Los demás modificadores del
 driver, como `hint`, `collation`, `comment`, `batchSize` o `maxTimeMS`, van en las opciones de
 `find`, que ya los aceptan. El de `aggregate` no encadena nada, porque las etapas van en el
-pipeline.
+pipeline. Su `schema` valida cada lote de forma asíncrona, como las escrituras, así un refinement
+puede ser async: con `z.parse`, uno async lanzaba el `$ZodAsyncError` de Zod (verificado).
 
 Los `before` corren una vez, porque fijan la consulta, y el `middleware` y los `after` corren por
 cada lote que devuelve el servidor, también con `await` o `toArray()`, que recorren el cursor lote

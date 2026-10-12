@@ -62,7 +62,8 @@ driver as they are.
 
 Each document the pipeline returns goes through `schema`, and the cursor gives the schema's
 output. A document that doesn't fit throws a `ZodError`: `await` rejects with it, and `for await`
-throws it when it reaches the batch of that document.
+throws it when it reaches the batch of that document. Each batch is parsed asynchronously, as the
+writes are, so the schema may have async refinements.
 
 The documents come from the server as BSON, so the schema takes BSON values: an `ObjectId` for an
 `_id`, a `Date` for a date. The [BSON field types](./bson-types.md) take them, and the document's

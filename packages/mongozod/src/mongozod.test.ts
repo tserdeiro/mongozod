@@ -257,6 +257,23 @@ describe('aggregate', () => {
     ).rejects.toBeInstanceOf(z.ZodError)
   })
 
+  test('validates with an async refinement of the schema', async () => {
+    await NotesModel.insertMany([{ title: 'One' }, { title: 'Two' }])
+
+    const titles = z.object({ title: z.string().refine(async (title) => title.length > 0) })
+
+    expect(
+      await NotesModel.aggregate([{ $project: { _id: 0, title: 1 } }, { $sort: { title: 1 } }], {
+        schema: titles
+      })
+    ).toEqual([{ title: 'One' }, { title: 'Two' }])
+    await expect(
+      NotesModel.aggregate([{ $project: { _id: 0, title: 1 } }], {
+        schema: z.object({ title: z.string().refine(async (title) => title === 'One') })
+      })
+    ).rejects.toBeInstanceOf(z.ZodError)
+  })
+
   test('returns the documents as they are without a schema', async () => {
     await NotesModel.insertOne({ title: 'One' })
 

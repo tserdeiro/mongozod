@@ -175,8 +175,9 @@ const tagCounts = await PostsModel.aggregate(
 // Array<{ _id: string; count: number }>
 ```
 
-- **`schema`**: an option that validates each document with that Zod schema and types it with its
-  output. Without it, each document is a `Document`, as the driver returns it.
+- **`schema`**: an option that validates each document with that Zod schema, asynchronously, so a
+  refinement may be async, and types it with its output. Without it, each document is a
+  `Document`, as the driver returns it.
 - The `$match` stages before the first stage that reshapes the documents are checked like a filter.
 - It computes no virtuals and takes no `populate`.
 - Plugins run only their `aggregate` hooks and their middleware: no group hook runs, and it takes

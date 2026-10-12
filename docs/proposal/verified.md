@@ -771,3 +771,5 @@
     `{ reactions: { $x: 1 } }` ya se rechazaba. Ahora un segmento con `$` que no es posicional no
     compila y lanza un `ZodError` con el mismo mensaje que en un valor, también en el destino de un
     `$rename`.
+  - `aggregate(pipeline, { schema })` validaba con `z.parse`, y un refinement async lanzaba el
+    `$ZodAsyncError` de Zod. Ahora cada lote se valida con `z.parseAsync`, como las escrituras.

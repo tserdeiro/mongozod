@@ -411,7 +411,10 @@ export function mongozod(
 
     if (!schema) return batchSource(cursor, (batch) => batch)
 
-    return batchSource(cursor, (batch) => batch.map((document) => z.parse(schema, document)))
+    // Each batch at once, asynchronously, as the writes: a refinement of the schema may be async.
+    return batchSource(cursor, (batch) =>
+      Promise.all(batch.map((document) => z.parseAsync(schema, document)))
+    )
   }
 
   function openFind(args: Document): BatchSource<Document> {
