@@ -31,7 +31,8 @@ export const NotesModel = mongozod({
   `z.instanceof(Map)` tal como se escribe. La API de Zod no dice la clase de un `z.instanceof()`: el
   chequeo la lee de un dato interno, que un clon no conserva, así que un método encadenado, como
   `.refine()`, `.describe()`, `.meta()` o `.check()`, lo oculta, igual que una subclase, un
-  `z.custom()` o un `.transform()` que devuelve un `Set` (verificado). Esos casos guardan `{}`.
+  `z.custom()` o un `.transform()` que devuelve un `Set` (verificado). Esos casos guardan `{}`, y
+  con un `Map`, un objeto con sus entradas, que la lectura devuelve como objeto.
 - **`collection`**: el nombre de la colección.
 - **`db`**: un `Db` del driver o una función que lo devuelve, que se llama en cada operación. Así el
   modelo se puede definir al importar el módulo aunque la conexión dependa del entorno, como en los
