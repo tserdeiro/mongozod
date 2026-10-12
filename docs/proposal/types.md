@@ -201,6 +201,8 @@ mensajes de error ni lo que sugiere el editor:
   definición de Zod tiene su propio `type`, así que el orden no cambia el resultado.
 - **Lo que no se usa no se arma**: `mz.filter` arma las declaraciones bajo un campo solo si declara
   `$elemMatch`, la única rama que las lee.
+- **Modificadores homomórficos**: una inclusión conserva el `?` de cada campo con un mapped type
+  homomórfico, en vez de preguntar por cada key.
 
 ## Paths con punto
 

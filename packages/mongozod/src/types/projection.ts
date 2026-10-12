@@ -188,7 +188,10 @@ type Tail<E, K extends string> = E extends [`${K}.${infer Rest}`, infer Own] ? [
 
 type LeafKind<E, K extends string> = E extends [K, infer Own] ? Own : never
 
-/** Inclusion: only the projected paths. A parent that is `null` is left out, as MongoDB does. */
+/**
+ * Inclusion: only the projected paths. A parent that is `null` is left out, as MongoDB does. The
+ * first object keeps the modifiers of `T`, so an optional field stays optional.
+ */
 type Include<T, E> =
   T extends ReadonlyArray<infer El>
     ? Include<El, E>[]
@@ -198,7 +201,7 @@ type Include<T, E> =
           {
             [
               K in keyof T as K extends Head<E>
-                ? IncludedOptional<T, K, E> extends true
+                ? BecomesOptional<T, K, E> extends true
                   ? never
                   : K
                 : never
@@ -206,7 +209,7 @@ type Include<T, E> =
           } & {
             [
               K in keyof T as K extends Head<E>
-                ? IncludedOptional<T, K, E> extends true
+                ? BecomesOptional<T, K, E> extends true
                   ? K
                   : never
                 : never
@@ -214,16 +217,14 @@ type Include<T, E> =
           }
         >
 
-type IncludedOptional<T, K extends keyof T, E> =
-  IsOptionalKey<T, K> extends true
+/** Whether the projection makes a field optional: a parent that can be `null`, or `$elemMatch`. */
+type BecomesOptional<T, K extends keyof T, E> = [LeafKind<E, K & string>] extends [never]
+  ? null extends T[K]
     ? true
-    : [LeafKind<E, K & string>] extends [never]
-      ? null extends T[K]
-        ? true
-        : false
-      : [LeafKind<E, K & string>] extends ['elemMatch']
-        ? true
-        : false
+    : false
+  : [LeafKind<E, K & string>] extends ['elemMatch']
+    ? true
+    : false
 
 type IncludeValue<V, E, K extends string> = [LeafKind<E, K>] extends [never]
   ? Include<Exclude<V, null | undefined>, Tail<E, K>>
