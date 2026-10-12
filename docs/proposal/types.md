@@ -283,7 +283,9 @@ Los tipos siguen la regla de [Tipos](#tipos). Además:
   proyección. La proyección los atraviesa, pero no toma índices.
 - **Proyección en una variable**: `const projection = { password: 0 }` tipa el `0` como `number`,
   que no compila: el error dice que se tipe `0 | 1` o se declare con `as const`, también para un
-  virtual.
+  virtual. Una con keys `string`, como un `Record<string, 0 | 1>` armado en runtime, no tiene paths
+  que chequear: el error dice que se tipe con el `Document` del driver, que compila y deja opcional
+  cada campo del resultado. Antes aconsejaba `0 | 1`, que daba otro error.
 - **Subproyección vacía**: `{ meta: {} }` no compila, porque MongoDB la rechaza con el código 51270
   (verificado). Su tipo es la unión del mensaje, `"meta" takes a field inside: an empty
   sub-projection fails`, y de un objeto con cada campo de adentro, así que el editor sugiere `at` y

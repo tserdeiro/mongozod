@@ -147,6 +147,12 @@ type Changed<E, N extends string> = E extends [infer Path extends string, infer 
 type NumberProblem<K extends string> =
   `"${K}" is a number: a projection takes 0 or 1, so type it as 0 | 1 or declare it with as const`
 
+/**
+ * A projection with `string` keys, such as a `Record<string, 0 | 1>` built at runtime, whose paths
+ * the types cannot check: the driver's `Document` takes it, leaving every field optional.
+ */
+type StringKeysProblem = "a projection with string keys takes the driver's Document type"
+
 /** A virtual takes 0, 1, `true` or `false`, and computes from the fields as they are stored. */
 type VirtualCheck<K extends string, Value, E, N extends string> = [Value] extends [0 | 1 | boolean]
   ? Mixes<K, [Value] extends [0 | false] ? 'exclude' : 'include', E> extends true
@@ -191,27 +197,29 @@ type EmptyProblem<S, Path extends string> =
 
 type Check<S, P, E, Prefix extends string, V = None> = {
   [K in keyof P]: K extends string
-    ? K extends keyof V
-      ? VirtualCheck<K, Exclude<P[K], undefined>, E, NeedsOf<V[K]>>
-      : Exclude<P[K], undefined> extends 0 | 1 | boolean
-        ? ValueCheck<S, `${Prefix}${K}`, Exclude<P[K], undefined>, E>
-        : [P[K]] extends [number]
-          ? NumberProblem<`${Prefix}${K}`>
-          : P[K] extends { $slice: unknown }
-            ? SliceCheck<S, `${Prefix}${K}`, E>
-            : P[K] extends { $elemMatch: infer C }
-              ? ElemMatchCheck<S, `${Prefix}${K}`, C, E>
-              : P[K] extends { $meta: unknown }
-                ? `${Prefix}${K}` extends `${string}.${string}`
-                  ? `"${Prefix}${K}": $meta takes a top-level field`
-                  : { $meta: 'textScore' }
-                : IsAny<P[K]> extends true
-                  ? P[K]
-                  : P[K] extends object
-                    ? P[K] extends Record<string, never>
-                      ? EmptyProblem<S, `${Prefix}${K}`>
-                      : Check<S, P[K], E, `${Prefix}${K}.`>
-                    : `"${Prefix}${K}" takes 0, 1, true, false, $slice, $elemMatch or $meta`
+    ? string extends K
+      ? StringKeysProblem
+      : K extends keyof V
+        ? VirtualCheck<K, Exclude<P[K], undefined>, E, NeedsOf<V[K]>>
+        : Exclude<P[K], undefined> extends 0 | 1 | boolean
+          ? ValueCheck<S, `${Prefix}${K}`, Exclude<P[K], undefined>, E>
+          : [P[K]] extends [number]
+            ? NumberProblem<`${Prefix}${K}`>
+            : P[K] extends { $slice: unknown }
+              ? SliceCheck<S, `${Prefix}${K}`, E>
+              : P[K] extends { $elemMatch: infer C }
+                ? ElemMatchCheck<S, `${Prefix}${K}`, C, E>
+                : P[K] extends { $meta: unknown }
+                  ? `${Prefix}${K}` extends `${string}.${string}`
+                    ? `"${Prefix}${K}": $meta takes a top-level field`
+                    : { $meta: 'textScore' }
+                  : IsAny<P[K]> extends true
+                    ? P[K]
+                    : P[K] extends object
+                      ? P[K] extends Record<string, never>
+                        ? EmptyProblem<S, `${Prefix}${K}`>
+                        : Check<S, P[K], E, `${Prefix}${K}.`>
+                      : `"${Prefix}${K}" takes 0, 1, true, false, $slice, $elemMatch or $meta`
     : never
 }
 

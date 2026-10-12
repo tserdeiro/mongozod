@@ -349,6 +349,11 @@ describe('the cursor and the other operations', () => {
     expect(result).toEqual({ plugin: 'google-ads' })
     expectTypeOf(result).toEqualTypeOf<Partial<Plugin> | null>()
 
+    // Its keys cannot be checked: a projection with string keys is told to take that type.
+    expectTypeOf<ProjectionCheck<typeof pluginSchema, Record<string, 0 | 1>>>().toEqualTypeOf<
+      Record<string, "a projection with string keys takes the driver's Document type">
+    >()
+
     // A value of the driver's Document, or of JSON.parse, says nothing about inclusion.
     const parsed = JSON.parse('1')
     const mixed = await PluginsModel.findOne(
