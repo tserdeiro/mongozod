@@ -290,7 +290,10 @@ Los tipos siguen la regla de [Tipos](#tipos). Además:
   que no compila: el error dice que se tipe `0 | 1` o se declare con `as const`, también para un
   virtual. Una con keys `string`, como un `Record<string, 0 | 1>` armado en runtime, no tiene paths
   que chequear: el error dice que se tipe con el `Document` del driver, que compila y deja opcional
-  cada campo del resultado. Antes aconsejaba `0 | 1`, que daba otro error.
+  cada campo del resultado. Antes aconsejaba `0 | 1`, que daba otro error. En la proyección de
+  `populate` el error no muestra el mensaje: el tipo que espera es una unión, cuyo error TypeScript
+  no elabora, y dar el mensaje para todo el objeto vuelve circular la restricción de la proyección
+  (TS2313). Queda para la fase 7 del [roadmap](./roadmap.md).
 - **Subproyección vacía**: `{ meta: {} }` no compila, porque MongoDB la rechaza con el código 51270
   (verificado). Su tipo es la unión del mensaje, `"meta" takes a field inside: an empty
   sub-projection fails`, y de un objeto con cada campo de adentro, así que el editor sugiere `at` y
