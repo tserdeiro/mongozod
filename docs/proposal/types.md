@@ -224,6 +224,10 @@ mensajes de mongozod ni lo que sugiere el editor:
   homomórfico, en vez de preguntar por cada key.
 - **Sin `timestamps`, sin chequeo**: `TimestampsCheck` no busca los campos cuando la opción está
   apagada.
+- **TypeScript 7 y 5.5**: en el proyecto típico, TypeScript 7 instancia menos que 5.5, pero en
+  algunos usos instancia más, como los bloques de CRUD y de usos raros de los
+  [50 casos de uso](../audits/use-cases.md) (143.000 contra 109.000). El tiempo de chequeo igual es
+  bajo; se vuelve a medir con la próxima versión de TypeScript 7.
 - **Lecturas que no llevan a los schemas ni a los modelos**: un método de array que infiere, como
   `.map()` o `.find()`, recorre el tipo de cada documento: los argumentos de sus alias y lo que los
   valores de sus mapped types todavía dependen de la key. Si llega a un schema de Zod o a un modelo,

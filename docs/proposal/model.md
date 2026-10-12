@@ -85,7 +85,9 @@ objeto por campo. Está apagada por defecto.
 - **Inserts y reemplazos**: como Mongoose, `createdAt` es el que viene o «ahora»; adsgpt guarda en
   `brands` la fecha de la fuente. `updatedAt` es el que viene o el valor de `createdAt`, así un
   documento sin cambios tiene las dos iguales y nada se descarta en silencio. «Ahora» es un
-  `new Date()` por operación: todos los documentos de un `insertMany` tienen la misma fecha.
+  `new Date()` por operación: todos los documentos de un `insertMany` tienen la misma fecha. Por eso
+  un reemplazo sin `createdAt` lo pisa con «ahora», como en Mongoose: el JSDoc de `replaceOne` y
+  `findOneAndReplace` dice que se pase el del documento para conservarlo.
 - **Updates**: `updatedAt` va en `$set` y, en un upsert, `createdAt` va en `$setOnInsert`, como en
   Mongoose. En un upsert, `updatedAt` es la fecha de la escritura, porque `$set` y `$setOnInsert` no
   pueden escribir el mismo campo. Un [pipeline](./types.md#updates) recibe una última etapa `$set`

@@ -389,6 +389,9 @@ export interface Model<
    * Runs an aggregation pipeline. With `schema`, each document is validated with it and typed by
    * it; without it, documents are returned as the driver returns them. The `$match` stages before
    * the first stage that reshapes the documents are checked like a filter.
+   *
+   * The group hooks of the plugins do not run on it, and it takes no `context`: a plugin that
+   * isolates a tenant or hides deleted documents does not apply, so the pipeline filters them.
    */
   'aggregate'<const P extends PipelineCheck<S, P>, R extends core.$ZodType>(
     pipeline: P,
@@ -399,7 +402,11 @@ export interface Model<
     options?: AggregateOptions & Abortable
   ): ModelCursor<Document>
 
-  /** Runs several writes in one command. Inserts and replacements are validated like `insertOne`. */
+  /**
+   * Runs several writes in one command. Inserts and replacements are validated like `insertOne`,
+   * every operation before writing: with `ordered: false` too, one that Zod rejects rejects the
+   * whole batch, and only the server's errors let the others through.
+   */
   'bulkWrite'<
     const Operations extends ReadonlyArray<Document> &
       BulkWriteCheck<S, Operations, N, BulkOptions, PluginFills<PL>>,
@@ -444,7 +451,8 @@ export interface Model<
    * and asks for virtuals like for fields. `populate` replaces each reference with its document,
    * with one `$in` query per reference and per batch: `null` when it is missing. The filter is
    * checked by its types only, as the driver's, without casting: one that arrives without types,
-   * such as a client's, goes through `mz.filter` first.
+   * such as a client's, goes through `mz.filter` first. `ReadOf` types what it returns, with the
+   * same `projection` and `populate`, for a service or a response.
    *
    * @example
    *   await TransactionsModel.find({}, { populate: { createdBy: { projection: { fullName: 1 } } } })
@@ -459,7 +467,10 @@ export interface Model<
     ...options: OptionsArg<PL, 'read', ReadOptions<S, FindOptions, Sort, P, V, R, Pop> & Abortable>
   ): ModelFindCursor<ReadDocument<FoundSchema<S, F>, V, R, P, Pop>, S, V, R, Pop, FoundSchema<S, F>>
 
-  /** Finds the first document that matches the filter. */
+  /**
+   * Finds the first document that matches the filter. `ReadOf` types what it returns, as for
+   * `find`.
+   */
   'findOne'<
     const F extends FilterCheck<S, F>,
     const Sort extends SortCheck<S, Sort>,
@@ -503,7 +514,11 @@ export interface Model<
     >
   ): Promise<ReadDocument<S, V, R, P, Pop> | null>
 
-  /** Replaces the first document that matches the filter, validated like `replaceOne`. */
+  /**
+   * Replaces the first document that matches the filter, validated like `replaceOne`. With
+   * `timestamps`, `createdAt` is now unless the replacement gives it, as in Mongoose: pass the one
+   * of the document to keep it.
+   */
   'findOneAndReplace'<
     const F extends FilterCheck<S, F>,
     const Sort extends SortCheck<S, Sort>,
@@ -537,7 +552,10 @@ export interface Model<
     >
   ): Promise<ReadDocument<S, V, R, P, Pop> | null>
 
-  /** Updates the first document that matches the filter and returns it. */
+  /**
+   * Updates the first document that matches the filter and returns it. Validated like
+   * `updateOne`.
+   */
   'findOneAndUpdate'<
     const F extends FilterCheck<S, F>,
     const U extends UpdateCheck<S, U, F, O, N>,
@@ -574,7 +592,9 @@ export interface Model<
 
   /**
    * Validates the documents with the schema and inserts them. Returns the driver's result plus the
-   * stored `documents`, with their defaults and transforms applied.
+   * stored `documents`, with their defaults and transforms applied. Every document is validated
+   * before writing: with `ordered: false` too, one that Zod rejects rejects the whole batch, and
+   * only the server's errors, such as a duplicate key, let the others through.
    */
   'insertMany'<T extends false | undefined = false | undefined>(
     documents: ReadonlyArray<TimestampedInput<S, N, T, PluginFills<PL>>>,
@@ -593,7 +613,8 @@ export interface Model<
   /**
    * Replaces the first document that matches the filter. The replacement is validated like an
    * insert, and its `_id` is written only when given: the one a `.default()` generates is dropped,
-   * because the `_id` of a document cannot change.
+   * because the `_id` of a document cannot change. With `timestamps`, `createdAt` is now unless the
+   * replacement gives it, as in Mongoose: pass the one of the document to keep it.
    */
   'replaceOne'<
     const F extends FilterCheck<S, F>,
@@ -617,7 +638,12 @@ export interface Model<
    */
   'sync'(): Promise<SyncResult>
 
-  /** Updates every document that matches the filter. */
+  /**
+   * Updates every document that matches the filter. Each value is validated with the schema of its
+   * path. The refinements of the whole document, such as one that compares two fields, run on
+   * inserts and replacements only, as in Mongoose: to check them, read the document and
+   * `replaceOne` it.
+   */
   'updateMany'<
     const F extends FilterCheck<S, F>,
     const U extends UpdateCheck<S, U, F, O, N>,
@@ -630,7 +656,12 @@ export interface Model<
     ...options: OptionsArg<PL, 'update', O>
   ): Promise<UpdateResult<Output<S>>>
 
-  /** Updates the first document that matches the filter. */
+  /**
+   * Updates the first document that matches the filter. Each value is validated with the schema of
+   * its path. The refinements of the whole document, such as one that compares two fields, run on
+   * inserts and replacements only, as in Mongoose: to check them, read the document and
+   * `replaceOne` it.
+   */
   'updateOne'<
     const F extends FilterCheck<S, F>,
     const U extends UpdateCheck<S, U, F, O, N>,

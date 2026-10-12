@@ -69,7 +69,14 @@ Los inserts son la única diferencia, y no rompen el código escrito para el dri
 
 `insertMany` y `bulkWrite` validan todo el lote antes de escribir: si un documento o una operación
 falla, no escriben nada y lanzan un solo `ZodError` con los issues de todos los que fallan, cada uno
-bajo su índice, como `[1, 'title']` o `[1, '$set', 'title']`.
+bajo su índice, como `[1, 'title']` o `[1, '$set', 'title']`. También con `ordered: false`, que solo
+deja pasar los demás ante los errores del servidor, como una clave duplicada: Mongoose, en cambio,
+inserta los válidos. Lo dice su JSDoc.
+
+Un update valida cada valor con el schema de su path. Los refinements del documento entero, como uno
+que compara dos campos, corren solo en los inserts y los reemplazos, como en Mongoose: un update no
+tiene el documento. Para chequearlos se lee el documento y se lo reemplaza con `replaceOne`. Lo dice
+el JSDoc de `updateOne`, `updateMany` y `findOneAndUpdate`.
 
 `replaceOne` y `findOneAndReplace` validan el reemplazo como un insert: reciben el `z.input` del
 schema y aplican sus defaults, transforms y refinements, también los de la raíz. El `_id` se escribe

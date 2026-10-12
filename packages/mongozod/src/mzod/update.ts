@@ -161,7 +161,8 @@ function valueOf(schema: core.$ZodType, operator: string, path: string): core.$Z
  * included, and a default is never filled in: an update of one field does not reset the others.
  * `$unset` only takes optional fields, and `$inc` numbers or a `Decimal128`, which takes what its
  * schema parses, such as the string of an amount. An update without operators fails, as
- * in the driver; `undefined` keys are dropped.
+ * in the driver; `undefined` keys are dropped. The fields of `timestamps` are not declared: the
+ * model sets them, and its update rejects them.
  *
  * @example
  *   update: mz.update(noteSchema, {

@@ -143,7 +143,10 @@ operaciones que tienen filtro:
 | `bulk`   | `bulkWrite`                                                                      |
 
 `aggregate` y `estimatedDocumentCount` no tienen filtro ni grupo: solo sus hooks propios y el
-`middleware`. Así, [`softDelete`](./soft-delete.md) no los toca, como ya está decidido.
+`middleware`. Así, [`softDelete`](./soft-delete.md) no los toca, como ya está decidido. Tampoco
+reciben `context`. Es un riesgo de seguridad que el JSDoc de `aggregate` dice: un plugin
+multi-tenant no aísla un pipeline, y un `$group` o un `$lookup` cuentan los documentos borrados, así
+que el pipeline los filtra en su `$match`.
 
 Un `before` ve la llamada como se escribió, antes de que el núcleo valide, complete los
 [timestamps](../model.md#timestamps) o planee los virtuals y `populate`: así un plugin puede
