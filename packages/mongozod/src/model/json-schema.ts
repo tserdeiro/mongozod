@@ -133,19 +133,23 @@ function describe(schema: core.$ZodType, seen: ReadonlySet<core.$ZodType>): Docu
   }
 
   if (schema instanceof core.$ZodObject) {
+    // A recursive schema with getters, as Zod 4 writes it, leads back to the same object.
+    if (seen.has(schema)) return ANY
+
+    const inner = new Set([...seen, schema])
     const { catchall, shape } = schema._zod.def
     const fields = Object.entries(shape)
     const required = fields.filter(([, field]) => field._zod.optout !== 'optional')
     const object: Document = {
       bsonType: 'object',
-      properties: Object.fromEntries(fields.map(([key, field]) => [key, walk(field, seen)]))
+      properties: Object.fromEntries(fields.map(([key, field]) => [key, walk(field, inner)]))
     }
 
     if (required.length > 0) object.required = required.map(([key]) => key)
 
     // A `z.strictObject` has a never catchall and a `z.looseObject` an unknown one. A plain
     // `z.object` drops the keys it does not declare, but the stored documents may have them.
-    const extra = catchall && walk(catchall, seen)
+    const extra = catchall && walk(catchall, inner)
 
     if (catchall instanceof core.$ZodNever) object.additionalProperties = false
     else if (extra && !isAny(extra)) object.additionalProperties = extra

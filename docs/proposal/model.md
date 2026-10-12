@@ -144,7 +144,8 @@ const { extraIndexes } = await PluginsModel.sync()
   cada campo, los obligatorios, objetos y arrays anidados, enums y literales, `null` y las uniones
   con `anyOf`. Sigue la salida del schema, que es lo que se guarda: el final de un pipe o de un
   codec. Los refinements quedan en la app; los transforms, `z.custom`, `z.unknown` y los schemas
-  recursivos, sin regla, porque MongoDB no tiene `$ref`.
+  recursivos, sin regla, porque MongoDB no tiene `$ref`: el campo por el que el schema vuelve a sí
+  mismo, con `z.lazy` o con un getter, como recomienda Zod 4, no tiene regla.
 - **Tipos BSON declarados**: un campo que Zod no describe declara su tipo con la API de metadata de
   Zod, `.meta({ bsonType })` o `z.meta()` en Zod Mini, como
   `z.instanceof(Decimal128).meta({ bsonType: 'decimal' })`. Ese tipo reemplaza al que infiere

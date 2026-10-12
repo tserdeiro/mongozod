@@ -95,8 +95,16 @@ describe('toJsonSchema', () => {
       children: z.array(z.lazy(() => categorySchema)),
       name: z.string()
     })
+    // The recursion of Zod 4, with a getter.
+    const commentSchema = z.object({
+      get replies() {
+        return z.array(commentSchema)
+      },
+      text: z.string()
+    })
     const schema = z.object({
       category: categorySchema,
+      comment: commentSchema,
       createdAt: z.union([z.date(), z.iso.datetime().transform((value) => new Date(value))]),
       extra: z.unknown(),
       id: z.custom<string>((value) => typeof value === 'string'),
@@ -110,13 +118,11 @@ describe('toJsonSchema', () => {
     expect(properties.extra).toEqual({})
     expect(properties.id).toEqual({})
     expect(properties.title).toEqual({})
-    expect(properties.category.properties.children).toEqual({
-      bsonType: 'array',
-      items: {
-        bsonType: 'object',
-        properties: { children: { bsonType: 'array' }, name: { bsonType: 'string' } },
-        required: ['children', 'name']
-      }
+    expect(properties.category.properties.children).toEqual({ bsonType: 'array' })
+    expect(properties.comment).toEqual({
+      bsonType: 'object',
+      properties: { replies: { bsonType: 'array' }, text: { bsonType: 'string' } },
+      required: ['replies', 'text']
     })
     expect(properties.json.anyOf).toContainEqual({ bsonType: 'string' })
   })
