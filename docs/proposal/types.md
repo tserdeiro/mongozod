@@ -199,6 +199,8 @@ mensajes de error ni lo que sugiere el editor:
   proyecciones comparten el mismo recorrido del schema.
 - **Objetos primero**: `Step` prueba primero si el schema es un objeto, el paso más común. Cada
   definición de Zod tiene su propio `type`, así que el orden no cambia el resultado.
+- **Lo que no se usa no se arma**: `mz.filter` arma las declaraciones bajo un campo solo si declara
+  `$elemMatch`, la única rama que las lee.
 
 ## Paths con punto
 

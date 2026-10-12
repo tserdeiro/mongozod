@@ -164,12 +164,15 @@ type Condition<T, Ops, Sub, D extends Side> =
   | ('$eq' extends Ops ? Equal<ValueOf<T, D>> : never)
   | Operators<T, Ops, Sub, D>
 
-/** A filter with the declared fields, on one side. */
+/**
+ * A filter with the declared fields, on one side. Only `$elemMatch` reads the declarations under a
+ * field, so the others skip them.
+ */
 export type FilterShape<S, F, D extends Side> = {
   [K in keyof F & string]?: Condition<
     SchemaAt<S, K, 'filter'>,
     DeclaredOperators<F[K]>,
-    Under<F, K>,
+    '$elemMatch' extends DeclaredOperators<F[K]> ? Under<F, K> : never,
     D
   >
 }
