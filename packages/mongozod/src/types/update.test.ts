@@ -131,6 +131,18 @@ function updateLabels<
   return value
 }
 
+test('the _id is written only with $setOnInsert: the server rejects a change of it', () => {
+  update({}, { $setOnInsert: { _id: crypto.randomUUID() } }, { upsert: true })
+
+  // @ts-expect-error the _id is immutable
+  update({}, { $set: { _id: crypto.randomUUID() } })
+  // @ts-expect-error the _id is immutable
+  update({}, { $unset: { _id: '' } })
+  // @ts-expect-error the _id is immutable
+  update({}, { $rename: { nickname: '_id' } })
+  expect(true).toBe(true)
+})
+
 test('$unset and $rename take a key a record or a catchall may lack', () => {
   updateLabels({}, { $rename: { 'labels.old': 'labels.new' } })
   updateLabels({}, { $unset: { 'labels.home': '', 'limits.low': '', 'meta.extra': '' } })

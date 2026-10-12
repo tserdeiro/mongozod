@@ -174,6 +174,33 @@ describe('operators', () => {
     ])
   })
 
+  test('write the _id only with $setOnInsert: the server rejects a change of it', async () => {
+    const message = 'the _id is immutable: an upsert sets it with $setOnInsert'
+    const id = crypto.randomUUID()
+
+    expect(
+      await issuesOf(() =>
+        parseUpdate(
+          pluginSchema,
+          {},
+          { $rename: { nickname: '_id' }, $set: { _id: id }, $unset: { _id: '' } }
+        )
+      )
+    ).toEqual([
+      ['$rename nickname', message],
+      ['$set _id', message],
+      ['$unset _id', message]
+    ])
+    expect(
+      await parseUpdate(
+        pluginSchema,
+        { title: 'x' },
+        { $setOnInsert: { _id: id, createdAt: new Date(0) } },
+        { upsert: true }
+      )
+    ).toMatchObject({ $setOnInsert: { _id: id } })
+  })
+
   test('$unset and $rename take a key a record or a catchall may lack', async () => {
     const schema = z.object({
       labels: z.record(z.string(), z.string()),

@@ -26,17 +26,19 @@ type IsNumber<T> =
 type IsDecimal<T> = NonNullable<core.output<T>> extends { _bsontype: 'Decimal128' } ? true : false
 
 type UpdatePathCheck<S, Op, P> = P extends string
-  ? [OutsideArraysProblem<S, P, 'mz.update'>] extends [never]
-    ? Op extends '$unset'
-      ? IsOptional<SchemaAt<S, P, 'update'>> extends true
-        ? P
-        : `"${P}" is required, so it cannot be unset`
-      : Op extends '$inc'
-        ? IsNumber<SchemaAt<S, P, 'update'>> extends true
+  ? P extends '_id' | `_id.${string}`
+    ? 'the _id is immutable'
+    : [OutsideArraysProblem<S, P, 'mz.update'>] extends [never]
+      ? Op extends '$unset'
+        ? IsOptional<SchemaAt<S, P, 'update'>> extends true
           ? P
-          : `"${P}" is not a number`
-        : P
-    : OutsideArraysProblem<S, P, 'mz.update'>
+          : `"${P}" is required, so it cannot be unset`
+        : Op extends '$inc'
+          ? IsNumber<SchemaAt<S, P, 'update'>> extends true
+            ? P
+            : `"${P}" is not a number`
+          : P
+      : OutsideArraysProblem<S, P, 'mz.update'>
   : never
 
 /**
@@ -74,7 +76,10 @@ export type UpdateFieldsCheck<S, U> = {
     : `"${Op & string}" is not an operator of mz.update: use $set, $unset or $inc`
 }
 
-type UpdatePath<S> = Exclude<PathSuggestions<S, 'update'>, `$${string}` | `${string}.$${string}`>
+type UpdatePath<S> = Exclude<
+  PathSuggestions<S, 'update'>,
+  `$${string}` | `${string}.$${string}` | '_id' | `_id.${string}`
+>
 
 type PathsWhere<S, Is extends 'number' | 'optional'> = {
   [P in UpdatePath<S>]: (
@@ -120,6 +125,8 @@ export type UpdateShape<S, U, D extends Side> = {
 }
 
 function valueOf(schema: core.$ZodType, operator: string, path: string): core.$ZodType {
+  if (path === '_id' || path.startsWith('_id.')) throw new Error('mz.update: the _id is immutable')
+
   const targets = schemasOutsideArrays(schema, path, 'mz.update')
 
   switch (operator) {

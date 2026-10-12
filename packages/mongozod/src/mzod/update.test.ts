@@ -123,6 +123,10 @@ describe('the declarations', () => {
     expect(() => update(noteSchema, { $push: ['items'] })).toThrow(
       'mz.update: "$push" is not an operator of mz.update: use $set, $unset or $inc'
     )
+    // @ts-expect-error the server rejects a change of the _id
+    expect(() => update(noteSchema, { $set: ['_id', 'title'] })).toThrow(
+      'mz.update: the _id is immutable'
+    )
   })
 
   test('a path never names an element of an array: the router builds those', () => {

@@ -51,6 +51,9 @@ export interface ParseUpdateOptions {
   upsert?: boolean
 }
 
+/** A path of the `_id`, which only `$setOnInsert` writes: the server rejects a change (66). */
+const ID_PATH = /^_id(?:\.|$)/
+
 type FieldResult = { issues: core.$ZodIssue[] } | { value: unknown }
 
 function fail(path: PropertyKey[], message: string, input: unknown): FieldResult {
@@ -135,6 +138,12 @@ async function parseField(
   context: UpdateContext
 ): Promise<FieldResult> {
   const at = [operator, path]
+  const renamesToId = operator === '$rename' && typeof value === 'string' && ID_PATH.test(value)
+
+  if (operator !== '$setOnInsert' && (ID_PATH.test(path) || renamesToId)) {
+    return fail(at, 'the _id is immutable: an upsert sets it with $setOnInsert', value)
+  }
+
   const resolved = resolveUpdatePath(schema, path, context)
 
   if (resolved.kind === 'error') return fail(at, resolved.message, value)

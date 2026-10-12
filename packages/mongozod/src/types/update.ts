@@ -389,16 +389,27 @@ type FieldOperator =
 
 type ArrayFiltersOf<O> = O extends { arrayFilters: infer AF } ? AF : never
 
+/** The paths of the `_id`, which only `$setOnInsert` writes: the server rejects a change (66). */
+type IdPath = '_id' | `_id.${string}`
+
+type IdProblem = 'the _id is immutable: an upsert sets it with $setOnInsert'
+
 type OperatorCheck<S, Op, Fields, F, AF, Locked> = {
   [K in keyof Fields]: K extends string
     ? K extends Locked
       ? `"${K}" is set by timestamps: pass timestamps: false to write it`
-      : Op extends '$rename'
-        ? // `$rename` also writes the path it moves the value to.
-          Fields[K] extends Locked
-          ? `"${Fields[K] & string}" is set by timestamps: pass timestamps: false to write it`
+      : K extends IdPath
+        ? Op extends '$setOnInsert'
+          ? PathCheck<S, Op, K, Fields[K], F, AF>
+          : IdProblem
+        : Op extends '$rename'
+          ? // `$rename` also writes the path it moves the value to.
+            Fields[K] extends Locked
+            ? `"${Fields[K] & string}" is set by timestamps: pass timestamps: false to write it`
+            : Fields[K] extends IdPath
+              ? IdProblem
+              : PathCheck<S, Op, K, Fields[K], F, AF>
           : PathCheck<S, Op, K, Fields[K], F, AF>
-        : PathCheck<S, Op, K, Fields[K], F, AF>
     : never
 }
 
@@ -430,9 +441,14 @@ export type UpdateCheck<S, U, F, O, N extends TimestampNames = NoTimestamps> = {
       : `"${Op & string}" is not an update operator`
 }
 
-/** The paths the editor suggests under each operator. The checks come from `UpdateCheck`. */
+/**
+ * The paths the editor suggests under each operator, with the `_id` only under `$setOnInsert`. The
+ * checks come from `UpdateCheck`.
+ */
 export type SuggestedUpdate<S> = {
-  [Op in FieldOperator]?: { [K in PathSuggestions<S, 'update'>]?: unknown }
+  [Op in FieldOperator]?: Op extends '$setOnInsert'
+    ? { [K in PathSuggestions<S, 'update'>]?: unknown }
+    : { [K in Exclude<PathSuggestions<S, 'update'>, IdPath>]?: unknown }
 }
 
 /**
