@@ -12,6 +12,9 @@ export type PathSuggestions<S, M extends PathMode> = Suggestions<
   M extends 'update' ? 'update' : 'filter'
 >
 
+/** A path with the positional `$`, which MongoDB takes once in a path. */
+type Positional = '$' | `$.${string}` | `${string}.$` | `${string}.$.${string}`
+
 type Suggestions<S, M extends PathMode, D extends unknown[] = []> = D['length'] extends 6
   ? never
   : Def<S> extends infer X
@@ -22,7 +25,7 @@ type Suggestions<S, M extends PathMode, D extends unknown[] = []> = D['length'] 
       : X extends { element: infer E; type: 'array' }
         ? M extends 'update'
           ? Suggestions<E, M, [...D, 1]> extends infer Sub extends string
-            ? '$' | '$[]' | `$.${Sub}` | `$[].${Sub}`
+            ? '$' | '$[]' | `$.${Exclude<Sub, Positional>}` | `$[].${Sub}`
             : never
           : Suggestions<E, M, D>
         : X extends { innerType: infer I; type: Wrapper }

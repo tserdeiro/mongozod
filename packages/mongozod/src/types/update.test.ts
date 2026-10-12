@@ -1,7 +1,8 @@
 import type { ModelFilter } from './filter'
+import type { PathSuggestions } from './path-suggestions'
 import type { UpdateOptionsCheck, ModelUpdate } from './update'
 
-import { expect, test } from 'vitest'
+import { expect, expectTypeOf, test } from 'vitest'
 import { z } from 'zod'
 
 const accountSchema = z.object({
@@ -334,4 +335,24 @@ test('an arrayFilters entry fixes the type of an element', () => {
     { arrayFilters: [{ 'c._id': 'c' }, { 'a._id': 'a' }] }
   )
   expect(true).toBe(true)
+})
+
+test('suggests the positional $ once in a path, as MongoDB takes it', () => {
+  const orderSchema = z.object({
+    items: z.array(z.object({ qty: z.number(), tags: z.array(z.string()) }))
+  })
+
+  expectTypeOf<
+    Extract<PathSuggestions<typeof orderSchema, 'update'>, `items.$${string}`>
+  >().toEqualTypeOf<
+    | 'items.$'
+    | 'items.$.qty'
+    | 'items.$.tags'
+    | 'items.$.tags.$[]'
+    | 'items.$[]'
+    | 'items.$[].qty'
+    | 'items.$[].tags'
+    | 'items.$[].tags.$'
+    | 'items.$[].tags.$[]'
+  >()
 })

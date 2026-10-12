@@ -1,5 +1,5 @@
 ---
-'mongozod': patch
+'mongozod': minor
 ---
 
 The editor suggests the positional paths of an update, such as `items.$.qty`, besides
