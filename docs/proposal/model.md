@@ -137,9 +137,10 @@ const { extraIndexes } = await PluginsModel.sync()
   o un comodín (`$**`, `path.$**`), con los valores del driver: 1, -1, `'text'`, `'2dsphere'`… El
   `partialFilterExpression` se chequea como el filtro del modelo; el servidor rechaza los operadores
   que no acepta un índice parcial, como `$ne` (código 67). Las keys de los `weights` de un índice de
-  texto también son paths, con el editor sugiriéndolos, y un índice sin claves, `index({})`, no
-  compila. En runtime, una clave o un peso que no es un path, o un índice sin claves, lanza un
-  `Error` al definir el modelo. `expireAfterSeconds` en un campo que no es fecha sigue sin
+  texto también son paths, con el editor sugiriéndolos. En runtime, una clave o un peso que no es un
+  path, o un índice sin claves, `index({})`, lanza un `Error` al definir el modelo. El índice sin
+  claves no se rechaza en los tipos: el problema aparecería entre las keys que sugiere el editor
+  mientras se escribe cualquier índice. `expireAfterSeconds` en un campo que no es fecha sigue sin
   chequearse: MongoDB lo acepta y no borra nada.
 - **Nunca borra un índice**, a diferencia del `syncIndexes()` de Mongoose. Uno existente que difiere
   del declarado falla con el error del servidor, que lo nombra: 85 con la misma clave y otro nombre,

@@ -35,14 +35,6 @@ type WeightsCheck<S, W> = {
       : never
 }
 
-/**
- * When the key is empty, a property named after the problem, which the key lacks, so that the error
- * shows it: a check in a generic's constraint cannot be conditional on it.
- */
-type NotEmpty<K> = [keyof K] extends [never]
-  ? { 'an index takes at least one key': never }
-  : unknown
-
 /** The keys the editor suggests in an index. The checks come from `IndexKeyCheck`. */
 type SuggestedIndexKey<S> = {
   [P in PathSuggestions<S, 'filter'> | '_id' | '$**']?: IndexDirection
@@ -54,14 +46,16 @@ type IndexOptions = Omit<IndexDescription, 'key'>
 /**
  * Declares an index, like the driver's `createIndex(key, options)` and Mongoose's
  * `schema.index(fields, options)`: each key is a path of the document, and
- * `partialFilterExpression` is checked like a filter. Returns the driver's `IndexDescription`.
+ * `partialFilterExpression` is checked like a filter. Returns the driver's `IndexDescription`. An
+ * index without keys throws an `Error` when the model is defined: rejecting it in the types would
+ * put the problem among the keys the editor suggests.
  */
 export type IndexFunction<S> = <
   const K extends IndexKeyCheck<S, K>,
   const F extends FilterCheck<S, F>,
   const W extends WeightsCheck<S, W>
 >(
-  key: K & SuggestedIndexKey<S> & NotEmpty<K>,
+  key: K & SuggestedIndexKey<S>,
   options?: Omit<IndexOptions, 'partialFilterExpression' | 'weights'> & {
     partialFilterExpression?: F & SuggestedFilter<S>
     weights?: W & { [P in PathSuggestions<S, 'filter'> | '$**']?: number }

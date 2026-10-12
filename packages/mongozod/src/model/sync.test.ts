@@ -126,7 +126,6 @@ describe('indexes', () => {
       mongozod({
         collection: 'notes',
         db,
-        // @ts-expect-error an index takes at least one key
         indexes: (index) => [index({})],
         schema: noteSchema
       })
