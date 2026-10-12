@@ -289,9 +289,9 @@ plugins definen el mismo método, o uno se llama como un miembro del modelo, com
   lo reenvía a las lecturas de los modelos de destino.
 - **Opciones**: los hooks ven las opciones de los plugins ya validadas, con sus defaults y
   transforms, y el núcleo las quita antes de llamar al driver. Una opción de plugin que se llama
-  como una del driver, de mongozod (`context`, `populate`, `schema`, `timestamps`) o de otro plugin
-  no compila. En runtime, `mongozod()` lanza un `Error` por las de mongozod y de otros plugins: los
-  nombres de las opciones del driver solo existen en sus tipos.
+  como una del driver, de mongozod (`context`, `populate`, `schema`, `timestamps`,
+  `updatePipeline`) o de otro plugin no compila. En runtime, `mongozod()` lanza un `Error` por las
+  de mongozod y de otros plugins: los nombres de las opciones del driver solo existen en sus tipos.
 - **Cursores**: `find` y `aggregate` arrancan en la primera lectura, así sus `before` ven los
   modificadores del cursor (`sort`, `limit`, `skip`, `project`). Después, un modificador lanza un
   `Error`, como en el driver. Una proyección o un `populate` inválidos fallan al leer el cursor, no
