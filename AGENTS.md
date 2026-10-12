@@ -36,6 +36,7 @@ The [tooling](docs/proposal/structure.md#herramientas) runs from the root with p
   cost on purpose raises the budget in the same commit.
 - `pnpm check-docs` builds the package and compiles the TypeScript examples of the README and of
   `packages/docs` against its declarations.
+- `pnpm --filter website dev` runs the site, `apps/website`, which `pnpm build` also builds.
 - `pnpm lint` and `pnpm format` run oxlint and oxfmt over the whole repo.
 - Tests get a MongoDB 8.2 replica set from `inject('mongoUri')`.
 - A change to the published package adds a changeset with `pnpm changeset`.

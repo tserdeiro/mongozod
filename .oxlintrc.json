@@ -76,6 +76,24 @@
       "rules": {
         "import/no-default-export": "off"
       }
+    },
+    {
+      // Next.js and Fumadocs read these files from their default export.
+      "files": [
+        "apps/website/app/**/{layout,page,robots,sitemap}.{ts,tsx}",
+        "apps/website/proxy.ts",
+        "apps/website/*.config.{mjs,ts}"
+      ],
+      "rules": {
+        "import/no-default-export": "off"
+      }
+    },
+    {
+      // The global stylesheet is imported for its side effect.
+      "files": ["apps/website/app/layout.tsx"],
+      "rules": {
+        "import/no-unassigned-import": ["error", { "allow": ["**/*.css"] }]
+      }
     }
   ]
 }

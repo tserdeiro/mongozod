@@ -48,6 +48,20 @@ The markers let you find and replace the block later. To point the agent at one 
 page in your prompt: _"Read `node_modules/mongozod/dist/docs/guides/populate.md`, then populate the
 author of each post in `listPosts`."_
 
+## The docs on the web
+
+[mongozod.dev](https://mongozod.dev) serves the same pages to agents that fetch them:
+
+- **Markdown for every page**: add `.md` to its URL, as in
+  `https://mongozod.dev/docs/guides/populate.md`, or request the page with an
+  `Accept: text/markdown` header. The links between pages point to their `.md` URLs.
+- **`/llms.txt`**: the index, following the [llms.txt](https://llmstxt.org/) convention, with the
+  title, the description and the Markdown URL of each page.
+- **`/llms-full.txt`**: every page in one file.
+
+On GitHub, the pages are in
+[`packages/docs`](https://github.com/tserdeiro/mongozod/tree/main/packages/docs).
+
 ## Migrating from Mongoose with an agent
 
 [Migrating from Mongoose](../mongoose/index.md#copy-prompt) has a prompt you can copy into your
