@@ -62,7 +62,8 @@ El detalle de cada tema está en su documento:
 - [Tipos](./types.md): escrituras, lecturas, filtros, updates, proyecciones y paths con punto.
 - [Inputs de los endpoints](./inputs.md): los constructores de `mz` y lo que reemplazan.
 - [Plugins](./plugins/README.md): el contrato y los plugins oficiales, cada uno con su documento.
-- [Estructura del repo](./structure.md): las carpetas, las convenciones y lo que falta definir.
+- [Estructura del repo](./structure.md): las carpetas, las convenciones y las herramientas.
+- [Documentación](./documentation.md): el README, las páginas, lo que leen los agentes y el sitio.
 - [Roadmap](./roadmap.md): el orden de implementación.
 - [Qué se verificó](./verified.md): los prototipos, los tests y las fuentes de cada decisión.
 
@@ -74,6 +75,6 @@ Las decisiones del núcleo están tomadas. El orden en que se implementan está 
 - **Plugins oficiales**: diseñar [`audit`](./plugins/audit.md), [`logger`](./plugins/logger.md) y
   [`history`](./plugins/history.md).
 - **Repo**: la estructura y las herramientas están listas (ver [Estructura del repo](./structure.md)).
-  Faltan la documentación para usuarios y lo que la estructura deja por definir.
+  Falta escribir la [documentación](./documentation.md).
 - **adsgpt**: arreglar wortise/adsgpt#230 y wortise/adsgpt#231, y migrar módulo por módulo cuando
   haya una versión.

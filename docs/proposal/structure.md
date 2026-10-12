@@ -4,13 +4,15 @@
 | --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `packages/mongozod/`  | El paquete `mongozod`. Los plugins oficiales son subpaths del paquete, como `mongozod/plugins/soft-delete`, así que se instala un solo paquete, con una sola versión. Un plugin pasa a ser un paquete aparte, en `packages/`, solo si necesita una dependencia propia. |
 | `packages/config/`    | La configuración compartida, por ahora la base de TypeScript (`@repo/config/typescript/base`). Es privado y no se publica.                                                                                                                                             |
+| `packages/docs/`      | La documentación para usuarios, en `.md`: `@repo/docs`, privado. El build del paquete la copia a `dist/docs/`, y la lee el sitio. Ver [Documentación](./documentation.md).                                                                                             |
+| `apps/website/`       | El sitio, [mongozod.dev](https://mongozod.dev), con Next.js y Fumadocs. Todavía no existe.                                                                                                                                                                             |
 | `examples/<ejemplo>/` | Los ejemplos de uso, como `nextjs`, `tanstack-start` y `tanstack-router-trpc`.                                                                                                                                                                                         |
-| `docs/`               | La documentación, que se lee en GitHub y en el sitio, con una copia en `.md` para agentes. `proposal/` es esta propuesta.                                                                                                                                              |
+| `docs/`               | Esta propuesta (`proposal/`) y las auditorías (`audits/`), en español, para quien trabaja en el repo.                                                                                                                                                                  |
 | `skills/`             | Las skills para agentes.                                                                                                                                                                                                                                               |
 | `.changeset/`         | Los changesets de cada cambio y la configuración de [Changesets](https://changesets.dev).                                                                                                                                                                              |
 | `.github/`            | El CI, los releases y el chequeo de los nombres de commits y pull requests.                                                                                                                                                                                            |
 | `AGENTS.md`           | Las instrucciones para los agentes que trabajan en el repo.                                                                                                                                                                                                            |
-| `README.md`           | La presentación del proyecto.                                                                                                                                                                                                                                          |
+| `README.md`           | La presentación del proyecto: un symlink a `packages/mongozod/README.md`, el que publica npm.                                                                                                                                                                          |
 | `LICENSE`             | La licencia, Apache 2.0. `packages/mongozod/` lleva una copia, porque npm solo publica la que está en el paquete.                                                                                                                                                      |
 
 ## El código del paquete
@@ -85,18 +87,7 @@
   abre o actualiza el PR de versión, y al mergearlo publica en npm. El trusted publisher se
   configura en npm después de la primera publicación (fase 6).
 
-## Por definir
+## Documentación
 
-- **Sitio**: dónde vive depende del framework. Si es una app aparte, iría en `apps/website`:
-  [Turborepo](https://turborepo.dev/docs/crafting-your-repository/structuring-a-repository)
-  recomienda `apps/` para las aplicaciones y `packages/` para las librerías. Vitest, en cambio,
-  tiene su sitio de VitePress dentro de `docs/`.
-- **Formato de los docs**: la propuesta es Markdown plano, sin MDX, para que se vea igual en GitHub
-  y en el sitio. Así trabaja TanStack: cada librería tiene sus docs en `.md` en su repo, y
-  tanstack.com sirve cada página también como `.md`.
-- **Agentes**: cómo llegan a los docs de la versión instalada.
-  [Next.js](https://nextjs.org/docs/app/guides/ai-agents) incluye sus docs en el paquete, y un
-  bloque de `AGENTS.md` lleva ahí a los agentes. [TanStack Intent](https://tanstack.com/intent/latest),
-  en alpha, publica las skills dentro del paquete. `npx skills add`
-  ([skills CLI](https://github.com/vercel-labs/skills)) busca `skills/` en la raíz del repo, pero
-  instala lo que hay en el repo, no la versión instalada.
+El sitio, el formato de los docs y cómo llegan a los agentes están en
+[Documentación](./documentation.md).
