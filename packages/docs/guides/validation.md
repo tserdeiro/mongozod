@@ -154,7 +154,24 @@ At runtime they cover what the types cannot see, such as an update built at runt
   `ZodError`. Its values are expressions the server computes, so they are not validated.
 
 Mongoose, by comparison, runs update validators only when you pass `runValidators`, and only on
-some operators ([Mongoose docs](https://mongoosejs.com/docs/validation.html#update-validators)).
+some operators, not on `$inc`
+([Mongoose docs](https://mongoosejs.com/docs/validation.html#update-validators-only-run-for-some-operations)).
+
+### `$inc` and the checks of a field
+
+`$inc` and `$mul` leave out the checks of the field, such as `.min(0)`: they apply to the value,
+which the server computes from the stored one. The [`$jsonSchema`](./sync.md#what-it-checks) does
+not check bounds either. Guard the result in the filter, as the
+[MongoDB manual](https://www.mongodb.com/docs/manual/tutorial/model-data-for-atomic-operations/)
+does, so the update matches nothing when the stored value is too low:
+
+```ts
+const { modifiedCount } = await PostsModel.updateOne(
+  { _id: post._id, views: { $gte: 5 } },
+  { $inc: { views: -5 } }
+)
+// modifiedCount: 0 when views is lower than 5
+```
 
 ## Upserts
 

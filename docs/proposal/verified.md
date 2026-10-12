@@ -792,3 +792,7 @@
     mandaba a `.overwrite()`, que tampoco corre en ellos: un `$set` del título no recalcula un slug
     calculado con `.overwrite()`, y el documento que insertaría un upsert sí lo calcula. Ahora el
     mensaje dice dónde corre `.overwrite()`.
+  - `$inc: { views: -5 }` sobre `views: 1`, un `z.number().int().min(0)`, guarda −4, también con
+    `jsonSchema: true`, porque el `$jsonSchema` no lleva `minimum`. Queda así por diseño: los
+    update validators de Mongoose ignoran `$inc`, como dice su guía de validación, y el manual de
+    MongoDB pone la guarda en el filtro del update, en «Model Data for Atomic Operations».

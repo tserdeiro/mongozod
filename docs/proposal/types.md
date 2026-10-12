@@ -189,6 +189,10 @@ runtime o código sin tipos. Cada problema se junta en un solo `ZodError`, con e
   Mini no, y el `aggregateChecks` que lo calcula no se exporta desde `zod/v4/core`. Así que se prueba
   con `0.5`, que sirve para los dos: un campo entero lo rechaza con `expected: 'int'`, en todas las
   formas (`.int()`, `z.int()`, `z.int32()` y Mini).
+- **Checks en `$inc` y `$mul`**: los del campo, como `.min(0)`, no se aplican, porque valen para el
+  valor, que calcula el servidor con el guardado. Mongoose tampoco: sus update validators ignoran
+  `$inc`. El `$jsonSchema` no lleva límites, así que la guarda va en el filtro del update, como en
+  el manual de MongoDB (`available: { $gt: 0 }` con `$inc: { available: -1 }`).
 - **Upserts**: además, se arma el documento que insertaría el servidor, como lo hace MongoDB 8.2, y
   se valida con el schema; sus errores llevan el path del documento, y el de un campo que falta
   agrega que se da en el filtro o con `$setOnInsert`. Los conflictos entre operadores, como el mismo
