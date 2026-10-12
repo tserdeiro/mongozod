@@ -354,7 +354,10 @@ export function mongozod(
       upsert && replacement._id === undefined && filterId !== undefined
         ? { ...replacement, _id: filterId }
         : replacement
-    const document = await parseDocument(options.schema, stampDocument(inserted, stamps, now))
+    const document = await parseDocument(
+      options.schema,
+      stampDocument(inserted, stamps, now, 'replacement')
+    )
 
     // The `_id` of a document cannot change, so the one a `.default()` generates, or the filter's,
     // is dropped, as Mongoose skips it on replacements.

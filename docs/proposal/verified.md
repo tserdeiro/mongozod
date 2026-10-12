@@ -784,3 +784,7 @@
     objeto, con `length` y `toString`. No apareció el caso que había compilado.
   - Un plugin con una opción `updatePipeline` compilaba y `mongozod()` lanzaba: la lista de runtime
     de las opciones de mongozod la tenía, y el tipo no. Ahora no compila.
+  - Un reemplazo sin `updatedAt` tomaba el valor de su `createdAt`: el que conservaba el `createdAt`
+    del documento guardaba como `updatedAt` la fecha de creación. Ahora toma la fecha de la
+    escritura, como Mongoose, en `replaceOne`, `findOneAndReplace` y el `replaceOne` de
+    `bulkWrite`.

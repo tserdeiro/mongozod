@@ -100,14 +100,13 @@ await PostViewsModel.insertOne({ postId: post._id })
 
 - **`createdAt`** is the one the document gives, or the time of the operation. An import keeps the
   dates of its source.
-- **`updatedAt`** is the one the document gives, or the value of `createdAt`, so a document that
-  never changed has both equal.
+- **`updatedAt`** is the one the document gives, or, in an insert, the value of `createdAt`, so a
+  new document has both equal. In a replacement, it is the time of the replacement.
 - **One time per operation**: every document of an `insertMany` gets the same date.
 
-A replacement follows the same rules, so without a `createdAt` it gets the time of the replacement,
-as in [Mongoose](https://mongoosejs.com/docs/timestamps.html), and without an `updatedAt` it gets
-the value of its `createdAt`. To keep the date of creation and record the time of the replacement,
-pass both:
+As in [Mongoose](https://mongoosejs.com/docs/timestamps.html), a replacement without a `createdAt`
+gets the time of the replacement. To keep the date of creation, pass the one of the stored
+document:
 
 ```ts
 const current = await PostsModel.findOne({ _id: post._id })
@@ -118,11 +117,11 @@ if (current) {
     {
       title: 'Hello again',
       status: current.status,
-      createdAt: current.createdAt,
-      updatedAt: new Date()
+      createdAt: current.createdAt
     }
   )
 }
+// createdAt: the stored one, updatedAt: the time of the replacement
 ```
 
 ## Updates
@@ -184,8 +183,7 @@ only on the models that have `timestamps`, and mongozod removes it before callin
   overwrites it without telling you
   ([Mongoose docs](https://mongoosejs.com/docs/timestamps.html)).
 - **Replacing a document without its `createdAt`**: the replacement gets the time of the
-  replacement. Pass the `createdAt` of the stored document, and an `updatedAt`: without one, it
-  takes the value of `createdAt`.
+  replacement. Pass the `createdAt` of the stored document.
 - **Declaring a field that does not take a `Date`**, such as `z.iso.datetime()`, which takes and
   returns a string: it does not compile, and `mongozod()` throws an `Error`. Use `mz.date()`.
 - **Leaving a field out of one type of document** in a `z.discriminatedUnion`: it does not compile,

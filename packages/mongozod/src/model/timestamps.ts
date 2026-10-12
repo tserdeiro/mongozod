@@ -174,15 +174,21 @@ export function timestampsOf(
 }
 
 /**
- * Stamps a document to insert: `createdAt` keeps the one given or takes `now`, and `updatedAt`
- * keeps the one given or takes the value of `createdAt`.
+ * Stamps a document to insert or a replacement: `createdAt` keeps the one given or takes `now`, and
+ * `updatedAt` keeps the one given or takes, in an insert, the value of `createdAt`, so a new
+ * document has both equal, and in a replacement `now`, the time of the write, as in Mongoose.
  */
-export function stampDocument(document: Document, timestamps: Timestamps, now: Date): Document {
+export function stampDocument(
+  document: Document,
+  timestamps: Timestamps,
+  now: Date,
+  write: 'insert' | 'replacement' = 'insert'
+): Document {
   const stamped = { ...document }
   const { createdAt, updatedAt } = timestamps
 
   if (createdAt) stamped[createdAt] ??= now
-  if (updatedAt) stamped[updatedAt] ??= createdAt ? stamped[createdAt] : now
+  if (updatedAt) stamped[updatedAt] ??= createdAt && write === 'insert' ? stamped[createdAt] : now
 
   return stamped
 }

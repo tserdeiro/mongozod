@@ -79,6 +79,26 @@ describe('inserts', () => {
     })
   })
 
+  test('take the time of the write as the updatedAt a replacement does not give', async () => {
+    const { insertedId } = await NotesModel.insertOne({ createdAt: source, title: 'One' })
+    const before = new Date()
+
+    await NotesModel.replaceOne({ _id: insertedId }, { createdAt: source, title: 'Two' })
+
+    const replaced = await NotesModel.findOne({ _id: insertedId })
+
+    expect(replaced?.createdAt).toEqual(source)
+    expect(replaced?.updatedAt.getTime()).toBeGreaterThanOrEqual(before.getTime())
+
+    const found = await NotesModel.findOneAndReplace(
+      { _id: insertedId },
+      { createdAt: source, title: 'Three' },
+      { returnDocument: 'after' }
+    )
+
+    expect(found?.updatedAt.getTime()).toBeGreaterThanOrEqual(before.getTime())
+  })
+
   test('with timestamps: false, need the dates, which the schema validates', async () => {
     const { document } = await NotesModel.insertOne(
       { createdAt: source, title: 'One', updatedAt: source },

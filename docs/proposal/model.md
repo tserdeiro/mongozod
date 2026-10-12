@@ -102,10 +102,12 @@ objeto por campo. Está apagada por defecto.
   Sirve para las demás fechas, como `deletedAt` o `scheduledFor`.
 
 - **Inserts y reemplazos**: como Mongoose, `createdAt` es el que viene o «ahora»; adsgpt guarda en
-  `brands` la fecha de la fuente. `updatedAt` es el que viene o el valor de `createdAt`, así un
-  documento sin cambios tiene las dos iguales y nada se descarta en silencio. «Ahora» es un
-  `new Date()` por operación: todos los documentos de un `insertMany` tienen la misma fecha. Por eso
-  un reemplazo sin `createdAt` lo pisa con «ahora», como en Mongoose: el JSDoc de `replaceOne` y
+  `brands` la fecha de la fuente. En un insert, `updatedAt` es el que viene o el valor de
+  `createdAt`, así un documento nuevo tiene las dos iguales y nada se descarta en silencio. En un
+  reemplazo es el que viene o «ahora», como en Mongoose: con el valor de `createdAt`, el reemplazo
+  que conserva el `createdAt` del documento dejaba `updatedAt` en la fecha de creación. «Ahora» es
+  un `new Date()` por operación: todos los documentos de un `insertMany` tienen la misma fecha. Un
+  reemplazo sin `createdAt` lo pisa con «ahora», como en Mongoose: el JSDoc de `replaceOne` y
   `findOneAndReplace` dice que se pase el del documento para conservarlo.
 - **Updates**: `updatedAt` va en `$set` y, en un upsert, `createdAt` va en `$setOnInsert`, como en
   Mongoose. En un upsert, `updatedAt` es la fecha de la escritura, porque `$set` y `$setOnInsert` no

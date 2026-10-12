@@ -516,8 +516,8 @@ export interface Model<
 
   /**
    * Replaces the first document that matches the filter, validated like `replaceOne`. With
-   * `timestamps`, `createdAt` is now unless the replacement gives it, as in Mongoose: pass the one
-   * of the document to keep it.
+   * `timestamps`, `createdAt` and `updatedAt` are now unless the replacement gives them, as in
+   * Mongoose: pass the `createdAt` of the document to keep it.
    */
   'findOneAndReplace'<
     const F extends FilterCheck<S, F>,
@@ -613,8 +613,9 @@ export interface Model<
   /**
    * Replaces the first document that matches the filter. The replacement is validated like an
    * insert, and its `_id` is written only when given: the one a `.default()` generates is dropped,
-   * because the `_id` of a document cannot change. With `timestamps`, `createdAt` is now unless the
-   * replacement gives it, as in Mongoose: pass the one of the document to keep it.
+   * because the `_id` of a document cannot change. With `timestamps`, `createdAt` and `updatedAt`
+   * are now unless the replacement gives them, as in Mongoose: pass the `createdAt` of the document
+   * to keep it.
    */
   'replaceOne'<
     const F extends FilterCheck<S, F>,
