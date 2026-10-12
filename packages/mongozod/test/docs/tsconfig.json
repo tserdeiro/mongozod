@@ -1,0 +1,19 @@
+{
+  // The options of the examples of the docs and the README, which `check-docs` writes to a folder of
+  // its own with a tsconfig.json that extends this one. They resolve "mongozod" to dist/, through
+  // the exports, as a project that installs it would.
+  "compilerOptions": {
+    "strict": true,
+    "target": "ES2022",
+    // The driver's declarations use `Symbol.asyncDispose` and Node.js modules.
+    "lib": ["ES2022", "ESNext.Disposable"],
+    "types": ["node"],
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    // Each example is a module, with top-level await, even when it neither imports nor exports.
+    "moduleDetection": "force",
+    "noEmit": true,
+    // check-dist-types already checks the declarations.
+    "skipLibCheck": true
+  }
+}

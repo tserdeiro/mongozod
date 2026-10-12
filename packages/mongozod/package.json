@@ -31,6 +31,7 @@
   "scripts": {
     "build": "tsdown",
     "check-dist-types": "tsc -p test/consumer && node node_modules/typescript-5.5/bin/tsc -p test/consumer",
+    "check-docs": "node scripts/check-docs.ts",
     "check-type-cost": "node scripts/check-type-cost.ts",
     "check-types": "tsc --noEmit",
     "test": "vitest run"
@@ -38,6 +39,7 @@
   "devDependencies": {
     "@arethetypeswrong/core": "0.18.5",
     "@repo/config": "workspace:*",
+    "@repo/docs": "workspace:*",
     "@types/node": "22.20.5",
     "bson": "7.3.3",
     "mongodb": "7.7.0",

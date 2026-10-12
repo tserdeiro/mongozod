@@ -34,6 +34,8 @@ The [tooling](docs/proposal/structure.md#herramientas) runs from the root with p
 - `pnpm check-type-cost` builds the package and fails when the type instantiations of a typical
   project, `packages/mongozod/test/type-cost/`, go over its `budget.json`. A change that raises the
   cost on purpose raises the budget in the same commit.
+- `pnpm check-docs` builds the package and compiles the TypeScript examples of the README and of
+  `packages/docs` against its declarations.
 - `pnpm lint` and `pnpm format` run oxlint and oxfmt over the whole repo.
 - Tests get a MongoDB 8.2 replica set from `inject('mongoUri')`.
 - A change to the published package adds a changeset with `pnpm changeset`.
@@ -42,6 +44,9 @@ The [tooling](docs/proposal/structure.md#herramientas) runs from the root with p
 
 - The proposal is in Spanish. The README, user docs, this file, skills and JSDoc are in English.
 - Docs cite each other with relative links.
+- The [user docs](docs/proposal/documentation.md) live in `packages/docs`, and the build ships them
+  in the package. A change to the public API updates its page in the same commit, and
+  `pnpm --filter @repo/docs index` rewrites their index after adding or renaming a page.
 
 ## Code
 

@@ -4,6 +4,7 @@
     "types": ["node"]
   },
   "include": ["scripts", "src", "test", "tsdown.config.ts", "vitest.config.ts"],
-  // Consumers of dist/, checked by `check-dist-types` and `check-type-cost` after the build.
-  "exclude": ["test/consumer", "test/type-cost"]
+  // Consumers of dist/, checked by `check-dist-types`, `check-type-cost` and `check-docs` after the
+  // build.
+  "exclude": ["test/consumer", "test/docs", "test/type-cost"]
 }

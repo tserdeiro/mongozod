@@ -82,7 +82,9 @@
   alrededor del 7 % sobre lo medido. Son lo que paga el editor en cada chequeo, y el mismo código
   con las mismas versiones da siempre el mismo número. El tiempo de chequeo se informa pero no
   falla, porque en CI varía de una corrida a otra. Un cambio que sube el costo a propósito sube el
-  límite en el mismo commit.
+  límite en el mismo commit. Por último, `pnpm check-docs` compila los ejemplos de los docs y del
+  README contra los `.d.ts` publicados (ver [Documentación](./documentation.md#redacción)), y el
+  `test` de `@repo/docs` chequea su índice y sus links.
 - **Releases** con Changesets y el workflow de trusted publishing de su guía: cada push a `main`
   abre o actualiza el PR de versión, y al mergearlo publica en npm. El trusted publisher se
   configura en npm después de la primera publicación (fase 6).

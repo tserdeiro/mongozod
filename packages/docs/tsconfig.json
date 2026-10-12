@@ -1,0 +1,7 @@
+{
+  "extends": "@repo/config/typescript/base",
+  "compilerOptions": {
+    "types": ["node"]
+  },
+  "include": ["scripts"]
+}

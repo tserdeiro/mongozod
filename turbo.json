@@ -20,6 +20,12 @@
       "dependsOn": ["build"],
       "outputs": []
     },
+    // Compiles the examples of the docs and the README against the published declarations, after
+    // the build.
+    "check-docs": {
+      "dependsOn": ["build"],
+      "outputs": []
+    },
     // Measures the type instantiations of a typical project against its budget, after the build.
     "check-type-cost": {
       "dependsOn": ["build"],

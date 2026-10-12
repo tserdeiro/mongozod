@@ -34,6 +34,8 @@ jobs:
       - run: pnpm check-dist-types
       # The type instantiations of a typical project, within test/type-cost/budget.json.
       - run: pnpm check-type-cost
+      # The examples of the docs and the README compile against the published declarations.
+      - run: pnpm check-docs
 
   test-node:
     name: Test on Node.js ${{ matrix.node }}
