@@ -328,7 +328,15 @@ export type OptionsArg<
     : [options?: Base & PluginOptions<PL, G>]
   : [options: Base & PluginOptions<PL, G> & { context: UnionToIntersection<ContextUnion<PL, G>> }]
 
-type FillsOfPlugin<P> = P extends { fills?: ReadonlyArray<infer K> } ? K : never
+/**
+ * The fields a plugin fills, when its type names them: a plugin typed as any plugin, with `string`
+ * fields, fills none that the types know of.
+ */
+type FillsOfPlugin<P> = P extends { fills?: ReadonlyArray<infer K> }
+  ? string extends K
+    ? never
+    : K
+  : never
 
 /** The fields the plugins fill on inserts and replacements, which these take as optional. */
 export type PluginFills<PL extends readonly AnyPlugin[]> = {

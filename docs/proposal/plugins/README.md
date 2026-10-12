@@ -72,7 +72,8 @@ el `tenantId` de un multi-tenant o el `createdBy` de una auditoría. Esas operac
 opcionales, igual que los campos de `timestamps`: quien llama no los pasa, y si los pasa, como en una
 importación, el plugin decide si los pisa. El schema los sigue validando después de los hooks, así
 que un plugin que no completa uno lanza un `ZodError`. Un nombre que no está en `fields` no compila
-y lanza un `Error` al definir el modelo.
+y lanza un `Error` al definir el modelo. Un plugin tipado como `Plugin`, sin su tipo propio, no
+completa ninguno para los tipos: si no, cualquier campo quedaría opcional.
 
 ```ts
 definePlugin({ id: 'tenant', fields: { tenantId: z.string() }, fills: ['tenantId'], … })

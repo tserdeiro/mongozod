@@ -1,4 +1,4 @@
-import type { AnyModel, FilterOf, InsertOf, ReadOptionsArg } from '../index'
+import type { AnyModel, FilterOf, InsertOf, Plugin, ReadOptionsArg } from '../index'
 
 import { MongoClient } from 'mongodb'
 import {
@@ -295,6 +295,24 @@ describe('the fields a plugin fills', () => {
     expectTypeOf<InsertOf<typeof ProjectsModel>>().toEqualTypeOf<{
       _id: string
       tenantId?: string
+      title: string
+    }>()
+  })
+
+  test('are none for a plugin typed as any plugin, which does not say which', () => {
+    const plugins: Plugin[] = [
+      definePlugin({ fields: { tenantId: z.string() }, fills: ['tenantId'], id: 'fills' })
+    ]
+    const AnyPluginsModel = mongozod({
+      collection: 'projects',
+      db,
+      plugins,
+      schema: projectSchema
+    })
+
+    expectTypeOf<InsertOf<typeof AnyPluginsModel>>().toEqualTypeOf<{
+      _id: string
+      tenantId: string
       title: string
     }>()
   })
