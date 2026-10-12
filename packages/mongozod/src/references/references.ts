@@ -926,56 +926,39 @@ function coversPath(entry: string, path: string) {
  * The projection of a one-to-many query, which keeps the `foreignField` that maps each document
  * back, and what to remove afterwards that the projection leaves out: an exclusion of the field or
  * of an object above it, which the query drops, or the field an inclusion did not ask for, which it
- * adds, with the objects it leaves empty.
+ * adds, from the highest object above it that the projection asks nothing under: the query returns
+ * that object, or array of objects, only for the field.
  */
 function keepingField(
   projection: Document | undefined,
   path: string
-): { projection: Document | undefined; strip: string[]; prune: boolean } {
-  if (!projection) return { projection, prune: false, strip: [] }
+): { projection: Document | undefined; strip: string[] } {
+  if (!projection) return { projection, strip: [] }
 
   const entries = projectionEntries(projection)
   const excluded = entries
     .filter(([entry, kind]) => kind === 'exclude' && coversPath(entry, path))
     .map(([entry]) => entry)
 
-  if (excluded.length > 0) {
-    const kept = excluded.reduce(withoutEntry, projection)
-
-    return { projection: kept, prune: false, strip: excluded }
-  }
+  if (excluded.length > 0)
+    return { projection: excluded.reduce(withoutEntry, projection), strip: excluded }
 
   if (!isInclusion(entries) || entries.some(([entry]) => coversPath(entry, path))) {
-    return { projection, prune: false, strip: [] }
+    return { projection, strip: [] }
   }
 
-  return { projection: { ...projection, [path]: 1 }, prune: true, strip: [path] }
+  const segments = path.split('.')
+  const added =
+    segments
+      .map((_, index) => segments.slice(0, index + 1).join('.'))
+      .find((above) => !entries.some(([entry]) => entry.startsWith(`${above}.`))) ?? path
+
+  return { projection: { ...projection, [path]: 1 }, strip: [added] }
 }
 
-/**
- * Removes the paths a one-to-many query asked for and the projection leaves out, and, when it added
- * them, the objects above them it leaves empty, which the projection did not ask for either.
- */
-function stripKept(
-  documents: readonly Document[],
-  { prune, strip }: ReturnType<typeof keepingField>
-) {
-  for (const path of strip) {
-    for (const document of documents) removePath(document, path)
-
-    // Above an added path, from the deepest object up: the projection did not ask for them.
-    const segments = prune ? path.split('.') : []
-
-    for (let end = segments.length - 1; end > 0; end--) {
-      for (const document of documents) {
-        eachHolder(document, segments.slice(0, end), (holder, field) => {
-          const value = holder[field]
-
-          if (isPlainObject(value) && Object.keys(value).length === 0) delete holder[field]
-        })
-      }
-    }
-  }
+/** Removes the paths a one-to-many query asked for and the projection leaves out. */
+function stripKept(documents: readonly Document[], { strip }: ReturnType<typeof keepingField>) {
+  for (const path of strip) for (const document of documents) removePath(document, path)
 }
 
 /**

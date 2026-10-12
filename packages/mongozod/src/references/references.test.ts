@@ -1131,11 +1131,15 @@ describe('a one-to-many reference', () => {
       // @ts-expect-error $slice keeps some elements of refs
       WritersModel.findOne({}, { populate: { tags: { projection: { refs: { $slice: 1 } } } } })
     ).rejects.toMatchObject({ issues: [{ message }] })
+
+    // An inclusion gets the foreignField too, and the array that holds it goes afterwards.
+    const tag = { _id: 't1', label: 'News' }
+
     expect(
       await WritersModel.find({}, { populate: { tags: { projection: { label: 1 } } } })
         .sort({ _id: 1 })
-        .then((writers) => writers.map((writer) => writer.tags.map((tag) => tag._id)))
-    ).toEqual([['t1'], ['t1']])
+        .then((writers) => writers.map((writer) => writer.tags))
+    ).toEqual([[tag], [tag]])
   })
 
   test('is a key that is not a field, with a localField of the schema', () => {
