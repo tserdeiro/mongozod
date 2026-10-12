@@ -312,10 +312,28 @@ export async function parseUpdate(
   if (nullId) issues.push(nullId)
 
   if (issues.length === 0 && options.upsert) {
-    const result = await safeParseWritten(schema, insertedDocument(filter, given))
+    const inserted = insertedDocument(filter, given)
+    const result = await safeParseWritten(schema, inserted)
 
-    if (!result.success) issues.push(...result.issues)
-    else if (isPlainObject(result.data)) {
+    if (!result.success) {
+      // A field the inserted document lacks is given in the filter or with `$setOnInsert`.
+      for (const issue of result.issues) {
+        const value = issue.path.reduce<unknown>(
+          (holder, key) =>
+            typeof holder === 'object' && holder !== null ? Reflect.get(holder, key) : undefined,
+          inserted
+        )
+
+        issues.push(
+          value === undefined
+            ? {
+                ...issue,
+                message: `${issue.message}: an upsert inserts it, so give it in the filter or with $setOnInsert`
+              }
+            : issue
+        )
+      }
+    } else if (isPlainObject(result.data)) {
       issues.push(...storedAsFilteredIssues(filter, given, result.data))
 
       const defaults = insertDefaults(result.data, decidedPaths(filter, given))

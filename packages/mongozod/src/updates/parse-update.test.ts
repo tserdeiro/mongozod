@@ -387,6 +387,7 @@ function upsertIssues(filter: Record<string, unknown>) {
 }
 
 describe('upserts', () => {
+  const missing = ': an upsert inserts it, so give it in the filter or with $setOnInsert'
   test('validate the document the server would insert', async () => {
     expect(
       await issuesOf(() =>
@@ -398,8 +399,8 @@ describe('upserts', () => {
         )
       )
     ).toEqual([
-      ['createdAt', 'Invalid input: expected date, received undefined'],
-      ['title', 'Invalid input: expected string, received undefined']
+      ['createdAt', `Invalid input: expected date, received undefined${missing}`],
+      ['title', `Invalid input: expected string, received undefined${missing}`]
     ])
   })
 
@@ -428,7 +429,7 @@ describe('upserts', () => {
   test('copy the filter as the server does: a regex matches, and undefined is null', async () => {
     // The regex is not copied, so only the missing title fails.
     expect(await upsertIssues({ title: /^Ads/ })).toEqual([
-      ['title', 'Invalid input: expected string, received undefined']
+      ['title', `Invalid input: expected string, received undefined${missing}`]
     ])
     expect(await upsertIssues({ title: 'Ads', nickname: undefined })).toEqual([
       ['nickname', 'Invalid input: expected string, received null']

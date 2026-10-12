@@ -159,7 +159,9 @@ runtime o código sin tipos. Cada problema se junta en un solo `ZodError`, con e
   con `0.5`, que sirve para los dos: un campo entero lo rechaza con `expected: 'int'`, en todas las
   formas (`.int()`, `z.int()`, `z.int32()` y Mini).
 - **Upserts**: además, se arma el documento que insertaría el servidor, como lo hace MongoDB 8.2, y
-  se valida con el schema; sus errores llevan el path del documento. Los defaults que le faltan se
+  se valida con el schema; sus errores llevan el path del documento, y el de un campo que falta
+  agrega que se da en el filtro o con `$setOnInsert`. Los conflictos entre operadores, como el mismo
+  campo en `$set` y `$setOnInsert`, los sigue rechazando el servidor (código 40). Los defaults que le faltan se
   agregan con `$setOnInsert`, en el path más profundo que no choca con lo que deciden el filtro o el
   update: con `$set: { 'settings.theme': 'dark' }` se agrega `'settings.layout'`. Así el `_id` del
   `.default()` llega también a los documentos que crea un upsert. Del filtro se copia lo que copia
