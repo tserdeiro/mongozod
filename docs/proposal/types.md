@@ -197,6 +197,8 @@ mensajes de error ni lo que sugiere el editor:
   la señala.
 - **Un recorrido de sugerencias**: `PathSuggestions` solo distingue los updates, así que filtros y
   proyecciones comparten el mismo recorrido del schema.
+- **Objetos primero**: `Step` prueba primero si el schema es un objeto, el paso más común. Cada
+  definición de Zod tiene su propio `type`, así que el orden no cambia el resultado.
 
 ## Paths con punto
 

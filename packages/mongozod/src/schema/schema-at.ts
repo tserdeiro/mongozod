@@ -88,28 +88,30 @@ type ArrayStep<E, Seg extends string, M extends PathMode> = M extends 'projectio
 
 /**
  * The schema one segment leads to, or `never`. Anything goes under `z.unknown()` and `z.any()`,
- * and paths stop at transforms and `z.custom()`, which have no schema for what is inside.
+ * and paths stop at transforms and `z.custom()`, which have no schema for what is inside. Objects,
+ * the most common step, go first: each definition has its own `type`, so the order does not change
+ * the result.
  */
 type Step<S, Seg extends string, M extends PathMode> =
   Def<S> extends infer X
-    ? X extends { innerType: infer I; type: Wrapper }
-      ? Step<I, Seg, M>
-      : X extends { getter: () => infer L; type: 'lazy' }
-        ? Step<L, Seg, M>
-        : X extends { type: 'any' | 'unknown' }
-          ? S
+    ? X extends { shape: infer Shape; type: 'object' }
+      ? Seg extends keyof Shape
+        ? Shape[Seg]
+        : ExtraKey<S>
+      : X extends { innerType: infer I; type: Wrapper }
+        ? Step<I, Seg, M>
+        : X extends { element: infer E; type: 'array' }
+          ? ArrayStep<E, Seg, M>
           : X extends { options: infer O extends readonly unknown[]; type: 'union' }
             ? Step<O[number], Seg, M>
-            : X extends { shape: infer Shape; type: 'object' }
-              ? Seg extends keyof Shape
-                ? Shape[Seg]
-                : ExtraKey<S>
-              : X extends { keyType: infer K; type: 'record'; valueType: infer V }
-                ? Seg extends core.output<K>
-                  ? V
-                  : never
-                : X extends { element: infer E; type: 'array' }
-                  ? ArrayStep<E, Seg, M>
+            : X extends { getter: () => infer L; type: 'lazy' }
+              ? Step<L, Seg, M>
+              : X extends { type: 'any' | 'unknown' }
+                ? S
+                : X extends { keyType: infer K; type: 'record'; valueType: infer V }
+                  ? Seg extends core.output<K>
+                    ? V
+                    : never
                   : never
     : never
 
