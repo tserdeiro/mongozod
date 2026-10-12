@@ -86,8 +86,15 @@
   README contra los `.d.ts` publicados (ver [Documentación](./documentation.md#redacción)), y el
   `test` de `@repo/docs` chequea su índice y sus links.
 - **Releases** con Changesets y el workflow de trusted publishing de su guía: cada push a `main`
-  abre o actualiza el PR de versión, y al mergearlo publica en npm. El trusted publisher se
-  configura en npm después de la primera publicación (fase 6).
+  abre o actualiza el PR de versión, y al mergearlo publica en npm, con la tag `mongozod@x.y.z` y
+  su GitHub Release. Se publica cuando se mergea ese PR, no con cada cambio. El trusted publisher
+  se configura en npm después de la primera publicación (fase 6).
+- **Flujo de trabajo**: el repo es público para poder proteger `main` con un ruleset, que exige un
+  pull request con el CI y Conventions en verde y bloquea el force push. Cada cambio entra desde
+  una rama corta, con su changeset si toca el paquete, y se mergea con rebase, que conserva un
+  cambio por commit. En la 0.x, un cambio que rompe sube la minor y el resto la patch. Antes de
+  mergear el PR de versión, el `.tgz` de `pnpm pack` se prueba en adsgpt. Una versión rota no se
+  reemplaza: se publica un patch y se la marca con `npm deprecate`.
 
 ## Documentación
 

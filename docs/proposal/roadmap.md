@@ -123,6 +123,10 @@ El orden de implementación. Al cerrar una fase, se marca acá en el mismo cambi
       mensajes de mongozod ni las sugerencias del editor, y el límite baja a 67.000 y 74.000. Las
       reglas están en [Costo de los tipos](./types.md#costo-de-los-tipos), y el detalle en la
       [evaluación](../audits/evaluation.md#el-costo-de-los-tipos).
+   4. El flujo de releases (hecho): el de [Herramientas](./structure.md#herramientas). Los 135
+      changesets se juntan en uno, porque nadie usó lo que describen, y la versión es la 0.2.0:
+      Changesets calcula la 0.1.0, que usó el autor anterior. Es la única que se publica a mano,
+      con `pnpm changeset publish`, porque el trusted publisher necesita que el paquete exista.
 
    Con ella van, como dice [Documentación](./documentation.md):
    1. El README del paquete y de la raíz (hecho): qué es, cómo se instala, un ejemplo mínimo y que la API
