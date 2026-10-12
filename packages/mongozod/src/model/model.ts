@@ -1,6 +1,7 @@
 import type { AnyPlugin, OptionsArg } from '../plugins/plugin'
 import type {
   PopulateCheck,
+  PopulateContextOption,
   PopulatedProjection,
   Populated,
   PopulateOption,
@@ -327,6 +328,12 @@ export interface Model<
    */
   readonly '~timestamps'?: N
 
+  /**
+   * The plugins of the model, for the types of a `populate` that reads it, which passes on the
+   * context they ask for: it only exists in the types, so it is optional.
+   */
+  readonly '~plugins'?: PL
+
   /** The virtuals of the model, which reads compute and do not store. */
   readonly 'virtuals': V
 
@@ -507,7 +514,9 @@ export interface Model<
     ...options: OptionsArg<
       PL,
       'update',
-      O & ReadSuggestions<S, V, R> & { includeResultMetadata: true },
+      O &
+        ReadSuggestions<S, V, R> &
+        PopulateContextOption<R, PopulateOf<O>> & { includeResultMetadata: true },
       true
     >
   ): Promise<ModifyResultOf<S, V, R, ProjectionOf<O>, PopulateOf<O>>>
@@ -520,7 +529,11 @@ export interface Model<
   >(
     filter: F & SuggestedFilter<S>,
     update: U & SuggestedUpdate<S>,
-    ...options: OptionsArg<PL, 'update', O & ReadSuggestions<S, V, R>>
+    ...options: OptionsArg<
+      PL,
+      'update',
+      O & ReadSuggestions<S, V, R> & PopulateContextOption<R, PopulateOf<O>>
+    >
   ): Promise<ReadDocument<S, V, R, ProjectionOf<O>, PopulateOf<O>> | null>
 
   /**

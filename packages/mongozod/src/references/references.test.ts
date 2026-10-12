@@ -1123,3 +1123,68 @@ describe('a one-to-many reference', () => {
     })
   })
 })
+
+describe('the context of the targets', () => {
+  const tenant = definePlugin({
+    context: { read: z.object({ tenantId: z.string() }) },
+    id: 'tenant'
+  })
+  const locale = definePlugin({ context: { read: z.object({ locale: z.string() }) }, id: 'locale' })
+  const TeamsModel = mongozod({
+    collection: 'teams',
+    db,
+    plugins: [locale],
+    schema: z.object({ _id: z.string(), name: z.string() })
+  })
+  const MembersModel = mongozod({
+    collection: 'members',
+    db,
+    plugins: [tenant],
+    references: { team: () => TeamsModel },
+    schema: z.object({ _id: z.string(), name: z.string(), team: z.string() })
+  })
+  const ProjectsModel = mongozod({
+    collection: 'projects',
+    db,
+    references: { owner: () => MembersModel },
+    schema: z.object({ _id: z.string(), owner: z.string(), title: z.string() })
+  })
+
+  test('a read that populates them takes what their plugins ask for, nested ones too', () => {
+    // Only the types: the read passes its context on at runtime.
+    expectTypeOf(() =>
+      ProjectsModel.find({}, { context: { tenantId: 't' }, populate: { owner: true } })
+    ).toBeFunction()
+    expectTypeOf(() =>
+      ProjectsModel.findOne(
+        {},
+        {
+          context: { locale: 'es', tenantId: 't' },
+          populate: { owner: { populate: { team: true } } }
+        }
+      )
+    ).toBeFunction()
+    expectTypeOf(() =>
+      ProjectsModel.findOneAndUpdate(
+        {},
+        { $set: { title: 'x' } },
+        { context: { tenantId: 't' }, populate: { owner: true } }
+      )
+    ).toBeFunction()
+    expectTypeOf(() => ProjectsModel.find({}, { sort: { title: 1 } })).toBeFunction()
+
+    // @ts-expect-error the members ask for a tenantId
+    expectTypeOf(() => ProjectsModel.find({}, { populate: { owner: true } })).toBeFunction()
+    expectTypeOf(() =>
+      ProjectsModel.find(
+        {},
+        // @ts-expect-error the teams ask for a locale
+        { context: { tenantId: 't' }, populate: { owner: { populate: { team: true } } } }
+      )
+    ).toBeFunction()
+    expectTypeOf(() =>
+      // @ts-expect-error the members ask for a tenantId
+      ProjectsModel.findOneAndDelete({}, { populate: { owner: true } })
+    ).toBeFunction()
+  })
+})

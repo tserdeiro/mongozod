@@ -291,7 +291,7 @@ type PluginOptions<PL extends readonly AnyPlugin[], G extends Group> = UnionToIn
 >
 
 /** What the plugins ask for in the context of a group, one object per plugin that declares one. */
-type ContextUnion<PL extends readonly AnyPlugin[], G extends Group> = {
+export type ContextUnion<PL extends readonly AnyPlugin[], G extends Group> = {
   [I in keyof PL]: SchemaInput<ContextSchemas<PL[I]>, G>
 }[number]
 

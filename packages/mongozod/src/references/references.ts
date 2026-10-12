@@ -1,4 +1,5 @@
 import type { ModelSchema, None, Output, ReadDocument } from '../model/model'
+import type { AnyPlugin, ContextUnion } from '../plugins/plugin'
 import type { FieldsOf } from '../schema/document-types'
 import type { FieldAt, SchemaAt } from '../schema/schema-at'
 import type { FilterCheck, SuggestedFilter } from '../types/filter'
@@ -12,7 +13,12 @@ import type {
   SuggestedProjection
 } from '../types/projection'
 import type { SortCheck, SuggestedSort } from '../types/sort'
-import type { IsOptionalKey, NotAString, Simplify } from '../utils/type-helpers'
+import type {
+  IsOptionalKey,
+  NotAString,
+  Simplify,
+  UnionToIntersection
+} from '../utils/type-helpers'
 import type { Virtuals } from './virtuals'
 import type { ClientSession, Db, Document, FindOptions, Flatten, WithId } from 'mongodb'
 
@@ -334,6 +340,34 @@ export type SuggestedPopulate<R> = {
       }
 }
 
+/** What the plugins of a target model ask for in the context of its reads. */
+type TargetContext<T> =
+  TargetOf<T> extends () => {
+    readonly '~plugins'?: infer PL extends readonly AnyPlugin[] | undefined
+  }
+    ? ContextUnion<Exclude<PL, undefined>, 'read'>
+    : never
+
+/**
+ * What the targets of a `populate`, and those of the ones nested in it, ask for in the context of
+ * their reads, one object per plugin: the read passes its own `context` on to each of them.
+ */
+export type PopulateContext<R, Pop> = {
+  [K in keyof Pop & keyof R]-?:
+    | TargetContext<R[K]>
+    | (Exclude<Pop[K], undefined> extends { populate: infer NP }
+        ? PopulateContext<TargetReferences<R[K]>, Exclude<NP, undefined>>
+        : never)
+}[keyof Pop & keyof R]
+
+/**
+ * The `context` of a read whose `populate` reads targets that ask for one: required, with what
+ * each of them asks for.
+ */
+export type PopulateContextOption<R, Pop> = [PopulateContext<R, Pop>] extends [never]
+  ? unknown
+  : { context: UnionToIntersection<PopulateContext<R, Pop>> }
+
 /** The `populate` option, on the models that have references. */
 export type PopulateOption<R, Pop> = [keyof R] extends [never]
   ? unknown
@@ -343,7 +377,7 @@ export type PopulateOption<R, Pop> = [keyof R] extends [never]
             SuggestedPopulate<R> &
             NotAString<Pop, 'populate takes an object such as { author: true }, not a string'>)
         | undefined
-    }
+    } & PopulateContextOption<R, Pop>
 
 /** Whether a path of the projection is the reference or an object above it. */
 type IncludedBy<P, K> = {

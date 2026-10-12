@@ -97,6 +97,12 @@ await AuditedNotes.updateOne(filter, update) // error: Expected 3 arguments, but
 await AuditedNotes.countDocuments(filter) // reads need no context
 ```
 
+Una lectura con `populate` también lo pide cuando un modelo que puebla, directo o anidado, tiene
+plugins que piden contexto en las lecturas: `populate` le pasa el `context` de la lectura, y cada
+plugin valida su parte. Así, un multi-tenant que puebla otro modelo con su plugin no compila sin el
+tenant, en vez de lanzar un `ZodError` en `["context"]`. El editor sugiere sus keys. Cuesta unas 330
+instanciaciones en el proyecto típico de `check-type-cost`.
+
 En una app con services, como adsgpt, el contexto viaja dentro de las `options` que el service ya
 recibe y le pasa al modelo, como hoy `input.options`. No hace falta otro parámetro ni otra firma, y
 el service sigue sin conocer la sesión: el router arma el contexto, como hoy arma `scope.mutation`.
