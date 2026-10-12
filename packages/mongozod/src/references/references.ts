@@ -311,9 +311,30 @@ type LocalCheck<S extends ModelSchema, T, K, L extends string, X, P> = [
     : `"${K & string}": "${L}" stores another type than the _id of its target`
 
 /**
+ * The array above a path that a projection keeps only some elements of, with `$elemMatch`, `$slice`
+ * or `$`.
+ */
+type TrimmedAbove<E, FF extends string> = E extends [
+  infer Path extends string,
+  'elemMatch' | 'positional' | 'slice'
+]
+  ? FF extends Path | `${Path}.${string}`
+    ? Path
+    : never
+  : never
+
+/**
+ * The array above the `foreignField` that the projection of a one-to-many reference trims: the
+ * field maps each document back, so the documents the other elements point to would be left out.
+ */
+type Trims<X, FF extends string> = X extends { projection: infer FP }
+  ? TrimmedAbove<Entries<FP>, FF>
+  : never
+
+/**
  * Checks a one-to-many reference: its `foreignField` is a path of the target and its `localField`
- * one of this document, both store the same type, and the projection of the read keeps the local
- * one.
+ * one of this document, both store the same type, the projection of the read keeps the local one
+ * and its own keeps every element above the foreign one.
  */
 type ForeignCheck<S extends ModelSchema, T, K, FF extends string, L extends string, X, P> = [
   FieldAt<TargetSchema<T>, FF, 'filter'>
@@ -323,11 +344,13 @@ type ForeignCheck<S extends ModelSchema, T, K, FF extends string, L extends stri
     ? `"${K & string}": "${L}" is not a path of the document`
     : [ValuesAt<S, L>] extends [ValuesAt<TargetSchema<T>, FF>]
       ? [LocalExcludedBy<P, L>] extends [never]
-        ? Exclude<X, undefined> extends { populate: infer NP }
-          ? FF extends keyof NP
-            ? `"${K & string}" cannot populate "${FF}", its foreignField: it points back to this document`
+        ? [Trims<Exclude<X, undefined>, FF>] extends [never]
+          ? Exclude<X, undefined> extends { populate: infer NP }
+            ? FF extends keyof NP
+              ? `"${K & string}" cannot populate "${FF}", its foreignField: it points back to this document`
+              : PopulateValueCheck<T, Exclude<X, undefined>, 'foreign'>
             : PopulateValueCheck<T, Exclude<X, undefined>, 'foreign'>
-          : PopulateValueCheck<T, Exclude<X, undefined>, 'foreign'>
+          : `populate needs "${FF}" for "${K & string}": its projection keeps only some elements of "${Trims<Exclude<X, undefined>, FF>}"`
         : `populate needs "${L}" for "${K & string}": the projection excludes it`
       : `"${K & string}": "${FF}" stores another type than "${L}"`
 
@@ -741,6 +764,25 @@ export function populateEntries(
             input: option,
             message: `the ${name} of populate is an object`,
             path: ['populate', field, name]
+          })
+        }
+      }
+
+      if (isForeign(target) && options.projection) {
+        // The foreignField maps each document back: an array above it with only some of its
+        // elements would leave out the documents that the others point to.
+        const trimmed = projectionEntries(options.projection).find(
+          ([path, kind]) =>
+            (kind === 'elemMatch' || kind === 'positional' || kind === 'slice') &&
+            coversPath(path, target.foreignField)
+        )
+
+        if (trimmed) {
+          issues.push({
+            code: 'custom',
+            input: options.projection,
+            message: `populate needs "${target.foreignField}" for "${field}": its projection keeps only some elements of "${trimmed[0]}"`,
+            path: ['populate', field, 'projection']
           })
         }
       }

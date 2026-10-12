@@ -1091,6 +1091,53 @@ describe('a one-to-many reference', () => {
     ])
   })
 
+  test('keeps every element of the array above its foreignField', async () => {
+    const TagsModel = mongozod({
+      collection: 'tags',
+      db,
+      schema: z.object({
+        _id: z.string(),
+        label: z.string(),
+        refs: z.array(z.object({ author: z.string(), weight: z.number() }))
+      })
+    })
+    const WritersModel = mongozod({
+      collection: 'authors',
+      db,
+      references: { tags: { foreignField: 'refs.author', model: () => TagsModel } },
+      schema: authorSchema
+    })
+    const message =
+      'populate needs "refs.author" for "tags": its projection keeps only some elements of "refs"'
+
+    await TagsModel.insertOne({
+      _id: 't1',
+      label: 'News',
+      refs: [
+        { author: 'u1', weight: 1 },
+        { author: 'u2', weight: 2 }
+      ]
+    })
+
+    // With the second element alone, the tag would not map back to u1.
+    await expect(
+      WritersModel.find(
+        {},
+        // @ts-expect-error $elemMatch keeps some elements of refs
+        { populate: { tags: { projection: { refs: { $elemMatch: { weight: 2 } } } } } }
+      ).toArray()
+    ).rejects.toMatchObject({ issues: [{ message, path: ['populate', 'tags', 'projection'] }] })
+    await expect(
+      // @ts-expect-error $slice keeps some elements of refs
+      WritersModel.findOne({}, { populate: { tags: { projection: { refs: { $slice: 1 } } } } })
+    ).rejects.toMatchObject({ issues: [{ message }] })
+    expect(
+      await WritersModel.find({}, { populate: { tags: { projection: { label: 1 } } } })
+        .sort({ _id: 1 })
+        .then((writers) => writers.map((writer) => writer.tags.map((tag) => tag._id)))
+    ).toEqual([['t1'], ['t1']])
+  })
+
   test('is a key that is not a field, with a localField of the schema', () => {
     expect(() =>
       mongozod({

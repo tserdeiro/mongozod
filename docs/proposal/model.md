@@ -294,7 +294,10 @@ await TransactionsModel.find(
     Con el `foreignField` del destino pasa lo mismo, para ubicar cada documento: si la proyección
     del `populate` lo deja afuera, o un objeto que lo contiene, se pide igual y se quita después, y
     si incluye ese objeto no se pide aparte, que chocaría (código 31249). Un `foreignField` con punto
-    no deja objetos vacíos que la proyección no pidió.
+    no deja objetos vacíos que la proyección no pidió. Una proyección que deja algunos elementos del
+    array que lo contiene, con `$elemMatch`, `$slice` o `$`, no compila y lanza un `ZodError`: sin
+    los otros elementos, el documento no vuelve a los que ellos apuntan, y pedir el campo aparte
+    chocaría (código 31249); antes se perdían sin error (verificado).
   - **`limit`**: exige un `sort`, porque sin uno MongoDB no garantiza qué documentos deja; si no,
     no compila y lanza un `ZodError`. Hace una consulta por documento, en paralelo, cada una con su
     `limit`, como el `perDocumentLimit` de Mongoose: una sola consulta no alcanza. Un `aggregate`
