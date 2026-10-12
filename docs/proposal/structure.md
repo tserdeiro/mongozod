@@ -88,9 +88,16 @@
 - **Releases** con Changesets y el workflow de trusted publishing de su guía: cada push a `main`
   abre o actualiza el PR de versión, y al mergearlo publica en npm, con la tag `mongozod@x.y.z` y
   su GitHub Release. Se publica cuando se mergea ese PR, no con cada cambio. El trusted publisher
-  se configura en npm después de la primera publicación (fase 6).
+  se configuró en npm después de la primera publicación (fase 6), con `release.yml`, sin
+  environment y con «Allow npm publish», porque `changeset publish` no publica en modo stage
+  ([changesets/changesets#2025](https://github.com/changesets/changesets/issues/2025)); se quita
+  cuando lo soporte. El paquete exige 2FA y no acepta tokens que la salteen. El PR de versión y su
+  commit se llaman `chore(release): version packages`, que pasa Conventions.
 - **Flujo de trabajo**: el repo es público para poder proteger `main` con un ruleset, que exige un
-  pull request con el CI y Conventions en verde y bloquea el force push. Cada cambio entra desde
+  pull request con el CI y Conventions en verde, solo con rebase, y bloquea el force push y el
+  borrado. El admin puede saltear los checks solo dentro de un pull request: el PR de versión lo
+  abre el `GITHUB_TOKEN`, y lo que hace ese token no dispara workflows, así que sus checks nunca
+  corren. Cada cambio entra desde
   una rama corta, con su changeset si toca el paquete, y se mergea con rebase, que conserva un
   cambio por commit. En la 0.x, un cambio que rompe sube la minor y el resto la patch. Antes de
   mergear el PR de versión, el `.tgz` de `pnpm pack` se prueba en adsgpt. Una versión rota no se
