@@ -245,8 +245,7 @@ export function mongozod(
   // The collection of each database, kept once it passes the check.
   const collections = new WeakMap<Db, Collection>()
 
-  function getCollection() {
-    const db = getDb()
+  function getCollection(db = getDb()) {
     const kept = collections.get(db)
 
     if (kept) return kept
@@ -277,7 +276,7 @@ export function mongozod(
    * Plans a read and splits its options: `populate` is mongozod's, the rest go to the driver. The
    * reads of `populate` share the session and the context of the operation.
    */
-  function readOptions(operationOptions: Document = {}, operationContext?: unknown) {
+  function readOptions(operationOptions: Document = {}, operationContext?: unknown, db = getDb()) {
     const { populate, ...driverOptions } = operationOptions
 
     // Mongoose takes these as strings; the driver would sort by a field named like the string.
@@ -292,7 +291,7 @@ export function mongozod(
 
     if (issues.length > 0) throw new z.ZodRealError(issues)
 
-    const plan = planRead(context, driverOptions.projection, populate, {
+    const plan = planRead({ ...context, db: () => db }, driverOptions.projection, populate, {
       context: operationContext,
       session: driverOptions.session
     })
@@ -401,20 +400,26 @@ export function mongozod(
     return runOperation({ model, plugins }, operation, args, run)
   }
 
-  function openAggregate(args: Document): BatchSource<unknown> {
-    const { schema, ...driverOptions } = args.options
-    const cursor = getCollection().aggregate([...args.pipeline], driverOptions)
+  // A cursor reads the database `db` gives when it is created, though it starts on its first read:
+  // a tenant's cursor read outside of its request still reads the tenant's database.
+  function openAggregate(db: Db) {
+    return (args: Document): BatchSource<unknown> => {
+      const { schema, ...driverOptions } = args.options
+      const cursor = getCollection(db).aggregate([...args.pipeline], driverOptions)
 
-    if (!schema) return batchSource(cursor, (batch) => batch)
+      if (!schema) return batchSource(cursor, (batch) => batch)
 
-    return batchSource(cursor, (batch) => batch.map((document) => z.parse(schema, document)))
+      return batchSource(cursor, (batch) => batch.map((document) => z.parse(schema, document)))
+    }
   }
 
-  function openFind(args: Document): BatchSource<Document> {
-    const { driverOptions, plan } = readOptions(args.options, args.context)
-    const cursor = getCollection().find<Document>(args.filter, driverOptions)
+  function openFind(db: Db) {
+    return (args: Document): BatchSource<Document> => {
+      const { driverOptions, plan } = readOptions(args.options, args.context, db)
+      const cursor = getCollection(db).find<Document>(args.filter, driverOptions)
 
-    return batchSource(cursor, plan.process ?? ((batch) => batch))
+      return batchSource(cursor, plan.process ?? ((batch) => batch))
+    }
   }
 
   function aggregate<R extends core.$ZodType>(
@@ -428,7 +433,9 @@ export function mongozod(
   function aggregate(stages: readonly Document[] = [], aggregateOptions: Document = {}) {
     const args = { options: { ...aggregateOptions }, pipeline: [...stages] }
 
-    return new ModelCursor(() => runCursor({ model, plugins }, 'aggregate', args, openAggregate))
+    const open = openAggregate(getDb())
+
+    return new ModelCursor(() => runCursor({ model, plugins }, 'aggregate', args, open))
   }
 
   // The operations that return documents have several signatures, like the driver's. TypeScript
@@ -437,8 +444,10 @@ export function mongozod(
   function find(): ModelFindCursor<Document>
   function find(filter: Document, findOptions?: Document): ModelFindCursor<Document>
   function find(filter: Document = {}, findOptions: Document = {}) {
+    const open = openFind(getDb())
+
     return new ModelFindCursor({ filter, options: { ...findOptions } }, <T>(args: FindArgs) =>
-      runCursor<T>({ model, plugins }, 'find', { ...args }, openFind)
+      runCursor<T>({ model, plugins }, 'find', { ...args }, open)
     )
   }
 

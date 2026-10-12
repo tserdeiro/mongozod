@@ -35,7 +35,10 @@ export const NotesModel = mongozod({
   guarda por `Db`, así que la función conviene que devuelva un `Db` guardado por tenant:
   `client.db(name)` arma uno nuevo cada vez, unos 8 µs. `model.db`, `model.collection`, `sync()`,
   `populate` y el `model.db` de los plugins usan la base que la función devuelve en ese momento, así
-  que un multi-tenant corre `sync()` en cada tenant. Mongoose ata cada modelo a una conexión y
+  que un multi-tenant corre `sync()` en cada tenant. Un cursor de `find` o `aggregate` usa la base de
+  cuando se crea, aunque arranque en su primera lectura: así uno creado en el request de un tenant y
+  leído después sigue en su base. Las lecturas de `populate` a otro modelo resuelven la base de ese
+  modelo cuando corren, en la primera lectura. Mongoose ata cada modelo a una conexión y
   resuelve los tenants con `useDb()` y un modelo por tenant, que acá también funciona. Desde el `Db`
   se llega al cliente (`db.client`), que hace falta para sesiones y transacciones.
 - **`indexes`**: los índices que crea `sync()`, con las claves tipadas contra el schema. Ver

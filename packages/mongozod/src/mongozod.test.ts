@@ -536,6 +536,13 @@ describe('db', () => {
     expect(await tenants.run(tenantDb, () => TenantNotesModel.findOne({}))).toMatchObject({
       title: 'Tenant'
     })
+
+    // A cursor reads the database of where it is created, though it starts on its first read.
+    const cursor = tenants.run(tenantDb, () => TenantNotesModel.find({}))
+    const pipeline = tenants.run(tenantDb, () => TenantNotesModel.aggregate([]))
+
+    expect((await cursor).map((note) => note.title)).toEqual(['Tenant'])
+    expect(await pipeline).toMatchObject([{ title: 'Tenant' }])
   })
 })
 
