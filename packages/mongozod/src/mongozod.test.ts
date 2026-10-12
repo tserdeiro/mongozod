@@ -641,6 +641,7 @@ describe('schemas', () => {
     await expect(LedgersModel.insertOne({ entries: [{ amount: 5n }] })).rejects.toThrow(
       '"entries.amount" is a z.bigint(), which the driver reads as a number unless the client sets useBigInt64: true'
     )
+    await expect(LedgersModel.findOne({})).rejects.toThrow('"entries.amount" is a z.bigint()')
 
     const BigIntLedgersModel = mongozod({
       collection: 'ledgers',
