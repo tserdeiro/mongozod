@@ -231,6 +231,36 @@ Las sugerencias de los operadores de query, los tipos legibles al pasar el mouse
 configuración del modelo con el mensaje primero y las sugerencias de los updates filtradas por
 operador. Son más caras y hay que medir su costo de tipos; quedan en la fase 7 del roadmap.
 
+## El costo de los tipos
+
+Después de las correcciones, el proyecto típico de `pnpm check-type-cost` usaba el 95 % de sus dos
+límites. Once cambios (`18e8dfe` a `1e29eaa`) lo bajan casi una cuarta parte sin cambiar lo que
+compila, los mensajes de mongozod ni las sugerencias del editor:
+
+| Medida                                             | Antes            | Después             |
+| -------------------------------------------------- | ---------------- | ------------------- |
+| Proyecto típico, TypeScript 7                      | 80.739           | 62.316 (−22,8 %)    |
+| Proyecto típico, TypeScript 5.5                    | 90.434           | 69.193 (−23,5 %)    |
+| `check-types` del paquete, TypeScript 7            | 2.537.645        | 2.260.208 (−10,9 %) |
+| Tiempo de chequeo del proyecto, TypeScript 7 y 5.5 | 0,057 s y 0,24 s | 0,044 s y 0,21 s    |
+
+- **Las causas**: intersecciones de dos arrays, que hacen comparar cada método de los dos (las
+  sugerencias de `mz.filter` y `mz.update`, y `arrayFilters` contra `Document[]`);
+  `Pick<T, K> extends Required<Pick<T, K>>` para saber si una key es opcional; chequeos que
+  TypeScript repite mientras infiere; y recorridos de más. Las reglas quedaron en
+  [Costo de los tipos](../proposal/types.md#costo-de-los-tipos).
+- **Cómo se midió**: el proyecto partido por operación, cada tipo reemplazado por uno trivial, y
+  copias instrumentadas de TypeScript 5.5 y 6.0.3, que cuenta casi igual que TypeScript 7 (81.013
+  contra 80.739), para atribuir cada instanciación al tipo de mongozod que la causa.
+- **El límite** baja a 67.000 y 74.000, un 7 % sobre lo medido.
+- **Lo que queda**: el mismo proyecto con el driver solo cuesta 10.179 instanciaciones con
+  TypeScript 7, y mongozod con sus chequeos, resultados y sugerencias reemplazados por tipos
+  triviales, 18.788. El resto es el trabajo de esas funciones, como unas 300 instanciaciones por key
+  de un filtro. Quedan dos pistas sin rediseñar: el chequeo de proyecciones, unas 560 por key con
+  TypeScript 7, y el `WithId` que arma `populate` para leer el `_id` del destino.
+- **Quedó afuera**: `ModelSchema` con `core.$ZodObject<any, any>` ahorraba 1.156 y 1.680 más, pero
+  pedía una excepción del lint para `any`.
+
 ## Lo que funciona
 
 - **Mongoose [#8505](https://github.com/Automattic/mongoose/issues/8505)**: los objetos y arrays

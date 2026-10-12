@@ -174,7 +174,7 @@ service que recibe un filtro o un update y lo pasa al modelo, mongozod exporta `
 
 `pnpm check-type-cost` mide las instanciaciones de un proyecto típico (ver
 [Herramientas](./structure.md#herramientas)). Estas reglas las bajan sin cambiar lo que compila, los
-mensajes de error ni lo que sugiere el editor:
+mensajes de mongozod ni lo que sugiere el editor:
 
 - **Sin intersectar dos arrays**: una sugerencia no se intersecta con la lista que declara el mismo
   argumento. Con `readonly ['$eq'] & ReadonlyArray<…>`, TypeScript compara cada método de los dos

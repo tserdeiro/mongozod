@@ -742,3 +742,21 @@
   - tsdown emite los `.d.ts` con TypeScript 7.0.2 a través de tsgo, y attw y publint no encuentran
     problemas en el tarball.
   - El lint con tipos marca una promesa sin `await` (`no-floating-promises`) y un `as`.
+
+- **El costo de los tipos** (TypeScript 7.0.2, 6.0.3 y 5.5.4):
+  - Los once cambios de [Costo de los tipos](./types.md#costo-de-los-tipos) no cambian lo que
+    compila: los 206 errores de los tests, compilados sin sus `@ts-expect-error`, dan el mismo texto
+    después de cada cambio. Un archivo de casos borde, con y sin `exactOptionalPropertyTypes`, da los
+    mismos errores en las mismas líneas con TypeScript 7 y 5.5; solo cambia el texto del error de una
+    entrada de `arrayFilters` que no es un documento.
+  - Las sugerencias del editor son las mismas en 40 posiciones, con el language service de
+    TypeScript 5.5 y con la API de TypeScript 7 (`typescript/unstable/sync`).
+  - Intersectar la lista que declara `mz.filter` con su sugerencia hace que TypeScript compare cada
+    método de los dos arrays: sin esa intersección, un `mz.filter` de cuatro paths baja de 8.971 a
+    4.708 instanciaciones con TypeScript 7.
+  - `Pick<T, K> extends Required<Pick<T, K>>` costaba 6.103 instanciaciones del proyecto típico con
+    TypeScript 5.5, que reinstancia el output de Zod en cada key.
+  - TypeScript 6.0.3 cuenta casi como TypeScript 7 (81.013 contra 80.739) y es JavaScript: una copia
+    instrumentada sirve para atribuir el costo de TypeScript 7, que no tiene API de JS.
+  - TypeScript corta con TS2589 a los 100 niveles de anidamiento o a los 5 millones de
+    instanciaciones por expresión; la llamada más cara del proyecto típico ronda las 10 mil.
