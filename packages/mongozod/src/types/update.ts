@@ -297,7 +297,7 @@ type ResolvedTargets<S, K extends string, F, AF, Op> =
           : never
       : Op extends '$setOnInsert'
         ? [SchemaAt<S, K, 'update'>]
-        : `"${K}" changes the type of its object: replace the object`
+        : `"${K}" is the discriminator of its object: replace the object to change it`
     : never
 
 // The value each operator takes, given the schemas it writes in every allowed type.

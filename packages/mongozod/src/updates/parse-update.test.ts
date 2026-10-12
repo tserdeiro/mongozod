@@ -403,7 +403,24 @@ describe('discriminated unions', () => {
     ).toEqual([['$set url', '"url" is not in every type allowed: fix "kind" in the filter']])
     expect(
       await issuesOf(() => parseUpdate(eventSchema, { kind: 'click' }, { $set: { kind: 'view' } }))
-    ).toEqual([['$set kind', '"kind" changes the type of its object: replace the object']])
+    ).toEqual([
+      ['$set kind', '"kind" is the discriminator of its object: replace the object to change it']
+    ])
+  })
+
+  test('the discriminator changes with a replacement, also from a value to another of its type', async () => {
+    const viewSchema = z.discriminatedUnion('type', [
+      z.object({ type: z.literal('click'), x: z.number() }),
+      z.object({ type: z.enum(['view', 'impression']), url: z.string() })
+    ])
+
+    expect(
+      await issuesOf(() =>
+        parseUpdate(viewSchema, { type: 'view' }, { $set: { type: 'impression' } })
+      )
+    ).toEqual([
+      ['$set type', '"type" is the discriminator of its object: replace the object to change it']
+    ])
   })
 
   test('the filter fixes the discriminator of each nested union', async () => {
@@ -432,7 +449,9 @@ describe('discriminated unions', () => {
     ).toEqual([['$set kwh', '"kwh" is not in every type allowed: fix "fuel" in the filter']])
     expect(
       await issuesOf(() => parseUpdate(vehicleSchema, { kind: 'car' }, { $set: { fuel: 'gas' } }))
-    ).toEqual([['$set fuel', '"fuel" changes the type of its object: replace the object']])
+    ).toEqual([
+      ['$set fuel', '"fuel" is the discriminator of its object: replace the object to change it']
+    ])
   })
 
   test('an arrayFilters entry fixes the type of an element', async () => {

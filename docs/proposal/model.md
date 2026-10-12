@@ -457,7 +457,11 @@ await EventsModel.updateOne({}, { $set: { url } })
   `check-type-cost`, y un 10 % más en un archivo de lecturas sobre uniones.
 - **Discriminador**: no se cambia con un update, porque el documento quedaría sin los campos de su
   nuevo tipo; se reemplaza con `replaceOne`. Mongoose tampoco deja actualizarlo, salvo con
-  `overwriteDiscriminatorKey`. En un upsert, `$setOnInsert` sí puede fijarlo.
+  `overwriteDiscriminatorKey`. En un upsert, `$setOnInsert` sí puede fijarlo. Con un discriminador
+  `z.enum`, tampoco cambia entre dos valores de la misma opción, como de `view` a `impression`,
+  aunque el documento siga siendo del mismo tipo: el mensaje dice la regla, `"type" is the
+  discriminator of its object: replace the object to change it`, y aceptarlo queda para la fase 7
+  del [roadmap](./roadmap.md).
 - **Plugins**: los campos que exige un plugin, como `deletedAt`, tienen que estar en todos los
   tipos.
 - **Intersecciones**: no se aceptan. La documentación de Zod recomienda `A.extend(B)` para combinar

@@ -154,7 +154,11 @@ async function parseField(
     // In an upsert, `$setOnInsert` can fix the discriminator: the value chooses one of the types.
     if (operator === '$setOnInsert') return parseAny(schemaAt(schema, path, 'update'), value, at)
 
-    return fail(at, `"${path}" changes the type of its object: replace the object`, value)
+    return fail(
+      at,
+      `"${path}" is the discriminator of its object: replace the object to change it`,
+      value
+    )
   }
 
   const { schemas } = resolved
