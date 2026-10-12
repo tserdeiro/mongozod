@@ -196,6 +196,29 @@ describe('decimal128()', () => {
     ).rejects.toBeInstanceOf(z.ZodError)
     expect(invoiceUpdate.safeParse({ $inc: { total: 0.1 + 0.2 } }).success).toBe(false)
   })
+
+  test('$inc and $mul leave out the checks of the field, which apply to its value', async () => {
+    const accountSchema = z.object({
+      _id: z.string(),
+      balance: decimal128()
+        .refine((balance) => Number(balance.toString()) >= 0, 'balance cannot be negative')
+        .optional()
+    })
+    const AccountsModel = mongozod({ collection: 'accounts', db, schema: accountSchema })
+    const accountUpdate = update(accountSchema, { $inc: ['balance'] })
+
+    await AccountsModel.insertOne({ _id: 'a1', balance: '100' })
+    await AccountsModel.updateOne({ _id: 'a1' }, { $inc: { balance: '-10' } })
+    await AccountsModel.updateOne({ _id: 'a1' }, accountUpdate.parse({ $inc: { balance: '-20' } }))
+    await AccountsModel.updateOne({ _id: 'a1' }, { $mul: { balance: '-1' } })
+
+    expect((await AccountsModel.findOne({ _id: 'a1' }))?.balance?.toString()).toBe('-70')
+    // The value still goes through them.
+    await expect(
+      AccountsModel.updateOne({ _id: 'a1' }, { $set: { balance: '-1' } })
+    ).rejects.toMatchObject({ issues: [{ message: 'balance cannot be negative' }] })
+    expect(accountUpdate.safeParse({ $inc: { balance: 'ten' } }).success).toBe(false)
+  })
 })
 
 describe('binary()', () => {

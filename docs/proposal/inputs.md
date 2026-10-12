@@ -295,8 +295,10 @@ manda `{ createdAt, _id }` del último elemento de la página.
       así el error de un número dice que mande el string; con la unión de un codec y la instancia,
       como `objectId()`, el error de la unión de afuera lo tapaba.
     - **`$inc` y `$mul`**: MongoDB los aplica a un `Decimal128` (verificado), y el valor se parsea
-      con el schema del campo, también en `mz.update`: un `'0.10'` llega como un `Decimal128`
-      exacto. Con un número, el servidor suma el double, que arrastra dígitos (`10.200000000000000`).
+      con el schema del campo sin sus checks, también en `mz.update`: un `'0.10'` o un `0.1` llega
+      como un `Decimal128` exacto, y la suma también lo es. Los checks quedan afuera porque validan
+      el valor del campo y no lo que lo cambia, como con los números: un saldo con
+      `.refine((d) => Number(d.toString()) >= 0)` acepta un `$inc` de `'-10'`.
 15. **Binarios**: se declaran con `mz.binary()`. Toma el base64 de los
     bytes, que manda un cliente JSON, un `Uint8Array` o un `Buffer`, que pasa el servidor, o un
     `Binary`, y devuelve un `Binary`. `z.encode` lo vuelve a base64.

@@ -7,6 +7,7 @@ import type * as core from 'zod/v4/core'
 import { z } from 'zod'
 
 import { isDecimal, isInteger, isNumber, isOptional } from '../schema/schema-kinds'
+import { withoutChecks } from '../schema/without-checks'
 
 import { nonEmptyObject } from './internal/non-empty-object'
 import { schemasOutsideArrays } from './internal/outside-arrays'
@@ -133,8 +134,9 @@ function valueOf(schema: core.$ZodType, operator: string, path: string): core.$Z
       return z.literal(['', 1, true])
 
     case '$inc':
-      // A Decimal128 takes what its schema parses, such as the string of an amount.
-      if (targets.every(isDecimal)) return valueSchema(targets)
+      // A Decimal128 takes a decimal, such as the string of an amount, without the checks of the
+      // field: they apply to the value, not to what changes it.
+      if (targets.every(isDecimal)) return valueSchema(targets.map(withoutChecks))
       if (!targets.every(isNumber)) throw new Error(`mz.update: "${path}" is not a number`)
 
       return targets.some(isInteger) ? z.number().int() : z.number()

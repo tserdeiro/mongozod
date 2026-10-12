@@ -15,6 +15,7 @@ import {
   isSet,
   takes
 } from '../schema/schema-kinds'
+import { withoutChecks } from '../schema/without-checks'
 import { isPlainObject } from '../utils/is-plain-object'
 
 import { resolveUpdatePath } from './update-path'
@@ -179,8 +180,9 @@ async function parseField(
 
     case '$inc':
     case '$mul':
-      // A Decimal128 takes the value its schema parses, such as the string of an amount.
-      if (schemas.every(isDecimal)) return parseEvery(schemas, value, at)
+      // A Decimal128 takes a decimal, such as the string of an amount. The checks of the field are
+      // left out, as for numbers: they apply to the value, not to what changes it.
+      if (schemas.every(isDecimal)) return parseEvery(schemas.map(withoutChecks), value, at)
       if (!schemas.every(isNumber)) return fail(at, `"${path}" is not a number`, value)
       if (typeof value !== 'number' && typeof value !== 'bigint') {
         return fail(at, `${operator} takes a number`, value)
