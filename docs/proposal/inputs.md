@@ -299,8 +299,12 @@ manda `{ createdAt, _id }` del último elemento de la página.
     7 dan lo mismo (verificado). Valida con
     `Decimal128.fromString`, la API de bson, que rechaza lo que no es un decimal y lo que
     redondearía, con más de 34 dígitos. `NaN` e `Infinity`, que bson toma, también `'inf'`, se
-    rechazan en todas sus formas: un monto es un número, y sin eso un `$inc` de `'NaN'` lo guardaba. Lo reconoce por su `_bsontype`, y su metadata le da
-    `bsonType: 'decimal'` en el `$jsonSchema`.
+    rechazan en todas sus formas: un monto es un número, y sin eso un `$inc` de `'NaN'` lo guardaba.
+    Un `NaN` ya guardado se lee, porque las lecturas no se parsean, y se corrige con un `$set`, pero
+    no se reescribe tal como se leyó: un `replaceOne` con lo leído, o su `z.encode`, da un
+    `ZodError`. El rechazo es del valor que se manda: el servidor todavía guarda un `Infinity`
+    cuando un `$mul` se pasa del rango del decimal, como `1e6144` por `10` (verificado). Lo reconoce
+    por su `_bsontype`, y su metadata le da `bsonType: 'decimal'` en el `$jsonSchema`.
     - **Comparar con un número**: un filtro del modelo sobre un decimal no toma un `number`, aunque
       MongoDB compara por valor entre tipos numéricos: un double no siempre es el decimal que se
       escribió, y con `{ balance: 9.99 }` o `{ $gte: 9.99 }` MongoDB 8.2 deja afuera el 9.99
