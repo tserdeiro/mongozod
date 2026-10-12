@@ -140,6 +140,13 @@ type Changed<E, N extends string> = E extends [infer Path extends string, infer 
       : never
   : never
 
+/**
+ * A number that is not 0 or 1, such as the `number` TypeScript gives to the `0` of a projection
+ * kept in a variable.
+ */
+type NumberProblem<K extends string> =
+  `"${K}" is a number: a projection takes 0 or 1, so type it as 0 | 1 or declare it with as const`
+
 /** A virtual takes 0, 1, `true` or `false`, and computes from the fields as they are stored. */
 type VirtualCheck<K extends string, Value, E, N extends string> = [Value] extends [0 | 1 | boolean]
   ? Mixes<K, [Value] extends [0 | false] ? 'exclude' : 'include', E> extends true
@@ -149,7 +156,9 @@ type VirtualCheck<K extends string, Value, E, N extends string> = [Value] extend
       : [Changed<E, N>] extends [never]
         ? Value
         : `"${K}" reads "${Changed<E, N>}" as stored: the projection cannot change it`
-  : `"${K}" is a virtual: it takes 0, 1, true or false`
+  : [Value] extends [number]
+    ? NumberProblem<K>
+    : `"${K}" is a virtual: it takes 0, 1, true or false`
 
 type Check<S, P, E, Prefix extends string, V = None> = {
   [K in keyof P]: K extends string
@@ -157,8 +166,8 @@ type Check<S, P, E, Prefix extends string, V = None> = {
       ? VirtualCheck<K, Exclude<P[K], undefined>, E, NeedsOf<V[K]>>
       : Exclude<P[K], undefined> extends 0 | 1 | boolean
         ? ValueCheck<S, `${Prefix}${K}`, Exclude<P[K], undefined>, E>
-        : number extends P[K]
-          ? `"${Prefix}${K}" is a number, which a projection kept in a variable gets: declare it with as const`
+        : [P[K]] extends [number]
+          ? NumberProblem<`${Prefix}${K}`>
           : P[K] extends { $slice: unknown }
             ? SliceCheck<S, `${Prefix}${K}`, E>
             : P[K] extends { $elemMatch: infer C }
