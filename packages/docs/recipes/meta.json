@@ -1,0 +1,14 @@
+{
+  "title": "Recipes",
+  "pages": [
+    "ids",
+    "multi-tenant",
+    "repositories",
+    "transforms",
+    "schema-migrations",
+    "http-apis",
+    "streams",
+    "dates-and-money",
+    "schema-patterns"
+  ]
+}

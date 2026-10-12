@@ -1,0 +1,21 @@
+{
+  "title": "Guides",
+  "pages": [
+    "schemas",
+    "models",
+    "operations",
+    "validation",
+    "typescript",
+    "bson-types",
+    "endpoint-inputs",
+    "pagination",
+    "populate",
+    "virtuals",
+    "timestamps",
+    "document-types",
+    "aggregation",
+    "sync",
+    "transactions",
+    "plugins"
+  ]
+}

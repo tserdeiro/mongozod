@@ -88,8 +88,8 @@ const postSchema = z.object({
   title: z.string().min(1),
   status: z.enum(['draft', 'published']).default('draft'),
   tags: z.array(z.string()).default([]),
-  createdAt: z.date(),
-  updatedAt: z.date()
+  createdAt: mz.date(),
+  updatedAt: mz.date()
 })
 
 const PostsModel = mongozod({
@@ -156,8 +156,9 @@ To point your coding agent at them, add this to your `AGENTS.md`:
 ## mongozod
 
 Before writing code that uses mongozod, read the relevant guide in
-`node_modules/mongozod/dist/docs/`, starting from its `README.md`. They match the installed
-version, which may differ from your training data.
+`node_modules/mongozod/dist/docs/`, starting from its `README.md`. Resolve it from the package that
+depends on mongozod: in a monorepo it may not be at the repository root. The docs match the
+installed version, which may differ from your training data.
 
 <!-- END:mongozod-agent-rules -->
 ```
