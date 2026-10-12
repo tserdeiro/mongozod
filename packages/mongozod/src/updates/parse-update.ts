@@ -2,6 +2,7 @@ import type { UpdateContext } from './update-path'
 import type { Document } from 'mongodb'
 import type * as core from 'zod/v4/core'
 
+import { BSON } from 'mongodb'
 import { z } from 'zod'
 
 import { safeParseWritten } from '../model/parse-document'
@@ -336,19 +337,25 @@ export async function parseUpdate(
 
   if (nullId) issues.push(nullId)
 
-  // The upsert inserts the `_id` the filter gives, or a part of the `_id`, which `$setOnInsert`
-  // would change (66) or, with the same value, repeat.
-  if (
-    options.upsert &&
-    given.$setOnInsert?._id !== undefined &&
-    [...filterEqualities(filter).keys()].some((path) => ID_PATH.test(path))
-  ) {
-    issues.push({
-      code: 'custom',
-      input: given.$setOnInsert._id,
-      message: 'the filter gives the _id, which the upsert inserts: leave it out of $setOnInsert',
-      path: ['$setOnInsert', '_id']
-    })
+  // The upsert inserts the `_id` the filter gives, or a part of it, as it is: the server takes the
+  // same whole `_id` in `$setOnInsert`, and rejects another value or a part (66).
+  if (options.upsert && Object.hasOwn(parsed.$setOnInsert ?? {}, '_id')) {
+    const equalities = filterEqualities(filter)
+    const part = [...equalities.keys()].some((path) => path.startsWith('_id.'))
+    const other =
+      equalities.has('_id') &&
+      BSON.EJSON.stringify(equalities.get('_id')) !== BSON.EJSON.stringify(parsed.$setOnInsert._id)
+
+    if (part || other) {
+      issues.push({
+        code: 'custom',
+        input: given.$setOnInsert._id,
+        message: part
+          ? 'the filter gives a part of the _id, which the upsert inserts: leave the _id out of $setOnInsert'
+          : 'the filter gives another _id, which the upsert inserts: give the same one, or leave it out of $setOnInsert',
+        path: ['$setOnInsert', '_id']
+      })
+    }
   }
 
   if (issues.length === 0 && options.upsert) {

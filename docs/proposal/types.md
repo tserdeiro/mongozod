@@ -109,12 +109,17 @@ valor tiene que servir para su operador y su campo. Se aplica en `updateOne`, `u
   da otra parte del `_id`: con `{ '_id.shop': 's1' }` en el filtro, o con dos paths, falla con el
   66 (verificado con MongoDB 8.2.6), así que se escribe el `_id` entero. En un upsert, un `$set`
   del `_id` inserta con él pero falla si encuentra un documento con otro, así que se escribe con
-  `$setOnInsert`. El editor no lo sugiere en los demás operadores. Tampoco va en `$setOnInsert`
-  cuando el filtro del upsert da el `_id` o una parte, por igualdad, `$eq` o un `$in` de un valor,
-  también dentro de `$and` o de un `$or` de un filtro: el upsert inserta el del filtro, así que el
-  servidor rechaza uno distinto o una parte con el 66, y el mismo valor lo repite (verificado con
-  MongoDB 8.2.6). Los tipos lo ven en las keys de primer nivel del filtro con `upsert: true`, y el
-  runtime, con las mismas igualdades que arman el documento del upsert.
+  `$setOnInsert`. El editor no lo sugiere en los demás operadores. Cuando el filtro del upsert da
+  el `_id`, por igualdad, `$eq` o un `$in` de un valor, también dentro de `$and` o de un `$or` de
+  una rama, el upsert inserta el del filtro: `$setOnInsert` toma el mismo `_id` entero, como el
+  servidor, que es el patrón de un `bulkWrite` que guarda documentos por su `_id`, y no toma otro
+  valor, ni el `_id` cuando el filtro da una parte, como `{ '_id.shop': 's1' }`, aunque coincida:
+  el servidor los rechaza con el 66 (verificado con MongoDB 8.2.6). El servidor compara un `_id`
+  objeto con sus keys en orden, y el runtime también. Los tipos lo ven en las keys de primer nivel
+  del filtro con `upsert: true`, y rechazan una parte o un literal distinto; un valor que no pueden
+  comparar, como un `string`, lo decide el runtime, con las mismas igualdades que arman el
+  documento del upsert. Un `$or` de varias ramas con el mismo `_id` no lo fija para mongozod, pero
+  sí para el servidor, que rechaza otro valor en `$setOnInsert`: es un caso raro, que queda así.
 
 - **Uniones**: cada campo que escribe un operador tiene que estar en todos los tipos que permite el
   filtro o, dentro de un array, la entrada de `arrayFilters` de su `$[id]`, como en

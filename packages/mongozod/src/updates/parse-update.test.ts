@@ -218,36 +218,38 @@ describe('operators', () => {
       )
     ).toEqual([['$setOnInsert _id.day', message]])
 
-    // The upsert inserts the _id the filter gives, or the part of it, which $setOnInsert would
-    // change (66); with the same value, it repeats it.
-    const given = 'the filter gives the _id, which the upsert inserts: leave it out of $setOnInsert'
+    // The upsert inserts the _id the filter gives, as it is: the server takes the same one, also
+    // through $eq, a $in of one value or $and, and rejects another one or a part of it (66).
     const key = { day: 'mon', shop: 's1' }
-
-    const filters = [{ '_id.shop': 's1' }, { _id: key }, { $and: [{ _id: { $in: [key] } }] }]
+    const update = { $set: { n: 1 }, $setOnInsert: { _id: key } }
+    const same = [{ _id: key }, { _id: { $eq: key } }, { $and: [{ _id: { $in: [key] } }] }]
+    const another =
+      'the filter gives another _id, which the upsert inserts: give the same one, or leave it out of $setOnInsert'
+    const part =
+      'the filter gives a part of the _id, which the upsert inserts: leave the _id out of $setOnInsert'
 
     expect(
       await Promise.all(
-        filters.map((filter) =>
-          issuesOf(() =>
-            parseUpdate(
-              keySchema,
-              filter,
-              { $set: { n: 1 }, $setOnInsert: { _id: key } },
-              { upsert: true }
-            )
-          )
-        )
+        same.map((filter) => parseUpdate(keySchema, filter, update, { upsert: true }))
       )
-    ).toEqual(filters.map(() => [['$setOnInsert _id', given]]))
-
+    ).toEqual(same.map(() => update))
     expect(
-      await parseUpdate(
-        keySchema,
-        { '_id.shop': { $in: ['s1', 's2'] } },
-        { $set: { n: 1 }, $setOnInsert: { _id: key } },
-        { upsert: true }
+      await Promise.all(
+        [
+          { _id: { ...key, day: 'tue' } },
+          { _id: { shop: 's1', day: 'mon' } },
+          { '_id.shop': 's1' }
+        ].map((filter) => issuesOf(() => parseUpdate(keySchema, filter, update, { upsert: true })))
       )
-    ).toEqual({ $set: { n: 1 }, $setOnInsert: { _id: key } })
+    ).toEqual([
+      [['$setOnInsert _id', another]],
+      // The server compares the keys in their order.
+      [['$setOnInsert _id', another]],
+      [['$setOnInsert _id', part]]
+    ])
+    expect(
+      await parseUpdate(keySchema, { '_id.shop': { $in: ['s1', 's2'] } }, update, { upsert: true })
+    ).toEqual(update)
   })
 
   test('$unset and $rename take a key a record or a catchall may lack', async () => {

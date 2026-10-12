@@ -2,6 +2,6 @@
 'mongozod': patch
 ---
 
-An upsert whose filter gives the `_id`, or a part of it, does not take the `_id` in `$setOnInsert`:
-it inserts the one of the filter, so the server rejected another value or a part with the code 66,
-and the same value repeated it. It does not compile, and throws a `ZodError`.
+An upsert whose filter gives the `_id` takes in `$setOnInsert` only the same `_id`, which the
+server takes: another value, or the `_id` when the filter gives a part of it, made the server
+reject the update with the code 66. They do not compile, and throw a `ZodError`.

@@ -168,6 +168,20 @@ describe('replaceOne', () => {
   })
 })
 
+/**
+ * An upsert of a message, as an app saves those of a chat: the filter and `$setOnInsert` give its
+ * `_id`.
+ */
+function upsertMessage(id: string, text: string) {
+  return {
+    updateOne: {
+      filter: { _id: id },
+      update: { $set: { text }, $setOnInsert: { _id: id, chatId: 'c1' } },
+      upsert: true
+    }
+  }
+}
+
 describe('bulkWrite', () => {
   test('validates inserts and replacements, and passes the rest to the driver', async () => {
     const { insertedId } = await NotesModel.insertOne({ title: 'Groceries' })
@@ -187,6 +201,38 @@ describe('bulkWrite', () => {
     await expect(
       NotesModel.bulkWrite([{ insertOne: { document: { title: '' } } }])
     ).rejects.toBeInstanceOf(z.ZodError)
+  })
+
+  test('takes the _id of an upsert in $setOnInsert when it is the one of the filter', async () => {
+    const MessagesModel = mongozod({
+      collection: 'messages',
+      db,
+      schema: z.object({ _id: z.string(), chatId: z.string(), text: z.string() })
+    })
+
+    await MessagesModel.bulkWrite([upsertMessage('m1', 'Hi'), upsertMessage('m2', 'Hello')])
+    await MessagesModel.bulkWrite([upsertMessage('m1', 'Hi!')])
+
+    expect(await MessagesModel.find({}).sort({ _id: 1 })).toEqual([
+      { _id: 'm1', chatId: 'c1', text: 'Hi!' },
+      { _id: 'm2', chatId: 'c1', text: 'Hello' }
+    ])
+    await expect(
+      MessagesModel.bulkWrite([
+        {
+          updateOne: {
+            filter: { _id: 'm3' },
+            // @ts-expect-error another _id, which the server rejects (66)
+            update: { $setOnInsert: { _id: 'm4', chatId: 'c1', text: 'Hey' } },
+            upsert: true
+          }
+        }
+      ])
+    ).rejects.toMatchObject({
+      issues: [
+        { message: expect.stringContaining('another _id'), path: [0, '$setOnInsert', '_id'] }
+      ]
+    })
   })
 })
 

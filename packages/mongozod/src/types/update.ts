@@ -504,23 +504,34 @@ type IdPath = '_id' | `_id.${string}`
 
 type IdProblem = 'the _id is immutable: an upsert sets it whole with $setOnInsert'
 
-/** Whether a condition gives the value an upsert inserts, as `filterEqualities` reads it. */
-type Inserts<V> = V extends RegExp | { _bsontype: 'BSONRegExp' }
-  ? false
+/**
+ * The value a condition of a filter gives the document an upsert inserts, in a tuple, as
+ * `filterEqualities` reads it: an equality, `$eq` or a `$in` of one value.
+ */
+type Inserted<V> = V extends RegExp | { _bsontype: 'BSONRegExp' }
+  ? never
   : [Extract<keyof V, `$${string}`>] extends [never]
-    ? true
-    : V extends { $eq: unknown } | { $in: readonly [unknown] }
-      ? true
-      : false
+    ? [V]
+    : V extends { $eq: infer X } | { $in: readonly [infer X] }
+      ? [X]
+      : never
 
-/** Whether a filter gives the `_id` or a part of it, which an upsert inserts as it is. */
-type GivesId<F> = true extends { [K in keyof F & IdPath]: Inserts<F[K]> }[keyof F & IdPath]
-  ? true
-  : false
-
-/** The `_id` an upsert inserts comes from its filter, which `$setOnInsert` would change (66). */
-type GivenIdProblem =
-  'the filter gives the _id, which the upsert inserts: leave it out of $setOnInsert'
+/**
+ * Why `$setOnInsert` cannot write the `_id` of an upsert whose filter gives it, which the server
+ * inserts as it is: a part of it, or another value, which the server rejects (66). The same `_id`
+ * passes, and a value the types cannot compare, such as a `string`, is left to the runtime.
+ */
+type GivenIdProblem<F, V> = [
+  { [K in keyof F & `_id.${string}`]: Inserted<F[K]> }[keyof F & `_id.${string}`]
+] extends [never]
+  ? '_id' extends keyof F
+    ? Inserted<F['_id']> extends [infer X]
+      ? [Extract<V, X> | Extract<X, V>] extends [never]
+        ? 'the filter gives another _id, which the upsert inserts: give the same one, or leave it out of $setOnInsert'
+        : never
+      : never
+    : never
+  : 'the filter gives a part of the _id, which the upsert inserts: leave the _id out of $setOnInsert'
 
 type OperatorCheck<S, Op, Fields, F, AF, Locked, O> = {
   [K in keyof Fields]: K extends string
@@ -528,8 +539,10 @@ type OperatorCheck<S, Op, Fields, F, AF, Locked, O> = {
       ? `"${K}" is set by timestamps: pass timestamps: false to write it`
       : K extends IdPath
         ? [Op, K] extends ['$setOnInsert', '_id']
-          ? [O, GivesId<F>] extends [{ upsert: true }, true]
-            ? GivenIdProblem
+          ? O extends { upsert: true }
+            ? [GivenIdProblem<F, Fields[K]>] extends [never]
+              ? PathCheck<S, Op, K, Fields[K], F, AF>
+              : GivenIdProblem<F, Fields[K]>
             : PathCheck<S, Op, K, Fields[K], F, AF>
           : IdProblem
         : Op extends '$rename'
