@@ -46,6 +46,14 @@ const PostsModel = mongozod({
   timestamps: true
 })
 
+const tagCountSchema = z.object({
+
+  _id: z.string(),
+
+  posts: z.number()
+    .int()
+})
+
 const topTags = await PostsModel.aggregate(
   [
     { $match: { status: 'published' } },
@@ -55,13 +63,7 @@ const topTags = await PostsModel.aggregate(
     { $limit: 10 }
   ],
   {
-    schema: z.object({
-
-      _id: z.string(),
-
-      posts: z.number()
-        .int()
-    })
+    schema: tagCountSchema
   }
 )
 // topTags: Array<{ _id: string; posts: number }>
@@ -74,16 +76,18 @@ does `toArray()`. `for await` reads the documents in the batches the server retu
 each batch as it arrives:
 
 ```ts
+const tagSchema = z.object({
+
+  _id: z.string(),
+
+  posts: z.number()
+    .int()
+})
+
 for await (const tag of PostsModel.aggregate(
   [{ $unwind: '$tags' }, { $group: { _id: '$tags', posts: { $sum: 1 } } }],
   {
-    schema: z.object({
-
-      _id: z.string(),
-
-      posts: z.number()
-        .int()
-    })
+    schema: tagSchema
   }
 )) {
   console.log(tag._id, tag.posts)
@@ -151,6 +155,18 @@ declared without `as const`, or typed as `Document[]`, is not checked.
 references with `$lookup`:
 
 ```ts
+const postWithAuthorSchema = z.object({
+
+  _id: mz.objectId(),
+
+  title: z.string(),
+
+  author: z.object({
+
+    name: z.string()
+  })
+})
+
 const withAuthors = await PostsModel.aggregate(
   [
     { $match: { status: 'published' } },
@@ -171,17 +187,7 @@ const withAuthors = await PostsModel.aggregate(
     { $project: { 'title': 1, 'author.name': 1 } }
   ],
   {
-    schema: z.object({
-
-      _id: mz.objectId(),
-
-      title: z.string(),
-
-      author: z.object({
-
-        name: z.string()
-      })
-    })
+    schema: postWithAuthorSchema
   }
 )
 // withAuthors: Array<{ _id: ObjectId; title: string; author: { name: string } }>
@@ -204,24 +210,26 @@ import * as mz from 'mongozod/mzod'
 import { softDelete } from 'mongozod/plugins/soft-delete'
 import * as z from 'zod'
 
+const commentSchema = z.object({
+
+  _id: mz.objectId()
+    .default(() => new ObjectId()),
+
+  postId: mz.objectId(),
+
+  body: z.string(),
+
+  deletedAt: mz.date()
+    .optional()
+})
+
 const CommentsModel = mongozod({
 
   collection: 'comments',
 
   db,
 
-  schema: z.object({
-
-    _id: mz.objectId()
-      .default(() => new ObjectId()),
-
-    postId: mz.objectId(),
-
-    body: z.string(),
-
-    deletedAt: mz.date()
-      .optional()
-  }),
+  schema: commentSchema,
 
   plugins: [softDelete()]
 })

@@ -13,25 +13,38 @@ import { mongozod } from 'mongozod'
 import * as mz from 'mongozod/mzod'
 import * as z from 'zod'
 
+const postSchema = z.object({
+
+  _id: mz.objectId()
+    .default(() => new ObjectId()),
+
+  title: z.string()
+    .min(1),
+
+  commentCount: z.number()
+    .int()
+    .min(0)
+    .default(0)
+})
+
 const PostsModel = mongozod({
 
   collection: 'posts',
 
   db,
 
-  schema: z.object({
+  schema: postSchema
+})
 
-    _id: mz.objectId()
-      .default(() => new ObjectId()),
+const commentSchema = z.object({
 
-    title: z.string()
-      .min(1),
+  _id: mz.objectId()
+    .default(() => new ObjectId()),
 
-    commentCount: z.number()
-      .int()
-      .min(0)
-      .default(0)
-  })
+  postId: mz.objectId(),
+
+  body: z.string()
+    .min(1)
 })
 
 const CommentsModel = mongozod({
@@ -40,16 +53,7 @@ const CommentsModel = mongozod({
 
   db,
 
-  schema: z.object({
-
-    _id: mz.objectId()
-      .default(() => new ObjectId()),
-
-    postId: mz.objectId(),
-
-    body: z.string()
-      .min(1)
-  })
+  schema: commentSchema
 })
 
 export async function addComment(postId: ObjectId, body: string) {

@@ -162,21 +162,23 @@ import * as mz from 'mongozod/mzod'
 import { softDelete } from 'mongozod/plugins/soft-delete'
 import * as z from 'zod'
 
+const postSchema = z.object({
+
+  slug: z.string(),
+
+  title: z.string(),
+
+  deletedAt: mz.date()
+    .optional()
+})
+
 const PostsModel = mongozod({
 
   collection: 'posts',
 
   db,
 
-  schema: z.object({
-
-    slug: z.string(),
-
-    title: z.string(),
-
-    deletedAt: mz.date()
-      .optional()
-  }),
+  schema: postSchema,
 
   plugins: [softDelete()],
 

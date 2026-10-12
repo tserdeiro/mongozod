@@ -145,21 +145,23 @@ const authUserSchema = z.object({
     .optional()
 })
 
+const postSchema = z.object({
+
+  _id: mz.objectId()
+    .default(() => new ObjectId()),
+
+  title: z.string(),
+
+  authorId: z.string()
+})
+
 const PostsModel = mongozod({
 
   collection: 'posts',
 
   db,
 
-  schema: z.object({
-
-    _id: mz.objectId()
-      .default(() => new ObjectId()),
-
-    title: z.string(),
-
-    authorId: z.string()
-  }),
+  schema: postSchema,
 
   references: {
 

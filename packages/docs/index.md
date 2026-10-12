@@ -23,24 +23,26 @@ import * as z from 'zod'
 
 const client = new MongoClient('mongodb://localhost:27017')
 
+const postSchema = z.object({
+
+  _id: mz.objectId()
+    .default(() => new ObjectId()),
+
+  title: z.string()
+    .min(1),
+
+  tags: z.string()
+    .array()
+    .default([])
+})
+
 const PostsModel = mongozod({
 
   collection: 'posts',
 
   db: client.db(),
 
-  schema: z.object({
-
-    _id: mz.objectId()
-      .default(() => new ObjectId()),
-
-    title: z.string()
-      .min(1),
-
-    tags: z.string()
-      .array()
-      .default([])
-  })
+  schema: postSchema
 })
 
 // Validated with the schema: `_id` and `tags` come from their defaults.

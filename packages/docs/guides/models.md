@@ -88,6 +88,14 @@ that start a server first:
 // Set by the test setup, once the server runs.
 let testDb: Db | undefined
 
+const commentSchema = z.object({
+
+  postId: mz.objectId(),
+
+  body: z.string()
+    .min(1)
+})
+
 const CommentsModel = mongozod({
 
   collection: 'comments',
@@ -99,13 +107,7 @@ const CommentsModel = mongozod({
     return testDb
   },
 
-  schema: z.object({
-
-    postId: mz.objectId(),
-
-    body: z.string()
-      .min(1)
-  })
+  schema: commentSchema
 })
 ```
 

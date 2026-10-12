@@ -180,6 +180,13 @@ plugins. See [Operations](../guides/operations.md) and [Validation](../guides/va
 [Aggregation](../guides/aggregation.md).
 
 ```ts
+const tagCountSchema = z.object({
+
+  _id: z.string(),
+
+  count: z.number()
+})
+
 const tagCounts = await PostsModel.aggregate(
   [
     { $match: { status: 'published' } },
@@ -187,12 +194,7 @@ const tagCounts = await PostsModel.aggregate(
     { $group: { _id: '$tags', count: { $sum: 1 } } }
   ],
   {
-    schema: z.object({
-
-      _id: z.string(),
-
-      count: z.number()
-    })
+    schema: tagCountSchema
   }
 )
 // Array<{ _id: string; count: number }>
@@ -449,18 +451,20 @@ export function exists() {
   })
 }
 
+const commentSchema = z.object({
+
+  postId: mz.objectId(),
+
+  body: z.string()
+})
+
 const CommentsModel = mongozod({
 
   collection: 'comments',
 
   db,
 
-  schema: z.object({
-
-    postId: mz.objectId(),
-
-    body: z.string()
-  }),
+  schema: commentSchema,
 
   plugins: [exists()]
 })
