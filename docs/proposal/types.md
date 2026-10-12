@@ -106,7 +106,12 @@ valor tiene que servir para su operador y su campo. Se aplica en `updateOne`, `u
   da otra parte del `_id`: con `{ '_id.shop': 's1' }` en el filtro, o con dos paths, falla con el
   66 (verificado con MongoDB 8.2.6), así que se escribe el `_id` entero. En un upsert, un `$set`
   del `_id` inserta con él pero falla si encuentra un documento con otro, así que se escribe con
-  `$setOnInsert`. El editor no lo sugiere en los demás operadores.
+  `$setOnInsert`. El editor no lo sugiere en los demás operadores. Tampoco va en `$setOnInsert`
+  cuando el filtro del upsert da el `_id` o una parte, por igualdad, `$eq` o un `$in` de un valor,
+  también dentro de `$and` o de un `$or` de un filtro: el upsert inserta el del filtro, así que el
+  servidor rechaza uno distinto o una parte con el 66, y el mismo valor lo repite (verificado con
+  MongoDB 8.2.6). Los tipos lo ven en las keys de primer nivel del filtro con `upsert: true`, y el
+  runtime, con las mismas igualdades que arman el documento del upsert.
 
 - **Uniones**: cada campo que escribe un operador tiene que estar en todos los tipos que permite el
   filtro o, dentro de un array, la entrada de `arrayFilters` de su `$[id]`, como en

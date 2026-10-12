@@ -21,6 +21,7 @@ import { isPlainObject } from '../utils/is-plain-object'
 import { resolveUpdatePath } from './update-path'
 import {
   decidedPaths,
+  filterEqualities,
   insertDefaults,
   insertedDocument,
   nullIdIssue,
@@ -326,6 +327,21 @@ export async function parseUpdate(
   const nullId = options.upsert ? nullIdIssue(filter) : undefined
 
   if (nullId) issues.push(nullId)
+
+  // The upsert inserts the `_id` the filter gives, or a part of the `_id`, which `$setOnInsert`
+  // would change (66) or, with the same value, repeat.
+  if (
+    options.upsert &&
+    given.$setOnInsert?._id !== undefined &&
+    [...filterEqualities(filter).keys()].some((path) => ID_PATH.test(path))
+  ) {
+    issues.push({
+      code: 'custom',
+      input: given.$setOnInsert._id,
+      message: 'the filter gives the _id, which the upsert inserts: leave it out of $setOnInsert',
+      path: ['$setOnInsert', '_id']
+    })
+  }
 
   if (issues.length === 0 && options.upsert) {
     const inserted = insertedDocument(filter, given)

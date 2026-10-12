@@ -217,6 +217,37 @@ describe('operators', () => {
         )
       )
     ).toEqual([['$setOnInsert _id.day', message]])
+
+    // The upsert inserts the _id the filter gives, or the part of it, which $setOnInsert would
+    // change (66); with the same value, it repeats it.
+    const given = 'the filter gives the _id, which the upsert inserts: leave it out of $setOnInsert'
+    const key = { day: 'mon', shop: 's1' }
+
+    const filters = [{ '_id.shop': 's1' }, { _id: key }, { $and: [{ _id: { $in: [key] } }] }]
+
+    expect(
+      await Promise.all(
+        filters.map((filter) =>
+          issuesOf(() =>
+            parseUpdate(
+              keySchema,
+              filter,
+              { $set: { n: 1 }, $setOnInsert: { _id: key } },
+              { upsert: true }
+            )
+          )
+        )
+      )
+    ).toEqual(filters.map(() => [['$setOnInsert _id', given]]))
+
+    expect(
+      await parseUpdate(
+        keySchema,
+        { '_id.shop': { $in: ['s1', 's2'] } },
+        { $set: { n: 1 }, $setOnInsert: { _id: key } },
+        { upsert: true }
+      )
+    ).toEqual({ $set: { n: 1 }, $setOnInsert: { _id: key } })
   })
 
   test('$unset and $rename take a key a record or a catchall may lack', async () => {

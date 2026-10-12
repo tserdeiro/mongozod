@@ -478,13 +478,33 @@ type IdPath = '_id' | `_id.${string}`
 
 type IdProblem = 'the _id is immutable: an upsert sets it whole with $setOnInsert'
 
-type OperatorCheck<S, Op, Fields, F, AF, Locked> = {
+/** Whether a condition gives the value an upsert inserts, as `filterEqualities` reads it. */
+type Inserts<V> = V extends RegExp | { _bsontype: 'BSONRegExp' }
+  ? false
+  : [Extract<keyof V, `$${string}`>] extends [never]
+    ? true
+    : V extends { $eq: unknown } | { $in: readonly [unknown] }
+      ? true
+      : false
+
+/** Whether a filter gives the `_id` or a part of it, which an upsert inserts as it is. */
+type GivesId<F> = true extends { [K in keyof F & IdPath]: Inserts<F[K]> }[keyof F & IdPath]
+  ? true
+  : false
+
+/** The `_id` an upsert inserts comes from its filter, which `$setOnInsert` would change (66). */
+type GivenIdProblem =
+  'the filter gives the _id, which the upsert inserts: leave it out of $setOnInsert'
+
+type OperatorCheck<S, Op, Fields, F, AF, Locked, O> = {
   [K in keyof Fields]: K extends string
     ? K extends Locked
       ? `"${K}" is set by timestamps: pass timestamps: false to write it`
       : K extends IdPath
         ? [Op, K] extends ['$setOnInsert', '_id']
-          ? PathCheck<S, Op, K, Fields[K], F, AF>
+          ? [O, GivesId<F>] extends [{ upsert: true }, true]
+            ? GivenIdProblem
+            : PathCheck<S, Op, K, Fields[K], F, AF>
           : IdProblem
         : Op extends '$rename'
           ? // `$rename` also writes the path it moves the value to.
@@ -521,7 +541,7 @@ export type UpdateCheck<S, U, F, O, N extends TimestampNames = NoTimestamps> = {
       ? StageCheck<U[Op]>
       : 'an update with a pipeline needs updatePipeline: true'
     : Op extends FieldOperator
-      ? OperatorCheck<S, Op, U[Op], F, ArrayFiltersOf<O>, LockedFields<N, Op, O>>
+      ? OperatorCheck<S, Op, U[Op], F, ArrayFiltersOf<O>, LockedFields<N, Op, O>, O>
       : `"${Op & string}" is not an update operator`
 }
 

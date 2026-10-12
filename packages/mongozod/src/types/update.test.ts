@@ -140,8 +140,9 @@ const keySchema = z.object({
 
 function updateKeys<
   const F extends ModelFilter<typeof keySchema, F>,
-  const U extends ModelUpdate<typeof keySchema, U, F, unknown>
->(_filter: F, value: U) {
+  const U extends ModelUpdate<typeof keySchema, U, F, O>,
+  const O extends UpdateOptionsCheck<typeof keySchema, U, O>
+>(_filter: F, value: U, _options?: O) {
   return value
 }
 
@@ -158,6 +159,16 @@ test('the _id is written only with $setOnInsert: the server rejects a change of 
   updateKeys({}, { $setOnInsert: { _id: { day: 'mon', shop: 's1' } } })
   // @ts-expect-error an upsert sets the _id whole
   updateKeys({}, { $setOnInsert: { '_id.day': 'mon' } })
+
+  // The upsert inserts the _id the filter gives, or the part of it, which $setOnInsert would change.
+  const id = { day: 'mon', shop: 's1' }
+
+  // @ts-expect-error the filter gives a part of the _id
+  updateKeys({ '_id.shop': 's1' }, { $setOnInsert: { _id: id } }, { upsert: true })
+  // @ts-expect-error the filter gives the _id
+  updateKeys({ _id: { $in: [id] } }, { $setOnInsert: { _id: id } }, { upsert: true })
+  updateKeys({ '_id.shop': { $in: ['s1', 's2'] } }, { $setOnInsert: { _id: id } }, { upsert: true })
+  updateKeys({ '_id.shop': 's1' }, { $setOnInsert: { _id: id } })
   expect(true).toBe(true)
 })
 
