@@ -227,6 +227,8 @@ describe('operators', () => {
       'the filter gives another _id, which the upsert inserts: give the same one, or leave it out of $setOnInsert'
     const part =
       'the filter gives a part of the _id, which the upsert inserts: leave the _id out of $setOnInsert'
+    const order =
+      'the filter gives the _id with its keys in another order than the schema, which the server compares: write them in the order of the schema'
 
     expect(
       await Promise.all(
@@ -243,10 +245,21 @@ describe('operators', () => {
       )
     ).toEqual([
       [['$setOnInsert _id', another]],
-      // The server compares the keys in their order.
-      [['$setOnInsert _id', another]],
+      // The server compares the keys in their order, and the _id sent is in the order of the
+      // schema, also when $setOnInsert writes it as the filter does.
+      [['$setOnInsert _id', order]],
       [['$setOnInsert _id', part]]
     ])
+    expect(
+      await issuesOf(() =>
+        parseUpdate(
+          keySchema,
+          { _id: { shop: 's1', day: 'mon' } },
+          { $setOnInsert: { _id: { shop: 's1', day: 'mon' } } },
+          { upsert: true }
+        )
+      )
+    ).toEqual([['$setOnInsert _id', order]])
     expect(
       await parseUpdate(keySchema, { '_id.shop': { $in: ['s1', 's2'] } }, update, { upsert: true })
     ).toEqual(update)

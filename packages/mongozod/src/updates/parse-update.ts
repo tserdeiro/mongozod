@@ -18,6 +18,7 @@ import {
 } from '../schema/schema-kinds'
 import { withoutChecks } from '../schema/without-checks'
 import { isPlainObject } from '../utils/is-plain-object'
+import { valueKey } from '../utils/value-key'
 
 import { resolveUpdatePath } from './update-path'
 import {
@@ -338,21 +339,30 @@ export async function parseUpdate(
   if (nullId) issues.push(nullId)
 
   // The upsert inserts the `_id` the filter gives, or a part of it, as it is: the server takes the
-  // same whole `_id` in `$setOnInsert`, and rejects another value or a part (66).
+  // same whole `_id` in `$setOnInsert`, and rejects another value or a part (66). It compares the
+  // keys of an object in their order, and the `_id` sent is in the order of the schema.
   if (options.upsert && Object.hasOwn(parsed.$setOnInsert ?? {}, '_id')) {
     const equalities = filterEqualities(filter)
+    const sent: unknown = parsed.$setOnInsert._id
+    const id = equalities.get('_id')
     const part = [...equalities.keys()].some((path) => path.startsWith('_id.'))
-    const other =
-      equalities.has('_id') &&
-      BSON.EJSON.stringify(equalities.get('_id')) !== BSON.EJSON.stringify(parsed.$setOnInsert._id)
+    const other = equalities.has('_id') && BSON.EJSON.stringify(id) !== BSON.EJSON.stringify(sent)
+    let message =
+      'the filter gives another _id, which the upsert inserts: give the same one, or leave it out of $setOnInsert'
+
+    if (part) {
+      message =
+        'the filter gives a part of the _id, which the upsert inserts: leave the _id out of $setOnInsert'
+    } else if (valueKey(id) === valueKey(sent)) {
+      message =
+        'the filter gives the _id with its keys in another order than the schema, which the server compares: write them in the order of the schema'
+    }
 
     if (part || other) {
       issues.push({
         code: 'custom',
         input: given.$setOnInsert._id,
-        message: part
-          ? 'the filter gives a part of the _id, which the upsert inserts: leave the _id out of $setOnInsert'
-          : 'the filter gives another _id, which the upsert inserts: give the same one, or leave it out of $setOnInsert',
+        message,
         path: ['$setOnInsert', '_id']
       })
     }

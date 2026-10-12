@@ -115,10 +115,13 @@ valor tiene que servir para su operador y su campo. Se aplica en `updateOne`, `u
   servidor, que es el patrón de un `bulkWrite` que guarda documentos por su `_id`, y no toma otro
   valor, ni el `_id` cuando el filtro da una parte, como `{ '_id.shop': 's1' }`, aunque coincida:
   el servidor los rechaza con el 66 (verificado con MongoDB 8.2.6). El servidor compara un `_id`
-  objeto con sus keys en orden, y el runtime también. Los tipos lo ven en las keys de primer nivel
-  del filtro con `upsert: true`, y rechazan una parte o un literal distinto; un valor que no pueden
-  comparar, como un `string`, lo decide el runtime, con las mismas igualdades que arman el
-  documento del upsert. Un `$or` de varias ramas con el mismo `_id` no lo fija para mongozod, pero
+  objeto con sus keys en orden, y el `_id` que manda mongozod es el que parsea Zod, en el orden del
+  schema: el runtime los compara así, y un filtro que escribe el `_id` en otro orden se rechaza con
+  su propio mensaje, aunque `$setOnInsert` lo escriba igual, porque el servidor rechazaría el que
+  recibe (66) y ese filtro tampoco encuentra los documentos guardados (verificado). Los tipos, que
+  no ven el orden de las keys, lo ven en las keys de primer nivel del filtro con `upsert: true`, y
+  rechazan una parte o un literal distinto; un valor que no pueden comparar, como un `string`, lo
+  decide el runtime, con las mismas igualdades que arman el documento del upsert. Un `$or` de varias ramas con el mismo `_id` no lo fija para mongozod, pero
   sí para el servidor, que rechaza otro valor en `$setOnInsert`: es un caso raro, que queda así.
 
 - **Uniones**: cada campo que escribe un operador tiene que estar en todos los tipos que permite el
