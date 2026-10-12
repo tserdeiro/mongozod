@@ -81,13 +81,21 @@ type ElemMatchCheck<F, K extends string, T, L> =
       ? `"$elemMatch" on "${K}" needs paths declared under it, such as "${K}.<field>"`
       : '$elemMatch'
 
-type OperatorsCheck<F, K extends string, T, L extends ReadonlyArray<unknown>> = {
-  [I in keyof L]: L[I] extends Applicable<T>
-    ? L[I] extends '$elemMatch'
-      ? ElemMatchCheck<F, K, T, L[number]>
-      : L[I]
-    : OperatorMessage<L[I]>
-}
+/**
+ * Each declared operator, or why it does not apply. A list without `$elemMatch` whose operators all
+ * apply is returned as it is, which is what mapping it would give, without checking each operator
+ * again while the declarations are inferred.
+ */
+type OperatorsCheck<F, K extends string, T, L extends ReadonlyArray<unknown>> =
+  L extends ReadonlyArray<Exclude<Applicable<T>, '$elemMatch'>>
+    ? L
+    : {
+        [I in keyof L]: L[I] extends Applicable<T>
+          ? L[I] extends '$elemMatch'
+            ? ElemMatchCheck<F, K, T, L[number]>
+            : L[I]
+          : OperatorMessage<L[I]>
+      }
 
 /**
  * Checks the declarations of `mz.filter`: each key is a path of the document, and each operator

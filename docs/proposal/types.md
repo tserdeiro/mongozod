@@ -187,6 +187,10 @@ mensajes de error ni lo que sugiere el editor:
   compara el tipo de la propiedad. `Pick<T, K> extends Required<Pick<T, K>>` da lo mismo, pero en
   TS 5.5 reinstancia la cadena del output de Zod en cada key: era el tipo más caro de las
   proyecciones.
+- **Listas válidas, tal cual**: un chequeo que recibe una lista sin problemas la devuelve sin
+  mapearla, que es lo que daría el mapeo. Mientras infiere el argumento, TypeScript evalúa el chequeo
+  de cada elemento una y otra vez. `mz.filter` devuelve así una lista de operadores que aplican, sin
+  `$elemMatch`.
 
 ## Paths con punto
 
