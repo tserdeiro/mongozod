@@ -9,6 +9,7 @@ import type { Loose } from './loose'
 import type { PathSuggestions } from './path-suggestions'
 import type { ProjectionCheck } from './projection'
 import type { SortCheck } from './sort'
+import type { Document } from 'mongodb'
 import type * as core from 'zod/v4/core'
 
 /**
@@ -476,8 +477,18 @@ type EntryCheck<X, Entry> = {
 
 type ArrayFiltersCheck<X, AF> = { [I in keyof AF]: EntryCheck<X, AF[I]> }
 
+/**
+ * Checks the entries of `arrayFilters`. An array of them is not intersected with the driver's
+ * `Document[]`, which would make the compiler compare every method of both, so each entry checks
+ * that it is a document.
+ */
+type ArrayFiltersEntries<X, AF> =
+  AF extends ReadonlyArray<unknown>
+    ? { [I in keyof AF]: AF[I] extends Document ? EntryCheck<X, AF[I]> : Document }
+    : ArrayFiltersCheck<X, AF>
+
 /** Checks the entries of `arrayFilters` against the identifiers of an update. */
-export type ArrayFiltersEntriesCheck<S, U, AF> = ArrayFiltersCheck<Identifiers<S, U>, AF>
+export type ArrayFiltersEntriesCheck<S, U, AF> = ArrayFiltersEntries<Identifiers<S, U>, AF>
 
 /**
  * Checks the options of an update: its `arrayFilters` and, where it takes them, its `sort`, its
@@ -485,7 +496,7 @@ export type ArrayFiltersEntriesCheck<S, U, AF> = ArrayFiltersCheck<Identifiers<S
  */
 export type UpdateOptionsCheck<S extends ModelSchema, U, O, V = None, R = None> = {
   [K in keyof O]: K extends 'arrayFilters'
-    ? ArrayFiltersCheck<Identifiers<S, U>, O[K]>
+    ? ArrayFiltersEntries<Identifiers<S, U>, O[K]>
     : K extends 'sort'
       ? SortCheck<S, O[K]>
       : K extends 'projection'

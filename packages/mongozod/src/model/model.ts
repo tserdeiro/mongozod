@@ -146,10 +146,14 @@ type ModifyResultOf<S extends ModelSchema, V, R, P, Pop> = Omit<
 
 /**
  * Driver options of an update, whose `arrayFilters`, `sort`, `projection` and `populate`
- * `UpdateOptionsCheck` checks.
+ * `UpdateOptionsCheck` checks. When the options `O` pass an array of `arrayFilters`, the check
+ * types each entry: intersected with another array type, the compiler would compare every method
+ * of both.
  */
-type UpdateOptionsBase<O> = Omit<O, 'arrayFilters' | 'projection' | 'sort'> & {
-  arrayFilters?: ReadonlyArray<Document>
+type UpdateOptionsBase<Driver, O> = Omit<Driver, 'arrayFilters' | 'projection' | 'sort'> & {
+  arrayFilters?: O extends { arrayFilters: ReadonlyArray<unknown> }
+    ? unknown
+    : ReadonlyArray<Document>
   populate?: Document
   projection?: Document
   sort?: Document
@@ -494,7 +498,7 @@ export interface Model<
   'findOneAndUpdate'<
     const F extends FilterCheck<S, F>,
     const U extends UpdateCheck<S, U, F, O, N>,
-    const O extends UpdateOptionsBase<FindOneAndUpdateOptions> &
+    const O extends UpdateOptionsBase<FindOneAndUpdateOptions, O> &
       TimestampsOperationOption<N> &
       UpdateOptionsCheck<S, U, O, V, R>
   >(
@@ -510,7 +514,7 @@ export interface Model<
   'findOneAndUpdate'<
     const F extends FilterCheck<S, F>,
     const U extends UpdateCheck<S, U, F, O, N>,
-    const O extends UpdateOptionsBase<FindOneAndUpdateOptions> &
+    const O extends UpdateOptionsBase<FindOneAndUpdateOptions, O> &
       TimestampsOperationOption<N> &
       UpdateOptionsCheck<S, U, O, V, R>
   >(
@@ -568,7 +572,7 @@ export interface Model<
   'updateMany'<
     const F extends FilterCheck<S, F>,
     const U extends UpdateCheck<S, U, F, O, N>,
-    const O extends UpdateOptionsBase<UpdateOptions> &
+    const O extends UpdateOptionsBase<UpdateOptions, O> &
       TimestampsOperationOption<N> &
       UpdateOptionsCheck<S, U, O>
   >(
@@ -581,7 +585,7 @@ export interface Model<
   'updateOne'<
     const F extends FilterCheck<S, F>,
     const U extends UpdateCheck<S, U, F, O, N>,
-    const O extends UpdateOptionsBase<UpdateOptions> &
+    const O extends UpdateOptionsBase<UpdateOptions, O> &
       TimestampsOperationOption<N> &
       UpdateOptionsCheck<S, U, O>
   >(
