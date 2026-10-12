@@ -146,10 +146,9 @@ export function planRead(
     }
 
     for (const [name, virtual] of context.virtuals) {
+      // A `$meta` on a field it reads replaces its value with the score: that changes it too.
       const touched = virtual.needs.some((need) =>
-        entries.some(
-          ([path, kind]) => kind !== 'meta' && (path === need || path.startsWith(`${need}.`))
-        )
+        entries.some(([path]) => path === need || path.startsWith(`${need}.`))
       )
 
       if (!asked.has(name) && !touched) computed.set(name, virtual)

@@ -134,7 +134,7 @@ type Changed<E, N extends string> = E extends [infer Path extends string, infer 
   ? Path extends `${infer First}.${string}`
     ? First & N
     : Path extends N
-      ? Own extends 'elemMatch' | 'positional' | 'slice'
+      ? Own extends 'elemMatch' | 'meta' | 'positional' | 'slice'
         ? Path
         : never
       : never

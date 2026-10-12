@@ -362,7 +362,9 @@ export const AccountsModel = mongozod({
   virtual toma 0, 1, `true` o `false`.
 - **Campos cambiados**: el virtual se calcula con los campos tal como están guardados, así que una
   proyección que lo pide y cambia uno de sus campos, con un subcampo
-  (`{ 'name.first': 1, fullName: 1 }`), `$slice` o `$elemMatch`, no compila y lanza un `ZodError`.
+  (`{ 'name.first': 1, fullName: 1 }`), `$slice`, `$elemMatch` o un `$meta`, que reemplaza el
+  valor por el score, no compila y lanza un `ZodError`. Una exclusión que cambia uno de sus campos,
+  como `{ firstName: { $meta: 'textScore' } }`, lo deja afuera.
   Pedir el campo entero chocaría con el subcampo (código 31249), y recortarlo después sería
   reimplementar la proyección de MongoDB.
 - **`populate`**: pasa por el modelo referenciado, así que aplica sus virtuals:

@@ -1,6 +1,6 @@
 import type { ModelSchema, Output } from '../model/model'
 import type { FieldsOf } from '../schema/document-types'
-import type { Entries, IsLiteral, Mode, Projected } from '../types/projection'
+import type { Entries, IsLiteral, Kind, Mode, Projected } from '../types/projection'
 import type { Simplify, UnionToIntersection } from '../utils/type-helpers'
 import type { Document, WithId } from 'mongodb'
 
@@ -58,13 +58,14 @@ export type VirtualsCheck<S extends ModelSchema, V> = {
     : VirtualProblem<WithId<Output<S>>, K & string, V[K]>
 }
 
-/** The paths of a projection that leave out or change a field a virtual reads. */
-type Touched<E, N extends string> = E extends [infer Path extends string, infer Own]
-  ? Own extends 'meta'
-    ? never
-    : Path extends N | `${N}.${string}`
-      ? Path
-      : never
+/**
+ * The paths of a projection that leave out or change a field a virtual reads, `$meta` included: the
+ * score replaces the value of a field.
+ */
+type Touched<E, N extends string> = E extends [infer Path extends string, Kind]
+  ? Path extends N | `${N}.${string}`
+    ? Path
+    : never
   : never
 
 /**

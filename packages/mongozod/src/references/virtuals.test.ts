@@ -158,6 +158,26 @@ describe('projections', () => {
     ).rejects.toThrow('is a virtual: it takes 0, 1, true or false')
   })
 
+  test('a $meta on a field one reads changes it, as $slice does', async () => {
+    await AccountsModel.collection.createIndex({ firstName: 'text' })
+
+    const scored = await AccountsModel.findOne(
+      { $text: { $search: 'Ana' } },
+      { projection: { firstName: { $meta: 'textScore' } } }
+    )
+
+    expect(scored).toMatchObject({ city: 'Montevideo', firstName: expect.any(Number) })
+    expect(scored).not.toHaveProperty('fullName')
+    expectTypeOf<NonNullable<typeof scored>>().not.toHaveProperty('fullName')
+    await expect(
+      AccountsModel.find(
+        { $text: { $search: 'Ana' } },
+        // @ts-expect-error fullName reads firstName as stored
+        { projection: { firstName: { $meta: 'textScore' }, fullName: 1 } }
+      )
+    ).rejects.toBeInstanceOf(z.ZodError)
+  })
+
   test('cannot mix a virtual with an exclusion', () => {
     expectTypeOf(() =>
       // @ts-expect-error mixes inclusion and exclusion
