@@ -115,6 +115,12 @@ test('what MongoDB accepts but answers differently does not compile', () => {
   // @ts-expect-error a field the nested form does not have
   project({ connections: { stauts: 1 } })
 
+  const kept = { plugin: 0 }
+
+  // @ts-expect-error a projection kept in a variable widens 0 to a number: as const keeps it
+  project(kept)
+  project({ ...kept, plugin: 0 } as const)
+
   project({ 'connections.$': 1, 'plugin': 1, 'score': { $meta: 'textScore' } })
   project({ 'connections.accounts': { $slice: [1, 2] }, 'plugin': 1 })
   project({ tags: { $elemMatch: { $eq: 'x' } } })

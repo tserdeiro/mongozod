@@ -248,6 +248,8 @@ Los tipos siguen la regla de [Tipos](#tipos). Además:
 - **Por operación**: los filtros atraviesan arrays y aceptan índices. Los updates no los
   atraviesan, porque el servidor responde con el código 28, y usan un índice, `$`, `$[]` o
   `$[id]`. La proyección los atraviesa, pero no toma índices.
+- **Proyección en una variable**: `const projection = { password: 0 }` tipa el `0` como `number`,
+  que no compila: el error dice que se declare con `as const`.
 - **Proyección estricta**: no compila lo que MongoDB acepta pero responde distinto: un índice, un
   path que no existe, `$slice` o `$elemMatch` sobre algo que no es array, un string (MongoDB lo
   devuelve como valor literal) y un `$` que atraviesa dos arrays. Las expresiones de agregación se

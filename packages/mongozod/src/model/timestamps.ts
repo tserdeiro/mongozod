@@ -1,4 +1,3 @@
-import type { Simplify } from '../utils/type-helpers'
 import type { Document } from 'mongodb'
 import type * as core from 'zod/v4/core'
 
@@ -100,10 +99,16 @@ export type TimestampsOperationOption<N extends TimestampNames, T = false> = [
   ? unknown
   : { timestamps?: T }
 
+/**
+ * The input with the fields `K` optional. The object is built in the branch of a conditional, where
+ * it has no alias, so an error such as a key of more shows its fields.
+ */
 type OptionalFields<I, K extends PropertyKey> = [K] extends [never]
   ? I
   : I extends unknown
-    ? Simplify<Omit<I, K> & { [P in K & keyof I]?: I[P] }>
+    ? Omit<I, K> & { [P in K & keyof I]?: I[P] } extends infer X
+      ? { [P in keyof X]: X[P] }
+      : never
     : never
 
 /**

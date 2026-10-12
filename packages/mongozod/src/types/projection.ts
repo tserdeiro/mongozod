@@ -157,19 +157,21 @@ type Check<S, P, E, Prefix extends string, V = None> = {
       ? VirtualCheck<K, Exclude<P[K], undefined>, E, NeedsOf<V[K]>>
       : Exclude<P[K], undefined> extends 0 | 1 | boolean
         ? ValueCheck<S, `${Prefix}${K}`, Exclude<P[K], undefined>, E>
-        : P[K] extends { $slice: unknown }
-          ? SliceCheck<S, `${Prefix}${K}`, E>
-          : P[K] extends { $elemMatch: infer C }
-            ? ElemMatchCheck<S, `${Prefix}${K}`, C, E>
-            : P[K] extends { $meta: unknown }
-              ? `${Prefix}${K}` extends `${string}.${string}`
-                ? `"${Prefix}${K}": $meta takes a top-level field`
-                : { $meta: 'textScore' }
-              : IsAny<P[K]> extends true
-                ? P[K]
-                : P[K] extends object
-                  ? Check<S, P[K], E, `${Prefix}${K}.`>
-                  : `"${Prefix}${K}" takes 0, 1, true, false, $slice, $elemMatch or $meta`
+        : number extends P[K]
+          ? `"${Prefix}${K}" is a number, which a projection kept in a variable gets: declare it with as const`
+          : P[K] extends { $slice: unknown }
+            ? SliceCheck<S, `${Prefix}${K}`, E>
+            : P[K] extends { $elemMatch: infer C }
+              ? ElemMatchCheck<S, `${Prefix}${K}`, C, E>
+              : P[K] extends { $meta: unknown }
+                ? `${Prefix}${K}` extends `${string}.${string}`
+                  ? `"${Prefix}${K}": $meta takes a top-level field`
+                  : { $meta: 'textScore' }
+                : IsAny<P[K]> extends true
+                  ? P[K]
+                  : P[K] extends object
+                    ? Check<S, P[K], E, `${Prefix}${K}.`>
+                    : `"${Prefix}${K}" takes 0, 1, true, false, $slice, $elemMatch or $meta`
     : never
 }
 
