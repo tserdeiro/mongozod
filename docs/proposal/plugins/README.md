@@ -75,6 +75,12 @@ que un plugin que no completa uno lanza un `ZodError`. Un nombre que no está en
 y lanza un `Error` al definir el modelo. Un plugin tipado como `Plugin`, sin su tipo propio, no
 completa ninguno para los tipos: si no, cualquier campo quedaría opcional.
 
+Los tipos no saben qué hooks escribe el plugin, así que cubrirlos es su trabajo: `insertOne`,
+`insertMany`, `replaceOne`, `findOneAndReplace`, y el `insertOne` y el `replaceOne` de `bulkWrite`,
+o los grupos `insert`, `update` y `bulk`. Un upsert que crea el documento necesita el campo en su
+`$setOnInsert`, o en el filtro. Una operación que el plugin no cubre compila sin el campo y lanza
+el `ZodError` del schema.
+
 ```ts
 definePlugin({ id: 'tenant', fields: { tenantId: z.string() }, fills: ['tenantId'], … })
 ```

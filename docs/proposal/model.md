@@ -7,7 +7,7 @@ import { softDelete } from 'mongozod/plugins/soft-delete'
 export const NotesModel = mongozod({
   schema: noteSchema,
   collection: 'notes',
-  db: () => client.db(),
+  db: client.db(),
   indexes: (index) => [index({ organization: 1, createdAt: -1 })],
   plugins: [softDelete()]
 })
@@ -22,7 +22,8 @@ export const NotesModel = mongozod({
   schema no lo declara, el driver genera un ObjectId. Un `z.bigint()` pide un cliente o un `Db` con
   `useBigInt64: true`: sin esa opción el driver lee un long como un `number`, o como un `Long` desde
   2^53 (verificado), y el tipo de las lecturas prometería un `bigint`. Cada operación lanza un
-  `Error` con el path, que se chequea en la primera porque el `db` puede llegar recién entonces. Un `z.set()` o un `z.map()` lanza
+  `Error` con el path: se chequea con el `Db` que resuelve cada operación, porque el `db` puede llegar
+  recién entonces. Un `z.set()` o un `z.map()` lanza
   un `Error` al definir el modelo, con el path y la alternativa: el driver guarda un `Set` como `{}`
   y un `Map` como un objeto, y ninguno vuelve en una lectura (verificado). Para un array sin
   repetidos está `mz.set()`, y para keys dinámicas, `z.record()`.

@@ -162,9 +162,9 @@ manda `{ createdAt, _id }` del último elemento de la página.
    - **Para clientes**: `mz.populate` recibe la lista blanca como un schema recortado con `pick`,
      como hoy. El cliente manda `true` para toda la lista blanca, nunca el documento entero, como
      el `populate` del modelo, o una proyección con `1` o `true` para algunos de sus campos. Un
-     `{}`, una exclusión, un campo de afuera o una referencia no declarada fallan, con
-     `takes true, or an object with 1 or true for some of its fields` en vez del `Invalid input` de
-     una unión. El router recibe
+     `{}`, una exclusión, un campo de afuera o una referencia no declarada fallan: los dos primeros
+     con `takes true, or an object with 1 or true for some of its fields`, en vez del
+     `Invalid input` de una unión, y el campo de afuera con el `Unrecognized key` de Zod. El router recibe
      el `populate` del modelo, con una `projection` de `1`. El cliente no manda `filter` ni `sort`:
      son decisiones del endpoint.
    - **Tipos**: un `populate` escrito en el código da el tipo exacto. El que manda un cliente deja

@@ -184,7 +184,7 @@ const STRING_OPTIONS = { projection: '{ name: 1 }', sort: '{ createdAt: -1 }' }
  * @example
  *   export const NotesModel = mongozod({
  *     collection: 'notes',
- *     db: () => client.db(),
+ *     db: client.db(),
  *     schema: noteSchema
  *   })
  *
