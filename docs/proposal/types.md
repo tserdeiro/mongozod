@@ -18,7 +18,7 @@
   recursivos. Generarlos todos, como hace el driver, no compila con `blueprints`. `arrayFilters` se
   tipa según los `$[id]` del update, y la proyección ajusta el tipo del resultado a lo que responde
   MongoDB. Las sugerencias del editor se calculan aparte desde el schema: hasta 6 niveles, con `$` y
-  `$[]` en los arrays de los updates, los campos del elemento dentro de `$pull`, y sin entrar en
+  `$[]` en los arrays de los updates, el `$` una sola vez por path, como lo toma MongoDB (código 2), los campos del elemento dentro de `$pull`, y sin entrar en
   `z.custom`, records, `z.lazy` ni transforms. `arrayFilters` no sugiere: haría falta intersectar
   dos arrays (ver [Costo de los tipos](#costo-de-los-tipos)), así que queda para la fase 7, con las
   sugerencias de los operadores. Una key
