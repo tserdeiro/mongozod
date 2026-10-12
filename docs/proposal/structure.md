@@ -94,12 +94,12 @@
   cuando lo soporte. El paquete exige 2FA y no acepta tokens que la salteen. El PR de versión y su
   commit se llaman `chore(release): version packages`, que pasa Conventions.
 - **Flujo de trabajo**: el repo es público para poder proteger `main` con un ruleset, que exige un
-  pull request con el CI y Conventions en verde, solo con rebase, y bloquea el force push y el
+  pull request con el CI y Conventions en verde, solo con squash, y bloquea el force push y el
   borrado. El admin puede saltear los checks solo dentro de un pull request: el PR de versión lo
   abre el `GITHUB_TOKEN`, y lo que hace ese token no dispara workflows, así que sus checks nunca
   corren. Cada cambio entra desde
-  una rama corta, con su changeset si toca el paquete, y se mergea con rebase, que conserva un
-  cambio por commit. En la 0.x, un cambio que rompe sube la minor y el resto la patch. Antes de
+  una rama corta, con su changeset si toca el paquete, y se mergea con squash: el commit en `main`
+  toma el título del PR, que valida Conventions, y su descripción, y la rama se borra al mergear. En la 0.x, un cambio que rompe sube la minor y el resto la patch. Antes de
   mergear el PR de versión, el `.tgz` de `pnpm pack` se prueba en adsgpt. Una versión rota no se
   reemplaza: se publica un patch y se la marca con `npm deprecate`.
 
