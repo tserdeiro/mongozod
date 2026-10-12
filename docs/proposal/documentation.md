@@ -137,18 +137,43 @@ sabiendo que la norma 7 les permite objetar (decidido el 2026-10-12).
 
 ## Sitio
 
-`apps/website`, con Next.js y Fumadocs, como zod.dev: una landing y `/docs`, que lee `@repo/docs`.
-Publica la versión que está en npm, no la de `main`; cómo, se decide al armarlo. El playground
+`apps/website`, con Next.js 16 y Fumadocs 16, como zod.dev: una landing y `/docs`, que lee
+`@repo/docs`. Parte de la plantilla de `create-fumadocs-app` (Next.js con Fumadocs MDX), que ya trae
+las rutas para agentes.
+
+- **Contenido**: `defineDocs` de `fumadocs-mdx/macro` con `dir: '../../packages/docs'`, sin el
+  `README.md`, que es el índice de GitHub. Fumadocs MDX compila cada `.md` como Markdown y no como
+  MDX (lo elige por la extensión, verificado en su código), así que un `<` o un `{` del texto no
+  rompe nada. Los links relativos entre archivos funcionan con `createRelativeLink`.
+- **Alertas**: un plugin de remark propio (`lib/remark-github-alerts.ts`) convierte cada
+  `> [!NOTE]` en el `Callout` de Fumadocs, que no las reconoce solo.
+- **Para agentes**: cada página en `/docs/<página>.md` y en la misma URL con
+  `Accept: text/markdown` (el `proxy.ts` de la plantilla, con `Vary: Accept`), con un `<link
+  rel="alternate" type="text/markdown">` en el HTML. Lo que se sirve es el archivo tal como está
+  escrito, con su título, su descripción y los links relativos convertidos en URLs absolutas de sus
+  `.md`, para que un agente que bajó una página pueda seguirlos. `/llms.txt` sigue el
+  [estándar](https://llmstxt.org/): el nombre, un resumen, cómo instalarlo, dónde están las docs en
+  `node_modules`, el aviso de marca y una sección por carpeta con el link al `.md` de cada página.
+  `/llms-full.txt` junta todas.
+- **Además**: el aviso de marca al pie de cada página, `robots.txt` abierto, `sitemap.xml` e
+  imágenes de Open Graph por página.
+
+Publica la versión que está en npm, no la de `main`; cómo, se decide al desplegarlo. El playground
 sigue en la fase 7 del [Roadmap](./roadmap.md).
 
 ## Orden
 
-1. Esta propuesta.
-2. `packages/docs`, la copia al paquete y `pnpm check-docs`.
-3. El README.
-4. Las páginas: primero `getting-started/` y `mongoose/`, que la fase 6 pide antes de la 0.x;
-   después `guides/`, `plugins/`, `recipes/` y `api/`.
-5. La skill de migración.
-6. `apps/website`.
+1. Esta propuesta (hecho).
+2. `packages/docs`, la copia al paquete y `pnpm check-docs` (hecho).
+3. El README (hecho).
+4. Las páginas (hecho): primero `getting-started/` y `mongoose/`, que la fase 6 pide antes de la
+   0.x; después `guides/`, `plugins/`, `recipes/` y `api/`. Las escribieron agentes en paralelo
+   con las reglas de [Redacción](#redacción), cada uno verificando sus afirmaciones contra el código
+   y MongoDB, y otros dos las revisaron buscando contradicciones entre páginas.
+5. La skill de migración (hecho).
+6. `apps/website` (hecho).
+
+Queda desplegar el sitio en mongozod.dev, decidir cómo publica la versión de npm y no la de
+`main`, y sumar a los JSDoc los links a sus páginas, que apuntan al sitio.
 
 Un cambio de la API pública actualiza su página en el mismo commit (ver `AGENTS.md`).

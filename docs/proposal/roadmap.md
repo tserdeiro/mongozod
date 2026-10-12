@@ -125,11 +125,11 @@ El orden de implementación. Al cerrar una fase, se marca acá en el mismo cambi
       [evaluación](../audits/evaluation.md#el-costo-de-los-tipos).
 
    Con ella van, como dice [Documentación](./documentation.md):
-   1. El README del paquete y de la raíz: qué es, cómo se instala, un ejemplo mínimo y que la API
+   1. El README del paquete y de la raíz (hecho): qué es, cómo se instala, un ejemplo mínimo y que la API
       puede cambiar en la 0.x.
    2. Las páginas de `getting-started/` en `packages/docs`, con la copia al paquete y
-      `pnpm check-docs`.
-   3. La guía «Desde Mongoose», en `packages/docs/mongoose/`, para que se lea en GitHub y en el sitio: las
+      `pnpm check-docs` (hecho).
+   3. La guía «Desde Mongoose» (hecho), en `packages/docs/mongoose/`, para que se lea en GitHub y en el sitio: las
       equivalencias, lo que mongozod hace distinto (sin documentos con `.save()`, sin casting de
       filtros) y las recetas, como el virtual `id` y `__v`. Deja claro que Mongoose y mongozod
       conviven sobre la misma conexión mientras se migra, modelo por modelo, con el driver 6.20 de
@@ -205,6 +205,6 @@ El orden de implementación. Al cerrar una fase, se marca acá en el mismo cambi
    resultados; un plugin de versión, el control de concurrencia optimista
    que Mongoose hace con `__v` y `optimisticConcurrency`: un campo que el filtro chequea y un `$inc`
    aumenta en cada escritura, con el nombre configurable, así sirve `__v` en los documentos que
-   vienen de Mongoose (el nombre por defecto se decide al diseñarlo, quizás `_v`); el cifrado de campos, con los `encryptedFields` desde `.meta({ encrypt })` y verificando que el `$jsonSchema` no rechace los campos cifrados; un plugin de integridad de las `references`, con el borrado en cascada y la validación de que el referenciado existe; los codecs de Temporal, cuando los mínimos de Node y TypeScript lo traigan y se decida si las lecturas se parsean (lo que también le daría a `mz.set()` un `Set`); el resto de las páginas de la [documentación](./documentation.md) y la skill de migración; el sitio, `apps/website`, con un playground
+   vienen de Mongoose (el nombre por defecto se decide al diseñarlo, quizás `_v`); el cifrado de campos, con los `encryptedFields` desde `.meta({ encrypt })` y verificando que el `$jsonSchema` no rechace los campos cifrados; un plugin de integridad de las `references`, con el borrado en cascada y la validación de que el referenciado existe; los codecs de Temporal, cuando los mínimos de Node y TypeScript lo traigan y se decida si las lecturas se parsean (lo que también le daría a `mz.set()` un `Set`); el resto de las páginas de la [documentación](./documentation.md), la skill de migración y el sitio, `apps/website` (hechos el 2026-10-12, junto con la fase 6); el despliegue del sitio en mongozod.dev y los links de los JSDoc a sus páginas; el playground del sitio,
    que muestre, para un schema, sus tipos, su `$jsonSchema` y lo que acepta cada constructor de
    `mongozod/mzod`; los ejemplos; los demás módulos de adsgpt, uno por uno; y la v1.
