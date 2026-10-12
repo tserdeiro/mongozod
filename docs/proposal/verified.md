@@ -796,3 +796,6 @@
     `jsonSchema: true`, porque el `$jsonSchema` no lleva `minimum`. Queda así por diseño: los
     update validators de Mongoose ignoran `$inc`, como dice su guía de validación, y el manual de
     MongoDB pone la guarda en el filtro del update, en «Model Data for Atomic Operations».
+  - El JSDoc de `updateOne`, `updateMany` y `findOneAndUpdate` decía que los refinements del
+    documento entero corren solo en los inserts y los reemplazos, y un `.refine()` de la raíz
+    también rechaza un upsert, porque valida el documento que insertaría. Ahora lo nombra.

@@ -560,6 +560,18 @@ describe('upserts', () => {
     ])
   })
 
+  test('run the refinements of the whole document, which an update does not', async () => {
+    const schema = z
+      .object({ end: z.number(), start: z.number() })
+      .refine(({ end, start }) => start <= end, 'start is after end')
+    const update = { $set: { end: 1, start: 5 } }
+
+    expect(await parseUpdate(schema, {}, update)).toEqual(update)
+    expect(await issuesOf(() => parseUpdate(schema, {}, update, { upsert: true }))).toEqual([
+      ['', 'start is after end']
+    ])
+  })
+
   test('add the defaults it lacks, without touching what the filter or the update decide', async () => {
     const update = await parseUpdate(
       pluginSchema,

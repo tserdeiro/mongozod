@@ -75,9 +75,10 @@ deja pasar los demás ante los errores del servidor, como una clave duplicada: M
 inserta los válidos. Lo dice su JSDoc.
 
 Un update valida cada valor con el schema de su path. Los refinements del documento entero, como uno
-que compara dos campos, corren solo en los inserts y los reemplazos, como en Mongoose: un update no
-tiene el documento. Para chequearlos se lee el documento y se lo reemplaza con `replaceOne`. Lo dice
-el JSDoc de `updateOne`, `updateMany` y `findOneAndUpdate`.
+que compara dos campos, no corren en los updates, como en Mongoose: un update no tiene el documento.
+Corren en los inserts, los reemplazos y el documento que insertaría un upsert. Para chequearlos se
+lee el documento y se lo reemplaza con `replaceOne`. Lo dice el JSDoc de `updateOne`, `updateMany` y
+`findOneAndUpdate`.
 
 `replaceOne` y `findOneAndReplace` validan el reemplazo como un insert: reciben el `z.input` del
 schema y aplican sus defaults, transforms y refinements, también los de la raíz. El `_id` se escribe

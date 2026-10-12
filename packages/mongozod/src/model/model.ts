@@ -641,9 +641,9 @@ export interface Model<
 
   /**
    * Updates every document that matches the filter. Each value is validated with the schema of its
-   * path. The refinements of the whole document, such as one that compares two fields, run on
-   * inserts and replacements only, as in Mongoose: to check them, read the document and
-   * `replaceOne` it.
+   * path. The refinements of the whole document, such as one that compares two fields, do not run
+   * on updates, as in Mongoose, but on inserts, replacements and the document an upsert would
+   * insert: to check them, read the document and `replaceOne` it.
    */
   'updateMany'<
     const F extends FilterCheck<S, F>,
@@ -659,9 +659,9 @@ export interface Model<
 
   /**
    * Updates the first document that matches the filter. Each value is validated with the schema of
-   * its path. The refinements of the whole document, such as one that compares two fields, run on
-   * inserts and replacements only, as in Mongoose: to check them, read the document and
-   * `replaceOne` it.
+   * its path. The refinements of the whole document, such as one that compares two fields, do not
+   * run on updates, as in Mongoose, but on inserts, replacements and the document an upsert would
+   * insert: to check them, read the document and `replaceOne` it.
    */
   'updateOne'<
     const F extends FilterCheck<S, F>,
