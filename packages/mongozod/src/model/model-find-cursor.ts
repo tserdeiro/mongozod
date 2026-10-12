@@ -1,6 +1,6 @@
 import type { ProjectionCheck, SuggestedProjection } from '../types/projection'
 import type { SortCheck, SuggestedSort } from '../types/sort'
-import type { NotAString } from '../utils/type-helpers'
+import type { IsAny, NotAString } from '../utils/type-helpers'
 import type { ModelSchema, None, ReadDocument, SortProblem } from './model'
 import type { Document, Sort } from 'mongodb'
 
@@ -8,9 +8,11 @@ import { ModelCursor } from './model-cursor'
 
 /** A projection that leaves out a reference the read populates does not compile. */
 type KeepsPopulated<P, Pop> = {
-  [K in keyof P & keyof Pop]: [P[K]] extends [0 | false]
-    ? `populate needs "${K & string}": the projection excludes it`
-    : unknown
+  [K in keyof P & keyof Pop]?: IsAny<P[K]> extends true
+    ? unknown
+    : [P[K]] extends [0 | false]
+      ? `populate needs "${K & string}": the projection excludes it`
+      : unknown
 }
 
 /** The arguments of a `find`, which the modifiers of its cursor change before it starts. */

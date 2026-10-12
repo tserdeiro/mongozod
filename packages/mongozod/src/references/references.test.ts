@@ -1,4 +1,4 @@
-import type { CommandStartedEvent, WithId } from 'mongodb'
+import type { CommandStartedEvent, Document, WithId } from 'mongodb'
 
 import { MongoClient } from 'mongodb'
 import {
@@ -547,6 +547,22 @@ describe('a populate that arrives at runtime', () => {
         { message: '"amount" is not a reference of the model', path: ['populate', 'amount'] }
       ]
     })
+  })
+
+  test("takes a projection typed as the driver's Document", async () => {
+    const projection: Document = { amount: 1 }
+    const transaction = await TransactionsModel.findOne(
+      { _id: 't1' },
+      { populate: { createdBy: { projection: { email: 1 } } }, projection }
+    )
+    const cursor = TransactionsModel.find({ _id: 't1' }, { populate: { createdBy: true } })
+
+    expect(transaction).toEqual({
+      _id: 't1',
+      amount: 10,
+      createdBy: { _id: 'a1', email: 'ana@example.com' }
+    })
+    expect(await cursor.project(projection)).toHaveLength(1)
   })
 })
 

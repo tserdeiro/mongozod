@@ -344,5 +344,14 @@ describe('the cursor and the other operations', () => {
 
     expect(result).toEqual({ plugin: 'google-ads' })
     expectTypeOf(result).toEqualTypeOf<Partial<Plugin> | null>()
+
+    // A value of the driver's Document, or of JSON.parse, says nothing about inclusion.
+    const parsed = JSON.parse('1')
+    const mixed = await PluginsModel.findOne(
+      { _id: 'p' },
+      { projection: { plugin: 1, tags: parsed } }
+    )
+
+    expect(mixed).toEqual({ _id: 'p', plugin: 'google-ads', tags: ['x', 'y', 'z'] })
   })
 })

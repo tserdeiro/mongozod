@@ -15,6 +15,7 @@ import type {
 import type { SortCheck, SuggestedSort } from '../types/sort'
 import type { FoundSchema } from '../types/update'
 import type {
+  IsAny,
   IsOptionalKey,
   NotAString,
   Simplify,
@@ -182,11 +183,13 @@ type FieldIds<S, K> = K extends string
 
 /** Whether the projection leaves out a reference: it excludes the reference or an object above it. */
 type ExcludedBy<P, K> = {
-  [Q in keyof P & string]: [P[Q]] extends [0 | false]
-    ? K extends Q | `${Q}.${string}`
-      ? true
+  [Q in keyof P & string]: IsAny<P[Q]> extends true
+    ? never
+    : [P[Q]] extends [0 | false]
+      ? K extends Q | `${Q}.${string}`
+        ? true
+        : never
       : never
-    : never
 }[keyof P & string]
 
 /**

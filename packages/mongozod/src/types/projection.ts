@@ -32,20 +32,20 @@ export type Kind = 'elemMatch' | 'exclude' | 'include' | 'meta' | 'positional' |
  * `Document`, says nothing about its kind.
  */
 export type Entries<P, Prefix extends string = ''> = {
-  [K in keyof P & string]-?: P[K] extends 0 | false
-    ? [`${Prefix}${K}`, 'exclude']
-    : P[K] extends 1 | true
-      ? K extends `${infer Base}.$`
-        ? [`${Prefix}${Base}`, 'positional']
-        : [`${Prefix}${K}`, 'include']
-      : P[K] extends { $slice: unknown }
-        ? [`${Prefix}${K}`, 'slice']
-        : P[K] extends { $elemMatch: unknown }
-          ? [`${Prefix}${K}`, 'elemMatch']
-          : P[K] extends { $meta: unknown }
-            ? [`${Prefix}${K}`, 'meta']
-            : IsAny<P[K]> extends true
-              ? never
+  [K in keyof P & string]-?: IsAny<P[K]> extends true
+    ? never
+    : P[K] extends 0 | false
+      ? [`${Prefix}${K}`, 'exclude']
+      : P[K] extends 1 | true
+        ? K extends `${infer Base}.$`
+          ? [`${Prefix}${Base}`, 'positional']
+          : [`${Prefix}${K}`, 'include']
+        : P[K] extends { $slice: unknown }
+          ? [`${Prefix}${K}`, 'slice']
+          : P[K] extends { $elemMatch: unknown }
+            ? [`${Prefix}${K}`, 'elemMatch']
+            : P[K] extends { $meta: unknown }
+              ? [`${Prefix}${K}`, 'meta']
               : P[K] extends object
                 ? Entries<P[K], `${Prefix}${K}.`>
                 : never
