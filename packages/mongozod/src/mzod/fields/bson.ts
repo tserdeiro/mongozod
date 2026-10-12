@@ -1,3 +1,5 @@
+import type { Decimal128Extended } from 'bson'
+
 import { Binary, BSONError, Decimal128, ObjectId, UUID } from 'bson'
 import { z } from 'zod'
 
@@ -113,13 +115,27 @@ export function decimal128() {
           isExact,
           'has more than 15 significant digits, which a number cannot keep: send it as a string'
         ),
-      decimal128Instance
+      decimal128Instance,
+      // What `JSON.stringify` gives for a `Decimal128`: its `toJSON()` returns the Extended JSON.
+      z.custom<Decimal128Extended>(
+        (value) =>
+          typeof value === 'object' &&
+          value !== null &&
+          Object.keys(value).length === 1 &&
+          '$numberDecimal' in value &&
+          typeof value.$numberDecimal === 'string' &&
+          isDecimal128(value.$numberDecimal)
+      )
     ],
     { error: DECIMAL128_ERROR }
   )
 
   return z.codec(input, decimal128Instance, {
-    decode: (value) => (typeof value === 'object' ? value : Decimal128.fromString(String(value))),
+    decode: (value) => {
+      if (typeof value !== 'object') return Decimal128.fromString(String(value))
+
+      return '$numberDecimal' in value ? Decimal128.fromString(value.$numberDecimal) : value
+    },
     encode: (value) => value.toString()
   })
 }

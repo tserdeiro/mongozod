@@ -284,10 +284,19 @@ manda `{ createdAt, _id }` del último elemento de la página.
       Zod no trae un codec de `ObjectId` entre sus ejemplos.
 14. **`Decimal128`**: se declara con `mz.decimal128()`, el tipo para dinero. Es la unión de un codec de su string y un `Decimal128`, como `objectId()`: el servidor
     pasa un `Decimal128`, el cliente manda el string, como `'10.50'`, y `z.encode` lo vuelve a
-    string; sin eso, `JSON.stringify` da `{ $numberDecimal: '10.50' }`. Valida con
+    string; sin eso, `JSON.stringify` da `{ $numberDecimal: '10.50' }`, el Extended JSON del
+    `toJSON()` de bson, que también toma: así un documento que un endpoint devuelve con
+    `res.json(doc)` vuelve sin `z.encode`. Es el único tipo de `mz` cuyo JSON no es un string: el
+    `ObjectId` da su hex, el `UUID` su string, el `Binary` su base64 y la fecha su ISO, y bson 6.10 y
+    7 dan lo mismo (verificado). Valida con
     `Decimal128.fromString`, la API de bson, que rechaza lo que no es un decimal y lo que
     redondearía, con más de 34 dígitos. Lo reconoce por su `_bsontype`, y su metadata le da
     `bsonType: 'decimal'` en el `$jsonSchema`.
+    - **Comparar con un número**: un filtro del modelo sobre un decimal no toma un `number`, aunque
+      MongoDB compara por valor entre tipos numéricos: un double no siempre es el decimal que se
+      escribió, y con `{ balance: 9.99 }` o `{ $gte: 9.99 }` MongoDB 8.2 deja afuera el 9.99
+      guardado (verificado). Se pasa `Decimal128.fromString('9.99')`, o el valor del cliente por
+      `mz.filter`, que lo convierte.
     - **Números**: toma uno si es el decimal que se escribió: un `double` conserva exactos 15
       dígitos significativos, y un entero seguro, todos. `10.5` y `19.99 * 3`, `59.97`, pasan. Uno
       con más dígitos, como el `0.30000000000000004` de `0.1 + 0.2`, o el que `JSON.parse` ya

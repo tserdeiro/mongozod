@@ -1,3 +1,4 @@
+import type { Decimal128Extended } from 'bson'
 import type { WithId } from 'mongodb'
 
 import { Binary, Decimal128, ObjectId, UUID } from 'bson'
@@ -129,8 +130,20 @@ describe('decimal128()', () => {
     expect(schema.parse(Decimal128.fromString('0.1')).toString()).toBe('0.1')
     // The driver loads the CommonJS build of bson, and this test its ES module build.
     expect(schema.parse(DriverDecimal128.fromString('2.5')).toString()).toBe('2.5')
-    expectTypeOf<z.input<typeof schema>>().toEqualTypeOf<string | number | Decimal128>()
+    expectTypeOf<z.input<typeof schema>>().toEqualTypeOf<
+      string | number | Decimal128 | Decimal128Extended
+    >()
     expectTypeOf<z.output<typeof schema>>().toEqualTypeOf<Decimal128>()
+  })
+
+  test('takes the JSON of a Decimal128, so a document sent as JSON comes back', () => {
+    const schema = decimal128()
+    const sent: unknown = JSON.parse(JSON.stringify(Decimal128.fromString('10.50')))
+
+    expect(sent).toEqual({ $numberDecimal: '10.50' })
+    expect(schema.parse(sent).toString()).toBe('10.50')
+    expect(schema.safeParse({ $numberDecimal: 'ten' }).success).toBe(false)
+    expect(schema.safeParse({ $numberDecimal: '1', unit: 'USD' }).success).toBe(false)
   })
 
   test('rejects a string bson would round or not take, and anything else', () => {
