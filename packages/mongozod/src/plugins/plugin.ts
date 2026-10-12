@@ -202,8 +202,9 @@ export type MiddlewareInput<C> = {
 
 /**
  * A plugin of a model. Built with `definePlugin`, usually from a function that takes the plugin's
- * own configuration. A plugin typed with its `Fields` fills none of them unless `Fills` names them,
- * as `definePlugin` infers it; typed as any plugin, it takes the plugins that fill some.
+ * own configuration. The types know the fields it fills when `Fills` names them in a tuple, as
+ * `definePlugin` infers it: a plugin typed without one, such as the return type of a factory
+ * `Plugin<'tenant', { tenantId: z.ZodString }>`, takes a plugin that fills some, and fills none.
  */
 export interface Plugin<
   Id extends string = string,
@@ -211,9 +212,7 @@ export interface Plugin<
   Options extends GroupSchemas = GroupSchemas,
   Context extends GroupSchemas = GroupSchemas,
   Methods extends object = object,
-  Fills extends ReadonlyArray<keyof Fields & string> = string extends keyof Fields
-    ? ReadonlyArray<keyof Fields & string>
-    : readonly []
+  Fills extends ReadonlyArray<keyof Fields & string> = ReadonlyArray<keyof Fields & string>
 > {
   /** Identifies the plugin in error messages. */
   id: Id
@@ -332,13 +331,13 @@ export type OptionsArg<
   : [options: Base & PluginOptions<PL, G> & { context: UnionToIntersection<ContextUnion<PL, G>> }]
 
 /**
- * The fields a plugin fills, when its type names them: a plugin typed as any plugin, with `string`
- * fields, fills none that the types know of.
+ * The fields a plugin fills, when its type names them in a tuple, as `definePlugin` infers it: an
+ * array, which the type of a plugin without its `Fills` gives, fills none that the types know of.
  */
-type FillsOfPlugin<P> = P extends { fills?: ReadonlyArray<infer K> }
-  ? string extends K
+type FillsOfPlugin<P> = P extends { fills?: infer L extends ReadonlyArray<string> }
+  ? number extends L['length']
     ? never
-    : K
+    : L[number]
   : never
 
 /** The fields the plugins fill on inserts and replacements, which these take as optional. */

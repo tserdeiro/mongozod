@@ -1,4 +1,5 @@
 import type { AnyModel, FilterOf, InsertOf, Plugin, ReadOptionsArg } from '../index'
+import type { None } from '../model/model'
 
 import { MongoClient } from 'mongodb'
 import {
@@ -258,6 +259,23 @@ function tenantFields(): Plugin<'tenant', { tenantId: z.ZodString }> {
   return definePlugin({ fields: { tenantId: z.string() }, id: 'tenant' })
 }
 
+/** The same factory, whose plugin fills the field: the type it returns does not say so. */
+function tenantFilling(): Plugin<'tenant', { tenantId: z.ZodString }> {
+  return definePlugin({ fields: { tenantId: z.string() }, fills: ['tenantId'], id: 'tenant' })
+}
+
+/** A factory whose type names the field its plugin fills. */
+function tenantFilled(): Plugin<
+  'tenant',
+  { tenantId: z.ZodString },
+  None,
+  None,
+  None,
+  readonly ['tenantId']
+> {
+  return definePlugin({ fields: { tenantId: z.string() }, fills: ['tenantId'], id: 'tenant' })
+}
+
 describe('the fields a plugin fills', () => {
   const tenantContext = z.object({ tenantId: z.string() })
   const tenant = definePlugin({
@@ -325,6 +343,27 @@ describe('the fields a plugin fills', () => {
 
     expectTypeOf<InsertOf<typeof AnyPluginsModel>>().toEqualTypeOf<typeof required>()
     expectTypeOf<InsertOf<typeof TypedModel>>().toEqualTypeOf<typeof required>()
+
+    // A factory whose plugin fills it compiles: its type fills what it names.
+    const FillingModel = mongozod({
+      collection: 'projects',
+      db,
+      plugins: [tenantFilling()],
+      schema: projectSchema
+    })
+    const FilledModel = mongozod({
+      collection: 'projects',
+      db,
+      plugins: [tenantFilled()],
+      schema: projectSchema
+    })
+
+    expectTypeOf<InsertOf<typeof FillingModel>>().toEqualTypeOf<typeof required>()
+    expectTypeOf<InsertOf<typeof FilledModel>>().toEqualTypeOf<{
+      _id: string
+      tenantId?: string
+      title: string
+    }>()
     expectTypeOf(() =>
       // @ts-expect-error the plugin does not fill tenantId
       TypedModel.insertOne({ _id: 'p1', title: 'One' })

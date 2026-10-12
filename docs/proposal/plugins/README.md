@@ -75,8 +75,11 @@ que un plugin que no completa uno lanza un `ZodError`. Un nombre que no está en
 y lanza un `Error` al definir el modelo. Un plugin tipado como `Plugin`, sin su tipo propio, no
 completa ninguno para los tipos: si no, cualquier campo quedaría opcional. Tampoco uno tipado con sus
 `fields` y sin `Fills`, el sexto parámetro, como el que devuelve una función anotada
-`Plugin<'tenant', { tenantId: z.ZodString }>`: los que completa los nombra `Fills`, como los infiere
-`definePlugin`. Antes los completaba todos, y un insert sin el campo compilaba y lanzaba el
+`Plugin<'tenant', { tenantId: z.ZodString }>`, aunque su plugin los complete: la anotación es la
+misma con `fills` o sin ellos, y TypeScript no mira el cuerpo. Los tipos cuentan los que nombra una
+tupla, como la que infiere `definePlugin`: los de una función sin anotar, o anotada con `Fills`,
+como `Plugin<'tenant', { tenantId: z.ZodString }, {}, {}, {}, readonly ['tenantId']>`. Antes una
+anotación sin `Fills` los completaba todos, y un insert sin el campo compilaba y lanzaba el
 `ZodError` del schema.
 
 Los tipos no saben qué hooks escribe el plugin, así que cubrirlos es su trabajo: `insertOne`,
