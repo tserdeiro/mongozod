@@ -1,5 +1,7 @@
 import type { Db, WithId } from 'mongodb'
 
+import { AsyncLocalStorage } from 'node:async_hooks'
+
 import { MongoClient, ObjectId } from 'mongodb'
 import {
   afterAll,
@@ -501,7 +503,7 @@ describe('updates', () => {
 })
 
 describe('db', () => {
-  test('resolves a function on the first operation, once', async () => {
+  test('resolves a function on every operation, and keeps the collection of each database', async () => {
     const getDb = vi.fn<() => Db>(() => db)
     const LazyModel = mongozod({ collection: 'notes', db: getDb, schema: noteSchema })
 
@@ -510,9 +512,29 @@ describe('db', () => {
     await LazyModel.countDocuments()
     await LazyModel.insertOne({ title: 'One' })
 
-    expect(getDb).toHaveBeenCalledOnce()
+    expect(getDb).toHaveBeenCalledTimes(2)
     expect(LazyModel.db).toBe(db)
+    expect(LazyModel.collection).toBe(LazyModel.collection)
     expect(LazyModel.name).toBe('notes')
+  })
+
+  test("gives each request its tenant's database, as an AsyncLocalStorage returns it", async () => {
+    const tenants = new AsyncLocalStorage<Db>()
+    const tenantDb = client.db('mongozod-tenant')
+    const TenantNotesModel = mongozod({
+      collection: 'notes',
+      db: () => tenants.getStore() ?? db,
+      schema: noteSchema
+    })
+
+    await tenantDb.dropDatabase()
+    await tenants.run(tenantDb, () => TenantNotesModel.insertOne({ title: 'Tenant' }))
+    await TenantNotesModel.insertOne({ title: 'Default' })
+
+    expect(await tenantDb.collection('notes').countDocuments()).toBe(1)
+    expect(await tenants.run(tenantDb, () => TenantNotesModel.findOne({}))).toMatchObject({
+      title: 'Tenant'
+    })
   })
 })
 

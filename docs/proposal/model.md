@@ -27,10 +27,17 @@ export const NotesModel = mongozod({
   y un `Map` como un objeto, y ninguno vuelve en una lectura (verificado). Para un array sin
   repetidos está `mz.set()`, y para keys dinámicas, `z.record()`.
 - **`collection`**: el nombre de la colección.
-- **`db`**: un `Db` del driver o una función que lo devuelve, que se resuelve en la primera
-  operación. Así el modelo se puede definir al importar el módulo aunque la conexión dependa del
-  entorno, como en los tests con `mongodb-memory-server`. Desde el `Db` se llega al cliente
-  (`db.client`), que hace falta para sesiones y transacciones.
+- **`db`**: un `Db` del driver o una función que lo devuelve, que se llama en cada operación. Así el
+  modelo se puede definir al importar el módulo aunque la conexión dependa del entorno, como en los
+  tests con `mongodb-memory-server`, y un multi-tenant con una base por tenant devuelve la de cada
+  request, por ejemplo desde un `AsyncLocalStorage`. Resolverla una sola vez, como antes, hacía que
+  todos los tenants escribieran en la base del primero, sin error (verificado). La colección se
+  guarda por `Db`, así que la función conviene que devuelva un `Db` guardado por tenant:
+  `client.db(name)` arma uno nuevo cada vez, unos 8 µs. `model.db`, `model.collection`, `sync()`,
+  `populate` y el `model.db` de los plugins usan la base que la función devuelve en ese momento, así
+  que un multi-tenant corre `sync()` en cada tenant. Mongoose ata cada modelo a una conexión y
+  resuelve los tenants con `useDb()` y un modelo por tenant, que acá también funciona. Desde el `Db`
+  se llega al cliente (`db.client`), que hace falta para sesiones y transacciones.
 - **`indexes`**: los índices que crea `sync()`, con las claves tipadas contra el schema. Ver
   [Sincronización](#sincronización).
 - **`jsonSchema`**: aplica en `sync()` un `$jsonSchema` generado desde el schema. Ver

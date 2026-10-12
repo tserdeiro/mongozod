@@ -343,10 +343,13 @@ export interface Model<
   /** The name of the collection. */
   readonly 'name': string
 
-  /** The driver's database, resolved on first use. */
+  /** The driver's database: the one `db` returns now, when it is a function. */
   readonly 'db': Db
 
-  /** The driver's collection, for what the model does not wrap, such as `watch`. */
+  /**
+   * The driver's collection, for what the model does not wrap, such as `watch`: the one of the
+   * database `db` returns now, when it is a function.
+   */
   readonly 'collection': Collection<Output<S>>
 
   /**

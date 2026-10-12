@@ -61,8 +61,10 @@ export interface MongozodOptions<
   collection: string
 
   /**
-   * The driver's database, or a function that returns it. The function is called on the first
-   * operation, so the model can be defined before the connection is ready.
+   * The driver's database, or a function that returns it. The function is called on every
+   * operation, so the model can be defined before the connection is ready, and it can return the
+   * database of each request, such as a tenant's from an `AsyncLocalStorage`: keep a `Db` per
+   * tenant, since `client.db(name)` builds a new one each time.
    */
   db: Db | (() => Db)
 
@@ -227,32 +229,35 @@ export function mongozod(
 
   const timestamps = timestampsOf(options.schema, options.timestamps)
 
-  let db: Db | undefined
-  let collection: Collection | undefined
-
+  // A function is called on every operation, so it can return the database of each request, such
+  // as a tenant's.
   function getDb() {
-    db ??= typeof options.db === 'function' ? options.db() : options.db
-
-    return db
+    return typeof options.db === 'function' ? options.db() : options.db
   }
 
   // The driver reads a long as a number, or as a `Long` past 2^53, unless the client sets
   // `useBigInt64`: a `z.bigint()` would type reads with a value they do not have.
   const bigint = findPath(options.schema, (field) => field instanceof core.$ZodBigInt)
 
-  function getCollection() {
-    if (collection) return collection
+  // The collection of each database, kept once it passes the check.
+  const collections = new WeakMap<Db, Collection>()
 
-    const resolved = getDb().collection(options.collection)
+  function getCollection() {
+    const db = getDb()
+    const kept = collections.get(db)
+
+    if (kept) return kept
+
+    const collection = db.collection(options.collection)
 
     // Checked before keeping it, so that every operation throws, not only the first one.
-    if (bigint !== undefined && !resolved.bsonOptions.useBigInt64) {
+    if (bigint !== undefined && !collection.bsonOptions.useBigInt64) {
       throw new Error(
         `"${bigint}" is a z.bigint(), which the driver reads as a number unless the client sets useBigInt64: true`
       )
     }
 
-    collection = resolved
+    collections.set(db, collection)
 
     return collection
   }
