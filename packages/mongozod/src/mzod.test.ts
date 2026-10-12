@@ -13,11 +13,12 @@ test('imports neither the driver nor its types, so that web and native clients t
 
     seen.add(file)
 
-    // Value and type imports alike, which the declarations keep, but not the examples of the JSDoc.
+    // Value and type imports alike, which the declarations keep, also an `import('…')` in a type
+    // and a reference to types, but not the examples of the JSDoc.
     const source = readFileSync(file, 'utf8')
 
     for (const [, specifier = ''] of source.matchAll(
-      /^(?:import|export|\})[^\n]*from '([^']+)'/gm
+      /(?:^(?:import|export|\})[^\n]*from |^import |\bimport\(\s*|^\/\/\/ <reference types=)["']([^"']+)["']/gm
     )) {
       if (specifier.startsWith('.')) visit(resolve(dirname(file), `${specifier}.ts`))
       else packages.add(specifier)
