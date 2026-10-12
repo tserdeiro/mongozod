@@ -137,8 +137,8 @@ const { document: post } = await PostsModel.insertOne({ title: 'Hello, MongoDB' 
 // { _id: ObjectId('…'), title: 'Hello, MongoDB', slug: 'hello-mongodb' }
 ```
 
-`.overwrite()` runs on inserts and replacements, not on updates, so `$set: { title }` leaves the
-slug as it was. Set both:
+`.overwrite()` runs on inserts, replacements and the document an upsert would insert, not on
+updates, so `$set: { title }` leaves the slug as it was. Set both:
 
 ```ts
 const title = 'Hello again, MongoDB'

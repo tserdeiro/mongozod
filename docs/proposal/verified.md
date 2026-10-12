@@ -788,3 +788,7 @@
     del documento guardaba como `updatedAt` la fecha de creación. Ahora toma la fecha de la
     escritura, como Mongoose, en `replaceOne`, `findOneAndReplace` y el `replaceOne` de
     `bulkWrite`.
+  - El `Error` de un `.transform()` del documento entero decía que no corre en los updates y
+    mandaba a `.overwrite()`, que tampoco corre en ellos: un `$set` del título no recalcula un slug
+    calculado con `.overwrite()`, y el documento que insertaría un upsert sí lo calcula. Ahora el
+    mensaje dice dónde corre `.overwrite()`.

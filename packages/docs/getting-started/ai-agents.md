@@ -91,7 +91,8 @@ instead:
   Use [`mz.set()`](../guides/bson-types.md#sets) for an array without repeated values and
   `z.record()` for dynamic keys.
 - **A `.transform()` on the whole document**: defining the model throws an `Error`, because updates
-  write paths and could not run it. Compute a field from others with `.overwrite()`. See
+  write paths and could not run it. Compute a field from others with `.overwrite()`, which runs on
+  inserts, replacements and the document an upsert would insert, not on updates. See
   [Schemas](../guides/schemas.md).
 - **Expecting reads to be parsed**: reads return what the driver returns, without running the
   schema. A transform runs when a document is written, not when it is read.

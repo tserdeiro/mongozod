@@ -910,7 +910,9 @@ describe('schemas', () => {
         // @ts-expect-error a transform of the whole document
         schema: articleSchema.transform((note) => ({ ...note, slug: note.title.toLowerCase() }))
       })
-    ).toThrow('a transform of the whole document does not run on updates')
+    ).toThrow(
+      'not a transform of one: a field computed from others goes in .overwrite(), which runs on inserts, replacements and the document an upsert would insert, not on updates'
+    )
     expect(() =>
       // @ts-expect-error an optional document
       mongozod({ collection: 'articles', db, schema: articleSchema.optional() })

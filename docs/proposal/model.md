@@ -16,8 +16,11 @@ export const NotesModel = mongozod({
 - **`schema`**: un `z.object`, o una `z.discriminatedUnion` de objetos o de otras uniones, de Zod o de Zod Mini, que
   describe el documento tal como se guarda. Otra cosa no compila, y sin tipos lanza un `Error` al
   definir el modelo: un `.transform()` del documento entero no corre en los updates, que escriben
-  paths. Un campo que se calcula de otros va en `.overwrite()`, que conserva el objeto. Con una unión, la colección guarda varios tipos de
-  documento. El `_id` se genera con su `.default()`, como
+  paths. Un campo que se calcula de otros va en `.overwrite()`, que conserva el objeto. Tampoco
+  corre en los updates: corre en los inserts, los reemplazos y el documento que insertaría un
+  upsert, y el mensaje del `Error` lo dice, para que no se lea como si corriera en todas las
+  escrituras. Con una unión, la colección guarda varios tipos de documento. El `_id` se genera con
+  su `.default()`, como
   `z.uuidv4().default(() => crypto.randomUUID())`, que conviene definir una vez y reusar. Si el
   schema no lo declara, el driver genera un ObjectId. Un `z.bigint()` pide un cliente o un `Db` con
   `useBigInt64: true`: sin esa opción el driver lee un long como un `number`, o como un `Long` desde

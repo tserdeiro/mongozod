@@ -24,7 +24,7 @@ export function checkRoot(schema: core.$ZodType): void {
 
   throw new Error(
     type === 'pipe'
-      ? 'the schema of a model is a z.object or a z.discriminatedUnion of objects: a transform of the whole document does not run on updates, so a field computed from others goes in .overwrite()'
+      ? 'the schema of a model is a z.object or a z.discriminatedUnion of objects, not a transform of one: a field computed from others goes in .overwrite(), which runs on inserts, replacements and the document an upsert would insert, not on updates'
       : `the schema of a model is a z.object or a z.discriminatedUnion of objects, not a z.${name}()`
   )
 }
