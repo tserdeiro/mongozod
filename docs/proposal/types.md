@@ -170,6 +170,18 @@ veces más en los updates, porque se intersectan con los paths sugeridos en cada
 service que recibe un filtro o un update y lo pasa al modelo, mongozod exporta `FilterOf`,
 `SortOf` y `UpdateOf`, que parten del modelo y traen las dos cosas.
 
+## Costo de los tipos
+
+`pnpm check-type-cost` mide las instanciaciones de un proyecto típico (ver
+[Herramientas](./structure.md#herramientas)). Estas reglas las bajan sin cambiar lo que compila, los
+mensajes de error ni lo que sugiere el editor:
+
+- **Sin intersectar dos arrays**: una sugerencia no se intersecta con la lista que declara el mismo
+  argumento. Con `readonly ['$eq'] & ReadonlyArray<…>`, TypeScript compara cada método de los dos
+  arrays al chequear las propiedades de la intersección. Por eso, para un path que `mz.filter`
+  declara, la sugerencia es su propia lista, que chequea `FilterFieldsCheck`. El editor sugiere lo
+  mismo, porque infiere sin el argumento que se está escribiendo.
+
 ## Paths con punto
 
 Los tipos siguen la regla de [Tipos](#tipos). Además:

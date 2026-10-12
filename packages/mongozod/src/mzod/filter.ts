@@ -105,9 +105,17 @@ export type FilterFieldsCheck<S, F> = {
     : never
 }
 
-/** The paths the editor suggests in `mz.filter`, each with the operators that apply to it. */
-export type SuggestedFilterFields<S> = {
-  [K in PathSuggestions<S, 'filter'>]?: ReadonlyArray<Applicable<SchemaAt<S, K, 'filter'>>>
+/**
+ * The paths the editor suggests in `mz.filter`, each with the operators that apply to it. A path
+ * that `F` declares keeps its own list, which `FilterFieldsCheck` checks: intersected with another
+ * array type, the compiler would compare every method of both.
+ */
+export type SuggestedFilterFields<S, F> = {
+  [K in PathSuggestions<S, 'filter'>]?: F extends {
+    [P in K]: infer L extends readonly [unknown, ...unknown[]]
+  }
+    ? L
+    : ReadonlyArray<Applicable<SchemaAt<S, K, 'filter'>>>
 }
 
 type DeclaredOperators<L> = L extends ReadonlyArray<infer O> ? O : never
@@ -344,7 +352,7 @@ function shapeOf(schema: core.$ZodType, declarations: Declarations) {
  */
 export function filter<S extends core.$ZodType, const F extends FilterFieldsCheck<S, F>>(
   schema: S,
-  fields: F & SuggestedFilterFields<S>
+  fields: F & SuggestedFilterFields<S, F>
 ): FilterSchema<S, F>
 
 export function filter(
