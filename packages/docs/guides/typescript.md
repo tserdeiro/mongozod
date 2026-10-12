@@ -9,7 +9,7 @@ type does not compile, and a projection narrows what a read returns.
 
 ```ts
 import type { Document } from 'mongodb'
-import type { DocOf, FilterOf, InsertOf, ReadOf, ReadOptionsArg, UpdateOf } from 'mongozod'
+import type { DocOf, FilterOf, InsertOf, ReadOf, ReadOptionsArg, SortOf, UpdateOf } from 'mongozod'
 
 import { ObjectId } from 'mongodb'
 import { mongozod } from 'mongozod'
@@ -300,6 +300,7 @@ types it from the model:
 | `ReadOf<M, O>`          | What a read returns, given its `projection`, its `populate` and the `filter` that fixes its type. |
 | `InsertOf<M>`           | What an insert takes, with the fields that `timestamps` and the plugins fill optional.            |
 | `FilterOf<M, F>`        | The constraint of a filter that a function passes to the model.                                   |
+| `SortOf<M, Sort>`       | The constraint of a sort that a function passes to the model.                                     |
 | `UpdateOf<M, U, F, O>`  | The constraint of an update, given its filter and its options.                                    |
 | `ReadOptionsArg<M>`     | The options argument of the reads, with the `context` its plugins ask for.                        |
 | `Input<S>`, `Output<S>` | The input and the output of a schema.                                                             |
@@ -330,8 +331,8 @@ function createPost(post: InsertOf<typeof PostsModel>) {
 }
 ```
 
-`FilterOf` and `UpdateOf` are constraints of a generic, so that the function keeps the checks and
-the suggestions of the model. Declare the generic with `const`, as the model does:
+`FilterOf`, `SortOf` and `UpdateOf` are constraints of a generic, so that the function keeps the
+checks and the suggestions of the model. Declare the generic with `const`, as the model does:
 
 ```ts
 function countPosts<const F extends FilterOf<typeof PostsModel, F>>(filter: F) {
@@ -345,8 +346,13 @@ function updatePosts<
   return PostsModel.updateMany(filter, update)
 }
 
+function newestPosts<const Sort extends SortOf<typeof PostsModel, Sort>>(sort: Sort) {
+  return PostsModel.find({ status: 'published' }, { sort }).limit(10)
+}
+
 await countPosts({ tags: 'mongodb' })
 await updatePosts({ authorId }, { $set: { status: 'published' } })
+await newestPosts({ publishedAt: -1 })
 
 // @ts-expect-error: "titel" is not a path of the document
 await countPosts({ titel: 'Hello, MongoDB' })

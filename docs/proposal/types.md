@@ -31,7 +31,12 @@
 - **Strings de Mongoose**: un `sort`, una `projection` o un `populate` en un string, como
   `sort: '-createdAt'`, no compilan, y el `sort` y la `projection` lanzan un `ZodError` en runtime:
   el driver ordenaba en silencio por un campo con ese nombre. El problema llega como una propiedad
-  que falta, porque la restricción de un genérico no puede ser condicional sobre él.
+  que falta, porque la restricción de un genérico no puede ser condicional sobre él. Va en una
+  unión con `object`, que un string tampoco es: así un genérico que es un objeto pasa, como el sort
+  que un service recibe con `SortOf` y le pasa al modelo. Sin `object` no compilaba: un genérico no
+  resuelve el condicional, y TypeScript le pedía la propiedad; llevar el chequeo a `SortOf` vuelve
+  circular su restricción (TS2313). Los mensajes de un string no cambian (verificado con TypeScript
+  7 y 5.5).
 
 ## Filtros
 

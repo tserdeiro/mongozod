@@ -604,11 +604,16 @@ function updatePosts<
 
 ### SortOf
 
-`SortOf<M, Sort>` is a sort on the documents of a model: each key of `Sort` is checked against the
-schema, with the paths the editor suggests.
+`SortOf<M, Sort>` is a sort on the documents of a model, for a function that takes one and passes
+it to the model: each key of `Sort` is checked against the schema, with the paths the editor
+suggests.
 
 ```ts
-const newestFirst: SortOf<typeof PostsModel, { createdAt: -1 }> = { createdAt: -1 }
+function newestPosts<const Sort extends SortOf<typeof PostsModel, Sort>>(sort: Sort) {
+  return PostsModel.find({}, { sort }).limit(10)
+}
+
+await newestPosts({ createdAt: -1 })
 ```
 
 ### ReadOptionsArg

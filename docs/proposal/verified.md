@@ -773,3 +773,8 @@
     `$rename`.
   - `aggregate(pipeline, { schema })` validaba con `z.parse`, y un refinement async lanzaba el
     `$ZodAsyncError` de Zod. Ahora cada lote se valida con `z.parseAsync`, como las escrituras.
+  - Una función con `<const S extends SortOf<typeof M, S>>(sort: S)` no podía pasarle el sort al
+    modelo: TS2322 en las opciones de `find` y `findOne`, y TS2345 en `.sort()`, con TypeScript 7 y
+    5.5. El `NotAString` del parámetro quedaba sin resolver sobre el genérico. Con la unión con
+    `object` compila, y los mensajes y las sugerencias de un sort, una proyección o un `populate` en
+    un string son los mismos; agregarlo a `SortOf` daba TS2313.

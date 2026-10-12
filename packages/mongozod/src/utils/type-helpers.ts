@@ -24,10 +24,12 @@ export type UndefinedIfOptional<T, K extends keyof T> =
 
 /**
  * When `T` is a string, a property named after the problem, which the string lacks, so that the
- * error shows it: a check in a generic's constraint cannot be conditional on it.
+ * error shows it: a check in a generic's constraint cannot be conditional on it. Or an `object`,
+ * which a string is not either: a generic that is one passes, such as the sort that a function
+ * forwards with `SortOf`.
  */
 export type NotAString<T, Problem extends string> = T extends string
-  ? { [K in Problem]: never }
+  ? { [K in Problem]: never } | object
   : unknown
 
 /** Whether `T` is `any`, such as a value of the driver's `Document`, which a check cannot walk. */

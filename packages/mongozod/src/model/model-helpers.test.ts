@@ -1,4 +1,4 @@
-import type { FilterOf, InsertOf, ReadOf, UpdateOf } from './model'
+import type { FilterOf, InsertOf, ReadOf, SortOf, UpdateOf } from './model'
 
 import { MongoClient } from 'mongodb'
 import { expect, expectTypeOf, test } from 'vitest'
@@ -52,6 +52,24 @@ function updateTasks<
 >(filter: F, update: U) {
   return TasksModel.updateMany(filter, update)
 }
+
+/** A service that takes a sort of the posts and passes it to the model. */
+function sortPosts<const Sort extends SortOf<typeof PostsModel, Sort>>(sort: Sort) {
+  return [
+    PostsModel.find({}, { sort }),
+    PostsModel.findOne({}, { sort }),
+    // oxlint-disable-next-line unicorn/no-array-sort -- the sort of a cursor, not of an array
+    PostsModel.find({}).sort(sort)
+  ]
+}
+
+test('SortOf passes a sort to the options of a read and to its cursor', () => {
+  expect(() => {
+    void sortPosts({ createdAt: -1, title: 1 })
+    // @ts-expect-error "titel" is not a path of the document
+    void sortPosts({ titel: 1 })
+  }).toBeTypeOf('function')
+})
 
 test('UpdateOf passes an update to a model with timestamps, references and plugins', () => {
   expect(() => {
