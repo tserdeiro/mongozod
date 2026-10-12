@@ -39,7 +39,12 @@ test('true asks for the whole whitelist, and a projection for some of its fields
 test('a client never gets more than the whitelist', () => {
   expect(brandsPopulate.safeParse({ organization: { billingEmail: 1 } }).success).toBe(false)
   expect(brandsPopulate.safeParse({ organization: { name: 0 } }).success).toBe(false)
-  expect(brandsPopulate.safeParse({ organization: {} }).success).toBe(false)
+  expect(brandsPopulate.safeParse({ organization: {} }).error?.issues).toMatchObject([
+    {
+      message: 'takes true, or an object with 1 or true for some of its fields',
+      path: ['organization']
+    }
+  ])
   expect(brandsPopulate.safeParse({ owner: true }).success).toBe(false)
   expectTypeOf<z.input<typeof brandsPopulate>>().toEqualTypeOf<{
     organization?: true | { _id?: 1 | true; name?: 1 | true; slug?: 1 | true }

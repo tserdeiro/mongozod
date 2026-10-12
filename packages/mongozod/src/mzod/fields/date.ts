@@ -1,5 +1,7 @@
 import { z } from 'zod'
 
+import { fieldError } from '../internal/field-error'
+
 /**
  * An ISO datetime string with `Z` or an offset, as a JSON client sends it, decoded to a `Date`. One
  * without either is rejected: it does not say which instant it is.
@@ -25,6 +27,6 @@ const isoToDate = z.codec(z.iso.datetime({ offset: true }), z.date(), {
 export function date() {
   // The codec goes first: with the `Date` first, `z.encode` would return it unchanged.
   return z.union([isoToDate, z.date()], {
-    error: 'Invalid date: expected a Date or an ISO datetime string with Z or an offset'
+    error: fieldError('Invalid date: expected a Date or an ISO datetime string with Z or an offset')
   })
 }

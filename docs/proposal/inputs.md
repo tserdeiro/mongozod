@@ -161,7 +161,9 @@ manda `{ createdAt, _id }` del último elemento de la página.
    - **Para clientes**: `mz.populate` recibe la lista blanca como un schema recortado con `pick`,
      como hoy. El cliente manda `true` para toda la lista blanca, nunca el documento entero, como
      el `populate` del modelo, o una proyección con `1` o `true` para algunos de sus campos. Un
-     `{}`, una exclusión, un campo de afuera o una referencia no declarada fallan. El router recibe
+     `{}`, una exclusión, un campo de afuera o una referencia no declarada fallan, con
+     `takes true, or an object with 1 or true for some of its fields` en vez del `Invalid input` de
+     una unión. El router recibe
      el `populate` del modelo, con una `projection` de `1`. El cliente no manda `filter` ni `sort`:
      son decisiones del endpoint.
    - **Tipos**: un `populate` escrito en el código da el tipo exacto. El que manda un cliente deja
@@ -263,7 +265,9 @@ manda `{ createdAt, _id }` del último elemento de la página.
     constructores de `mz` lo convierten con `ObjectId.createFromHexString`, y `z.encode` lo vuelve a
     hex. El codec va primero: con el `ObjectId` primero, `z.encode` lo devuelve sin cambios.
     Cualquier otro valor da un solo issue: `Invalid ObjectId: expected an ObjectId or its
-    24-character hex string`.
+    24-character hex string`. Uno que falta suma `, received undefined`, como dice Zod de un campo
+    que falta, igual que `mz.date()`, `mz.decimal128()`, `mz.binary()` y `mz.uuid()`: el mensaje de
+    Zod para una unión es solo `Invalid input`.
     - **Importa `bson`, nunca el driver**: `bson` no tiene dependencias y publica builds para browser
       y React Native, así que sirve en un schema compartido con el cliente. Es un peer obligatorio
       (`^6.10.0 || ^7.0.0`), del mismo major que el driver, porque su serializador rechaza los

@@ -53,7 +53,14 @@ export function populate(whitelists: Readonly<Record<string, core.$ZodObject>>):
             projection: Object.fromEntries(fields.map((field) => [field, 1]))
           }))
 
-          return [reference, z.optional(z.union([all, some]))]
+          return [
+            reference,
+            z.optional(
+              z.union([all, some], {
+                error: 'takes true, or an object with 1 or true for some of its fields'
+              })
+            )
+          ]
         })
       )
     )

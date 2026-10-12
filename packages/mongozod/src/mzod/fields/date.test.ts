@@ -46,6 +46,13 @@ describe('date()', () => {
         { message: 'Invalid date: expected a Date or an ISO datetime string with Z or an offset' }
       ])
     }
+
+    expect(date().safeParse(undefined).error?.issues).toMatchObject([
+      {
+        message:
+          'Invalid date: expected a Date or an ISO datetime string with Z or an offset, received undefined'
+      }
+    ])
   })
 
   test('encodes back to an ISO string in UTC', () => {

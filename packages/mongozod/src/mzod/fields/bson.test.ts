@@ -66,6 +66,15 @@ describe('objectId()', () => {
         { message: 'Invalid ObjectId: expected an ObjectId or its 24-character hex string' }
       ])
     }
+
+    // A missing one says so, as Zod does.
+    expect(z.object({ owner: objectId() }).safeParse({}).error?.issues).toMatchObject([
+      {
+        message:
+          'Invalid ObjectId: expected an ObjectId or its 24-character hex string, received undefined',
+        path: ['owner']
+      }
+    ])
   })
 
   test('encodes back to the hex string', () => {

@@ -3,6 +3,8 @@ import type { Decimal128Extended } from 'bson'
 import { Binary, BSONError, Decimal128, ObjectId, UUID } from 'bson'
 import { z } from 'zod'
 
+import { fieldError } from '../internal/field-error'
+
 /**
  * An `ObjectId`, recognized by its `_bsontype` as the driver's serializer does. `instanceof` would
  * fail between copies of bson, and between its CommonJS build, which the driver loads, and its ES
@@ -46,7 +48,7 @@ const hexToObjectId = z.codec(z.hex().length(24), objectIdInstance, {
 export function objectId() {
   // The codec goes first: with the `ObjectId` first, `z.encode` would return it unchanged.
   return z.union([hexToObjectId, objectIdInstance], {
-    error: 'Invalid ObjectId: expected an ObjectId or its 24-character hex string'
+    error: fieldError('Invalid ObjectId: expected an ObjectId or its 24-character hex string')
   })
 }
 
@@ -127,7 +129,7 @@ export function decimal128() {
           isDecimal128(value.$numberDecimal)
       )
     ],
-    { error: DECIMAL128_ERROR }
+    { error: fieldError(DECIMAL128_ERROR) }
   )
 
   return z.codec(input, decimal128Instance, {
@@ -183,7 +185,7 @@ export function binary(): z.ZodCodec<
       z.custom<Uint8Array>((value) => value instanceof Uint8Array),
       binaryInstance
     ],
-    { error: BINARY_ERROR }
+    { error: fieldError(BINARY_ERROR) }
   )
 
   return z.codec(input, binaryInstance, {
@@ -227,7 +229,9 @@ const UUID_ERROR = 'Invalid UUID: expected a UUID or its string'
  *   const sessionSchema = z.object({ _id: mz.uuid().default(() => new UUID()), user: mz.uuid() })
  */
 export function uuid() {
-  const input = z.union([z.uuid({ error: UUID_ERROR }), uuidInstance], { error: UUID_ERROR })
+  const input = z.union([z.uuid({ error: UUID_ERROR }), uuidInstance], {
+    error: fieldError(UUID_ERROR)
+  })
 
   return z.codec(input, uuidInstance, {
     // `toUUID()` also turns a `Binary` of subtype 4 into a `UUID`, which has `toHexString()`.
