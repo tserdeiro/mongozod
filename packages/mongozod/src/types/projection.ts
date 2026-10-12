@@ -160,6 +160,35 @@ type VirtualCheck<K extends string, Value, E, N extends string> = [Value] extend
     ? NumberProblem<K>
     : `"${K}" is a virtual: it takes 0, 1, true or false`
 
+/** The fields of the objects a schema holds, through its arrays, unions and wrappers. */
+type FieldsUnder<T> =
+  Def<Unwrap<T>> extends infer X
+    ? X extends { shape: infer Shape; type: 'object' }
+      ? keyof Shape & string
+      : X extends { element: infer E; type: 'array' }
+        ? FieldsUnder<E>
+        : X extends { options: infer O extends readonly unknown[]; type: 'union' }
+          ? FieldsUnder<O[number]>
+          : never
+    : never
+
+/** The fields right under a path of a projection. */
+type SubKeys<S, Path extends string> = FieldsUnder<ProjectionAt<S, Path>>
+
+/**
+ * An empty sub-projection, which MongoDB rejects (51270): its message, and an object with one of
+ * the fields under it, which the editor suggests inside it. The editor leaves the string out of
+ * the suggestions of a union, which it would fill with the methods of `String`.
+ */
+type EmptyProblem<S, Path extends string> =
+  SubKeys<S, Path> extends infer F extends string
+    ? [F] extends [never]
+      ? `"${Path}": an empty sub-projection fails`
+      :
+          | `"${Path}" takes a field inside: an empty sub-projection fails`
+          | { [G in F]: { [H in G]: unknown } }[F]
+    : never
+
 type Check<S, P, E, Prefix extends string, V = None> = {
   [K in keyof P]: K extends string
     ? K extends keyof V
@@ -179,7 +208,9 @@ type Check<S, P, E, Prefix extends string, V = None> = {
                 : IsAny<P[K]> extends true
                   ? P[K]
                   : P[K] extends object
-                    ? Check<S, P[K], E, `${Prefix}${K}.`>
+                    ? P[K] extends Record<string, never>
+                      ? EmptyProblem<S, `${Prefix}${K}`>
+                      : Check<S, P[K], E, `${Prefix}${K}.`>
                     : `"${Prefix}${K}" takes 0, 1, true, false, $slice, $elemMatch or $meta`
     : never
 }

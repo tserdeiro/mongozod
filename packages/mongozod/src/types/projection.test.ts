@@ -114,6 +114,10 @@ test('what MongoDB accepts but answers differently does not compile', () => {
   project({ plugin: 'literal' })
   // @ts-expect-error a field the nested form does not have
   project({ connections: { stauts: 1 } })
+  // @ts-expect-error an empty sub-projection (51270)
+  project({ prop: {} })
+  // @ts-expect-error an empty sub-projection of a field without fields (51270)
+  project({ plugin: {} })
 
   const kept = { plugin: 0 }
 

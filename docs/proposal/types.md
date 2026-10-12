@@ -280,9 +280,15 @@ Los tipos siguen la regla de [Tipos](#tipos). Además:
   proyección. La proyección los atraviesa, pero no toma índices.
 - **Proyección en una variable**: `const projection = { password: 0 }` tipa el `0` como `number`,
   que no compila: el error dice que se tipe `0 | 1` o se declare con `as const`, también para un
-  virtual. Una subproyección vacía, como `{ meta: {} }`, compila, y MongoDB la rechaza con el código
-  51270 (verificado): rechazarla en los tipos haría que el editor sugiera los métodos de `String`
-  mientras se escribe dentro de las llaves.
+  virtual.
+- **Subproyección vacía**: `{ meta: {} }` no compila, porque MongoDB la rechaza con el código 51270
+  (verificado). Su tipo es la unión del mensaje, `"meta" takes a field inside: an empty
+  sub-projection fails`, y de un objeto con cada campo de adentro, así que el editor sugiere `at` y
+  `by` dentro de las llaves vacías, también más abajo y en un array de objetos. El editor deja el
+  string afuera de las sugerencias de una unión: con el mensaje solo, sugería los métodos de
+  `String`, y compilándola, solo los identificadores del archivo. Con una key escrita la forma
+  anidada no sugiere las otras; la forma con punto, `'meta.by'`, sí. Cuesta unas 490
+  instanciaciones con TypeScript 7 en el proyecto típico de `check-type-cost`, y ninguna con 5.5.
 - **Proyección estricta**: no compila lo que MongoDB acepta pero responde distinto: un índice, un
   path que no existe, `$slice` o `$elemMatch` sobre algo que no es array, un string (MongoDB lo
   devuelve como valor literal) y un `$` que atraviesa dos arrays. Las expresiones de agregación se
