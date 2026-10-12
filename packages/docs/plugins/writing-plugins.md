@@ -106,9 +106,9 @@ defaults and transforms, before the hooks run, and removes them before calling t
 hooks see them parsed, in `args.options`.
 
 An option cannot be named like one of the driver, of mongozod (`context`, `populate`, `schema`,
-`timestamps`) or of another plugin of the model: it does not compile, and `mongozod()` throws an
-`Error` for the names of mongozod and of other plugins. `mongozod()` also throws for
-`updatePipeline`, the option of [update pipelines](../guides/operations.md#update).
+`timestamps` or `updatePipeline`, the option of [update pipelines](../guides/operations.md#update))
+or of another plugin of the model: it does not compile, and `mongozod()` throws an `Error` for the
+names of mongozod and of other plugins.
 
 ## Context
 

@@ -39,5 +39,15 @@
     "order": "asc",
     "sortSideEffects": false
   },
-  "ignorePatterns": ["pnpm-lock.yaml"]
+  "ignorePatterns": ["pnpm-lock.yaml"],
+  // The examples of the docs keep their own layout: a blank line between properties and one call
+  // per line in Zod chains, which the formatter would join.
+  "overrides": [
+    {
+      "files": ["**/*.md"],
+      "options": {
+        "embeddedLanguageFormatting": "off"
+      }
+    }
+  ]
 }

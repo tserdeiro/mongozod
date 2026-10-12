@@ -79,8 +79,8 @@ mongozod validates each option with the schema of its plugin, with its defaults,
 `ZodError` when one does not fit. It removes them before calling the driver.
 
 A plugin option cannot be named like an option of the driver, of mongozod (`context`, `populate`,
-`schema`, `timestamps`) or of another plugin of the model: it does not compile, and `mongozod()`
-throws an `Error` for the names of mongozod, `updatePipeline` included, and of other plugins.
+`schema`, `timestamps`, `updatePipeline`) or of another plugin of the model: it does not compile, and
+`mongozod()` throws an `Error` for the names of mongozod and of other plugins.
 
 ## Context
 
