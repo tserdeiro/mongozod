@@ -300,9 +300,9 @@ plugins definen el mismo método, o uno se llama como un miembro del modelo, com
   `FilterOf<M, F>`, `SortOf<M, Sort>`, `UpdateOf<M, U, F>`, `ReadOptionsArg<M>` y
   `UpdateOptionsArg<M>`, para quien escribe plugins y para los services que le pasan un filtro o un
   update al modelo. `InsertOf` es lo que toman un insert y un reemplazo, con opcionales los campos que
-  completan `timestamps` y los plugins: `Parameters<typeof NotesModel.insertOne>[0]` da `never`,
-  porque el parámetro depende de un genérico de la operación, y `Input<S>` pide los campos de
-  `timestamps`. `ReadOf` es el
+  completan `timestamps` y los plugins, que `Input<S>` pide. Es el mismo tipo que
+  `Parameters<typeof NotesModel.insertOne>[0]`; el que da `never` es el filtro de `find`, un
+  genérico que se chequea a sí mismo. `ReadOf` es el
   documento que devuelve una lectura con la `projection` y el `populate` de sus opciones, como
   `ReadOf<typeof OrdersModel, { populate: { customer: true } }>`, para tipar un service o una
   respuesta sin `Awaited<ReturnType<…>>`:

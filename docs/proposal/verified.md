@@ -799,3 +799,7 @@
   - El JSDoc de `updateOne`, `updateMany` y `findOneAndUpdate` decía que los refinements del
     documento entero corren solo en los inserts y los reemplazos, y un `.refine()` de la raíz
     también rechaza un upsert, porque valida el documento que insertaría. Ahora lo nombra.
+  - La propuesta de plugins decía que `Parameters<typeof NotesModel.insertOne>[0]` da `never`. Con
+    TypeScript 7 y 5.5 es igual a `InsertOf`, sin `timestamps`, con `timestamps` y con un plugin que
+    completa un campo. El que da `never` es `Parameters<typeof NotesModel.find>[0]`, como dice la
+    receta de repositorios.
