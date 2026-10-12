@@ -48,6 +48,10 @@ jobs:
         with:
           require-lockfile: true
       - uses: changesets/action/version@v2
+        with:
+          # The repository naming, which the Conventions check enforces on pull requests.
+          commit-message: 'chore(release): version packages'
+          pr-title: 'chore(release): version packages'
 
   pack:
     if: needs.select-mode.outputs.mode == 'publish'
