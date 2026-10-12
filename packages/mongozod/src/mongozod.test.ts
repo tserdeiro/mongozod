@@ -653,6 +653,25 @@ describe('schemas', () => {
     expect((await BigIntLedgersModel.findOne({}))?.entries).toEqual([{ amount: 2n ** 60n }])
   })
 
+  test('rejects a z.set() or a z.map(), which the driver does not read back', () => {
+    expect(() =>
+      mongozod({ collection: 'notes', db, schema: z.object({ tags: z.set(z.string()) }) })
+    ).toThrow(
+      '"tags" is a z.set(), which the driver stores as an empty object: use mz.set() for an array without repeats'
+    )
+    expect(() =>
+      mongozod({
+        collection: 'notes',
+        db,
+        schema: z.object({
+          items: z.array(z.object({ prices: z.map(z.string(), z.number()).optional() }))
+        })
+      })
+    ).toThrow(
+      '"items.prices" is a z.map(), which the driver stores as an object and reads as one: use z.record()'
+    )
+  })
+
   test('takes Zod Mini schemas and still throws a ZodError', async () => {
     const TagsModel = mongozod({
       collection: 'tags',
