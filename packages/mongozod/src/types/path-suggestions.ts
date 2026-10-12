@@ -21,7 +21,9 @@ type Suggestions<S, M extends PathMode, D extends unknown[] = []> = D['length'] 
         }[keyof Shape & string]
       : X extends { element: infer E; type: 'array' }
         ? M extends 'update'
-          ? '$[]' | `$[].${Suggestions<E, M, [...D, 1]>}`
+          ? Suggestions<E, M, [...D, 1]> extends infer Sub extends string
+            ? '$' | '$[]' | `$.${Sub}` | `$[].${Sub}`
+            : never
           : Suggestions<E, M, D>
         : X extends { innerType: infer I; type: Wrapper }
           ? Suggestions<I, M, D>

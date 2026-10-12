@@ -16,8 +16,11 @@
   `arrayFilters` y proyecciones. Así no hace falta un límite de niveles y se cubren los schemas
   recursivos. Generarlos todos, como hace el driver, no compila con `blueprints`. `arrayFilters` se
   tipa según los `$[id]` del update, y la proyección ajusta el tipo del resultado a lo que responde
-  MongoDB. Las sugerencias del editor se calculan aparte desde el schema: hasta 6 niveles, con `$[]`
-  en los arrays de los updates, y sin entrar en `z.custom`, records, `z.lazy` ni transforms. Una key
+  MongoDB. Las sugerencias del editor se calculan aparte desde el schema: hasta 6 niveles, con `$` y
+  `$[]` en los arrays de los updates, los campos del elemento dentro de `$pull`, y sin entrar en
+  `z.custom`, records, `z.lazy` ni transforms. `arrayFilters` no sugiere: haría falta intersectar
+  dos arrays (ver [Costo de los tipos](#costo-de-los-tipos)), así que queda para la fase 7, con las
+  sugerencias de los operadores. Una key
   de tipo `string` no compila: tiene que ser literal. Una key con patrón bajo un record o un
   catchall, como `` `metadata.${string}` ``, sí compila, con el tipo de sus valores. Pero TypeScript
   ensancha a `string` la key computada de un objeto literal

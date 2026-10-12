@@ -494,7 +494,14 @@ export type UpdateCheck<S, U, F, O, N extends TimestampNames = NoTimestamps> = {
 export type SuggestedUpdate<S> = {
   [Op in FieldOperator]?: Op extends '$setOnInsert'
     ? { [K in PathSuggestions<S, 'update'>]?: unknown }
-    : { [K in Exclude<PathSuggestions<S, 'update'>, IdPath>]?: unknown }
+    : Op extends '$pull'
+      ? // The condition of `$pull` is on the elements: the editor suggests their fields.
+        {
+          [K in Exclude<PathSuggestions<S, 'update'>, IdPath>]?: {
+            [F in PathSuggestions<ElementSchema<SchemaAt<S, K, 'update'>>, 'filter'>]?: unknown
+          }
+        }
+      : { [K in Exclude<PathSuggestions<S, 'update'>, IdPath>]?: unknown }
 }
 
 /**
