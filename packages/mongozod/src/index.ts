@@ -2,6 +2,7 @@ export type {
   DocOf,
   FilterOf,
   Input,
+  InsertOf,
   Model,
   ModelSchema,
   Output,

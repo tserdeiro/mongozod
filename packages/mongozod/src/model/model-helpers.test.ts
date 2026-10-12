@@ -1,4 +1,4 @@
-import type { FilterOf, ReadOf, UpdateOf } from './model'
+import type { FilterOf, InsertOf, ReadOf, UpdateOf } from './model'
 
 import { MongoClient } from 'mongodb'
 import { expect, expectTypeOf, test } from 'vitest'
@@ -81,4 +81,20 @@ test('ReadOf is the document a read returns, with its projection and its populat
   expectTypeOf<ReadOf<typeof TasksModel>>().toEqualTypeOf<
     NonNullable<Awaited<ReturnType<typeof readTask>>>
   >()
+})
+
+test('InsertOf is what an insert takes, without the fields timestamps and plugins fill', () => {
+  /** A service that builds a post and inserts it. */
+  function createPost(post: InsertOf<typeof PostsModel>) {
+    return PostsModel.insertOne(post)
+  }
+
+  expectTypeOf<InsertOf<typeof PostsModel>>().toEqualTypeOf<{
+    author: string
+    createdAt?: string | Date
+    title: string
+    updatedAt?: string | Date
+  }>()
+  expectTypeOf<InsertOf<typeof UsersModel>>().toEqualTypeOf<{ _id: string; name: string }>()
+  expect(createPost).toBeTypeOf('function')
 })

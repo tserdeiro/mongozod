@@ -1,4 +1,4 @@
-import type { AnyModel, FilterOf, ReadOptionsArg } from '../index'
+import type { AnyModel, FilterOf, InsertOf, ReadOptionsArg } from '../index'
 
 import { MongoClient } from 'mongodb'
 import {
@@ -292,6 +292,11 @@ describe('the fields a plugin fills', () => {
       tenantId: 't1',
       title: 'Two'
     })
+    expectTypeOf<InsertOf<typeof ProjectsModel>>().toEqualTypeOf<{
+      _id: string
+      tenantId?: string
+      title: string
+    }>()
   })
 
   test('are still validated, and are fields of the plugin', async () => {

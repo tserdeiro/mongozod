@@ -255,6 +255,26 @@ export type DocOf<M> = M extends { readonly schema: infer S extends ModelSchema 
   ? WithId<Output<S>>
   : never
 
+type PluginsOf<M> = M extends {
+  readonly '~plugins'?: infer PL extends readonly AnyPlugin[] | undefined
+}
+  ? Exclude<PL, undefined>
+  : []
+
+/**
+ * A document to insert in a model, or to replace one with: the input of its schema, with the fields
+ * its `timestamps` and its plugins fill optional, for a function that builds one, such as a
+ * service. A conditional, like `DocOf`.
+ *
+ * @example
+ *   function createNote(note: InsertOf<typeof NotesModel>) {
+ *     return NotesModel.insertOne(note)
+ *   }
+ */
+export type InsertOf<M> = M extends { readonly schema: infer S extends ModelSchema }
+  ? TimestampedInput<S, TimestampsOf<M>, undefined, PluginFills<PluginsOf<M>> & PropertyKey>
+  : never
+
 type VirtualsOf<M> = M extends { readonly virtuals: infer V } ? V : None
 
 type ReferencesOf<M> = M extends { readonly references: infer R } ? R : None
