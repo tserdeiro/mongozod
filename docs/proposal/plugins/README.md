@@ -65,6 +65,25 @@ el schema sigue describiendo el documento completo. No se llama `schema` como en
 allá el plugin agrega campos a la base, y acá los declara el schema del modelo. Además chocaría con
 el `schema` del modelo.
 
+### `fills`
+
+Los campos de `fields` que el plugin completa en sus `before` de los inserts y los reemplazos, como
+el `tenantId` de un multi-tenant o el `createdBy` de una auditoría. Esas operaciones los toman como
+opcionales, igual que los campos de `timestamps`: quien llama no los pasa, y si los pasa, como en una
+importación, el plugin decide si los pisa. El schema los sigue validando después de los hooks, así
+que un plugin que no completa uno lanza un `ZodError`. Un nombre que no está en `fields` no compila
+y lanza un `Error` al definir el modelo.
+
+```ts
+definePlugin({ id: 'tenant', fields: { tenantId: z.string() }, fills: ['tenantId'], … })
+```
+
+better-auth resuelve lo mismo con un atributo por campo, `input: false`, que saca el campo del input:
+pasarlo no compila. Acá no se copió porque los campos los describe el schema de Zod del modelo, Zod
+no tiene una marca de «no es input» que vean los tipos, y sacarlo del input impediría las
+importaciones, a diferencia de `timestamps`. Cuesta unas 130 instanciaciones en el proyecto típico de
+`check-type-cost`.
+
 ### `options`
 
 Es un `z.object` por grupo de operaciones. Sus campos se suman a las opciones del driver en las
@@ -273,8 +292,8 @@ plugins definen el mismo método, o uno se llama como un miembro del modelo, com
   cambiar ni cancelar la escritura, no dice quién la hizo y en un update no trae el filtro ni los
   operadores. Además necesita un replica set y una conexión abierta por stream. Un `watch` tipado
   puede sumarse más adelante, aparte de los plugins, para reaccionar a cambios ya guardados.
-- **Nombres**: `definePlugin` con `id`, `fields`, `options`, `context`, `hooks`, `middleware` y
-  `methods`. Los grupos son `read`, `insert`, `update`, `delete` y `bulk`.
+- **Nombres**: `definePlugin` con `id`, `fields`, `fills`, `options`, `context`, `hooks`,
+  `middleware` y `methods`. Los grupos son `read`, `insert`, `update`, `delete` y `bulk`.
 - **Límite conocido**: los plugins ven los documentos como `Document`, así que TypeScript no detecta
   un hook que devuelve un resultado con la forma equivocada, como un `DeleteResult` en `findOne`. Lo
   cubren los tests de cada plugin. Un hook de grupo puede devolver los argumentos o el resultado de

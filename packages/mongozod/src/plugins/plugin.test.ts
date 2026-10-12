@@ -253,6 +253,77 @@ describe('cursors', () => {
   })
 })
 
+describe('the fields a plugin fills', () => {
+  const tenantContext = z.object({ tenantId: z.string() })
+  const tenant = definePlugin({
+    context: { insert: tenantContext, update: tenantContext },
+    fields: { tenantId: z.string() },
+    fills: ['tenantId'],
+    hooks: {
+      insertOne: {
+        before: ({ args, context }) => ({
+          args: { ...args, document: { ...args.document, tenantId: context.tenantId } }
+        })
+      },
+      replaceOne: {
+        before: ({ args, context }) => ({
+          args: { ...args, replacement: { ...args.replacement, tenantId: context.tenantId } }
+        })
+      }
+    },
+    id: 'tenant'
+  })
+  const projectSchema = z.object({ _id: z.string(), tenantId: z.string(), title: z.string() })
+
+  test('are optional in inserts and replacements, as the fields of timestamps', async () => {
+    const ProjectsModel = mongozod({
+      collection: 'projects',
+      db,
+      plugins: [tenant],
+      schema: projectSchema
+    })
+    const context = { tenantId: 't1' }
+
+    await ProjectsModel.insertOne({ _id: 'p1', title: 'One' }, { context })
+    await ProjectsModel.replaceOne({ _id: 'p1' }, { _id: 'p1', title: 'Two' }, { context })
+
+    expect(await ProjectsModel.findOne({ _id: 'p1' })).toEqual({
+      _id: 'p1',
+      tenantId: 't1',
+      title: 'Two'
+    })
+  })
+
+  test('are still validated, and are fields of the plugin', async () => {
+    const forgetful = definePlugin({
+      fields: { tenantId: z.string() },
+      fills: ['tenantId'],
+      id: 'x'
+    })
+    const ForgottenModel = mongozod({
+      collection: 'projects',
+      db,
+      plugins: [forgetful],
+      schema: projectSchema
+    })
+
+    await expect(ForgottenModel.insertOne({ _id: 'p1', title: 'One' })).rejects.toMatchObject({
+      issues: [{ path: ['tenantId'] }]
+    })
+    expect(() =>
+      mongozod({
+        collection: 'projects',
+        db,
+        plugins: [
+          // @ts-expect-error title is not a field of the plugin
+          definePlugin({ fields: { tenantId: z.string() }, fills: ['title'], id: 'y' })
+        ],
+        schema: projectSchema
+      })
+    ).toThrow('y fills "title", which is not one of its fields')
+  })
+})
+
 describe('context and options', () => {
   const actor = z.object({ actor: z.string().min(1) })
   const audit = definePlugin({

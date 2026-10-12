@@ -44,6 +44,12 @@ export function checkPlugins(schema: core.$ZodType, plugins: readonly AnyPlugin[
       }
     }
 
+    for (const field of plugin.fills ?? []) {
+      if (!Object.hasOwn(plugin.fields ?? {}, field)) {
+        throw new Error(`${plugin.id} fills "${field}", which is not one of its fields`)
+      }
+    }
+
     for (const method of Object.keys(plugin.methods ?? {})) {
       if (methods.has(method)) throw new Error(`two plugins define "${method}"`)
 

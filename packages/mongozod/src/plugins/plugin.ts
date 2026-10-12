@@ -209,13 +209,21 @@ export interface Plugin<
   Fields extends core.$ZodShape = core.$ZodShape,
   Options extends GroupSchemas = GroupSchemas,
   Context extends GroupSchemas = GroupSchemas,
-  Methods extends object = object
+  Methods extends object = object,
+  Fills extends ReadonlyArray<keyof Fields & string> = ReadonlyArray<keyof Fields & string>
 > {
   /** Identifies the plugin in error messages. */
   id: Id
 
   /** The fields the model's schema must declare, with a compatible type. */
   fields?: Fields
+
+  /**
+   * The fields of `fields` that the plugin's `before` hooks fill on every insert and replacement,
+   * which these then take as optional, as they take the fields of `timestamps`. The schema still
+   * validates them after the hooks, so one the plugin does not fill throws a `ZodError`.
+   */
+  fills?: Fills
 
   /** The options the plugin adds to the operations of each group. */
   options?: Options
@@ -250,10 +258,18 @@ export function definePlugin<
   const Fields extends core.$ZodShape = None,
   const Options extends GroupSchemas = None,
   const Context extends GroupSchemas = None,
-  const Methods extends object = None
+  const Methods extends object = None,
+  const Fills extends ReadonlyArray<keyof Fields & string> = readonly []
 >(
-  plugin: Plugin<Id, Fields, Options, Context, Methods>
-): Plugin<NoInfer<Id>, NoInfer<Fields>, NoInfer<Options>, NoInfer<Context>, NoInfer<Methods>> {
+  plugin: Plugin<Id, Fields, Options, Context, Methods, Fills>
+): Plugin<
+  NoInfer<Id>,
+  NoInfer<Fields>,
+  NoInfer<Options>,
+  NoInfer<Context>,
+  NoInfer<Methods>,
+  NoInfer<Fills>
+> {
   return plugin
 }
 
@@ -266,6 +282,7 @@ export function definePlugin<
 export interface AnyPlugin {
   context?: GroupSchemas
   fields?: core.$ZodShape
+  fills?: ReadonlyArray<string>
   hooks?: Partial<
     Record<string, { after?(input: Document): unknown; before?(input: Document): unknown }>
   >
@@ -310,6 +327,13 @@ export type OptionsArg<
     ? [options: Base & PluginOptions<PL, G>]
     : [options?: Base & PluginOptions<PL, G>]
   : [options: Base & PluginOptions<PL, G> & { context: UnionToIntersection<ContextUnion<PL, G>> }]
+
+type FillsOfPlugin<P> = P extends { fills?: ReadonlyArray<infer K> } ? K : never
+
+/** The fields the plugins fill on inserts and replacements, which these take as optional. */
+export type PluginFills<PL extends readonly AnyPlugin[]> = {
+  [I in keyof PL]: FillsOfPlugin<PL[I]>
+}[number]
 
 type MethodsOfPlugin<P> = P extends { methods?: infer M } ? M : never
 

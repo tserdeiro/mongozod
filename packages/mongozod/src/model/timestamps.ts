@@ -109,11 +109,14 @@ type OptionalFields<I, K extends PropertyKey> = [K] extends [never]
 /**
  * What an insert or a replacement takes: the input of the schema, with the fields `timestamps`
  * fills optional, unless the operation passes `timestamps: false` (`T`). Then it gives them, or the
- * schema fills them with a `.default()`.
+ * schema fills them with a `.default()`. The fields the plugins fill (`Filled`) are always
+ * optional.
  */
-export type TimestampedInput<S, N extends TimestampNames, T> = [T] extends [false]
-  ? core.input<S>
-  : OptionalFields<core.input<S>, N['createdAt'] | N['updatedAt']>
+export type TimestampedInput<S, N extends TimestampNames, T, Filled extends PropertyKey = never> = [
+  T
+] extends [false]
+  ? OptionalFields<core.input<S>, Filled>
+  : OptionalFields<core.input<S>, N['createdAt'] | N['updatedAt'] | Filled>
 
 /** The fields of a `timestamps` option at runtime, `undefined` for one that is off. */
 export interface Timestamps {

@@ -1,4 +1,4 @@
-import type { AnyPlugin, OptionsArg } from '../plugins/plugin'
+import type { AnyPlugin, OptionsArg, PluginFills } from '../plugins/plugin'
 import type {
   PopulateCheck,
   PopulateContextOption,
@@ -197,14 +197,15 @@ type BulkWriteOperationCheck<
   S extends ModelSchema,
   O,
   N extends TimestampNames,
-  BulkOptions
+  BulkOptions,
+  Filled extends PropertyKey
 > = O extends { insertOne: unknown }
-  ? { insertOne: { document: TimestampedInput<S, N, TimestampsOff<BulkOptions>> } }
+  ? { insertOne: { document: TimestampedInput<S, N, TimestampsOff<BulkOptions>, Filled> } }
   : O extends { replaceOne: { filter: infer F } }
     ? {
         replaceOne: Omit<ReplaceOneModel<Output<S>>, 'filter' | 'replacement'> & {
           filter: FilterCheck<S, F>
-          replacement: TimestampedInput<S, N, TimestampsOff<BulkOptions>>
+          replacement: TimestampedInput<S, N, TimestampsOff<BulkOptions>, Filled>
         }
       }
     : O extends { updateOne: infer M extends { filter: unknown; update: unknown } }
@@ -226,9 +227,10 @@ export type BulkWriteCheck<
   S extends ModelSchema,
   Operations,
   N extends TimestampNames = NoTimestamps,
-  BulkOptions = unknown
+  BulkOptions = unknown,
+  Filled extends PropertyKey = never
 > = {
-  [I in keyof Operations]: BulkWriteOperationCheck<S, Operations[I], N, BulkOptions>
+  [I in keyof Operations]: BulkWriteOperationCheck<S, Operations[I], N, BulkOptions, Filled>
 }
 
 type SchemaOf<M> = M extends { readonly schema: infer S extends ModelSchema } ? S : never
@@ -369,7 +371,7 @@ export interface Model<
   /** Runs several writes in one command. Inserts and replacements are validated like `insertOne`. */
   'bulkWrite'<
     const Operations extends ReadonlyArray<Document> &
-      BulkWriteCheck<S, Operations, N, BulkOptions>,
+      BulkWriteCheck<S, Operations, N, BulkOptions, PluginFills<PL>>,
     const BulkOptions extends BulkWriteOptions &
       TimestampsOperationOption<N> & { updatePipeline?: true } = BulkWriteOptions
   >(
@@ -479,7 +481,7 @@ export interface Model<
     T extends false | undefined = false | undefined
   >(
     filter: F & SuggestedFilter<S>,
-    replacement: TimestampedInput<S, N, T>,
+    replacement: TimestampedInput<S, N, T, PluginFills<PL>>,
     ...options: OptionsArg<
       PL,
       'update',
@@ -496,7 +498,7 @@ export interface Model<
     T extends false | undefined = false | undefined
   >(
     filter: F & SuggestedFilter<S>,
-    replacement: TimestampedInput<S, N, T>,
+    replacement: TimestampedInput<S, N, T, PluginFills<PL>>,
     ...options: OptionsArg<
       PL,
       'update',
@@ -544,7 +546,7 @@ export interface Model<
    * stored `documents`, with their defaults and transforms applied.
    */
   'insertMany'<T extends false | undefined = false | undefined>(
-    documents: ReadonlyArray<TimestampedInput<S, N, T>>,
+    documents: ReadonlyArray<TimestampedInput<S, N, T, PluginFills<PL>>>,
     ...options: OptionsArg<PL, 'insert', BulkWriteOptions & TimestampsOperationOption<N, T>>
   ): Promise<InsertManyResult<Output<S>> & { documents: Array<WithId<Output<S>>> }>
 
@@ -553,7 +555,7 @@ export interface Model<
    * stored `document`, with its defaults and transforms applied.
    */
   'insertOne'<T extends false | undefined = false | undefined>(
-    document: TimestampedInput<S, N, T>,
+    document: TimestampedInput<S, N, T, PluginFills<PL>>,
     ...options: OptionsArg<PL, 'insert', InsertOneOptions & TimestampsOperationOption<N, T>>
   ): Promise<InsertOneResult<Output<S>> & { document: WithId<Output<S>> }>
 
@@ -568,7 +570,7 @@ export interface Model<
     T extends false | undefined = false | undefined
   >(
     filter: F & SuggestedFilter<S>,
-    replacement: TimestampedInput<S, N, T>,
+    replacement: TimestampedInput<S, N, T, PluginFills<PL>>,
     ...options: OptionsArg<
       PL,
       'update',
