@@ -112,7 +112,7 @@ type UpdateValue<T, Op, D extends Side> = Op extends '$set'
   : Op extends '$unset'
     ? '' | 1 | true
     : IsDecimal<T> extends true
-      ? ValueOf<T, D>
+      ? NonNullable<ValueOf<T, D>>
       : number
 
 type Paths<L> = L extends ReadonlyArray<infer P> ? P & string : never

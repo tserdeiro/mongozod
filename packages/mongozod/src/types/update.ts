@@ -371,7 +371,7 @@ type FieldCheck<S, Op, K extends string, T, C> = [T] extends [string]
         ? AllAre<T, 'number'> extends true
           ? number | undefined
           : AllAre<T, 'decimal'> extends true
-            ? InputOf<T> | undefined
+            ? NonNullable<InputOf<T>> | undefined
             : `"${K}" is not a number`
         : Op extends '$bit'
           ? AllAre<T, 'number'> extends true

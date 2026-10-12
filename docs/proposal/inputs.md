@@ -295,7 +295,8 @@ manda `{ createdAt, _id }` del último elemento de la página.
     `ObjectId` da su hex, el `UUID` su string, el `Binary` su base64 y la fecha su ISO, y bson 6.10 y
     7 dan lo mismo (verificado). Valida con
     `Decimal128.fromString`, la API de bson, que rechaza lo que no es un decimal y lo que
-    redondearía, con más de 34 dígitos. Lo reconoce por su `_bsontype`, y su metadata le da
+    redondearía, con más de 34 dígitos. `NaN` e `Infinity`, que bson toma, también `'inf'`, se
+    rechazan en todas sus formas: un monto es un número, y sin eso un `$inc` de `'NaN'` lo guardaba. Lo reconoce por su `_bsontype`, y su metadata le da
     `bsonType: 'decimal'` en el `$jsonSchema`.
     - **Comparar con un número**: un filtro del modelo sobre un decimal no toma un `number`, aunque
       MongoDB compara por valor entre tipos numéricos: un double no siempre es el decimal que se
@@ -312,7 +313,8 @@ manda `{ createdAt, _id }` del último elemento de la página.
       como `objectId()`, el error de la unión de afuera lo tapaba.
     - **`$inc` y `$mul`**: MongoDB los aplica a un `Decimal128` (verificado), y el valor se parsea
       con el schema del campo sin sus checks, también en `mz.update`: un `'0.10'` o un `0.1` llega
-      como un `Decimal128` exacto, y la suma también lo es. Los checks quedan afuera porque validan
+      como un `Decimal128` exacto, y la suma también lo es. En un campo que también acepta `null`, el
+      monto no lo acepta. Los checks quedan afuera porque validan
       el valor del campo y no lo que lo cambia, como con los números: un saldo con
       `.refine((d) => Number(d.toString()) >= 0)` acepta un `$inc` de `'-10'`.
 15. **Binarios**: se declaran con `mz.binary()`. Toma el base64 de los

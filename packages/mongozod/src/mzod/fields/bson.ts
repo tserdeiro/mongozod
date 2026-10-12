@@ -57,26 +57,31 @@ export function objectId() {
   })
 }
 
+/** The string of a `Decimal128` that is not a number: an amount is never one. */
+const NOT_FINITE = /^-?(?:Infinity|NaN)$/
+
+/** Whether a value is a `Decimal128` of any build of bson, known by its `_bsontype`. */
+function isDecimal128Value(value: unknown): value is Decimal128 {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    '_bsontype' in value &&
+    value._bsontype === 'Decimal128'
+  )
+}
+
 /**
- * A `Decimal128`, recognized by its `_bsontype` like an `ObjectId`. Its metadata gives the
+ * A finite `Decimal128`, recognized by its `_bsontype` like an `ObjectId`. Its metadata gives the
  * `$jsonSchema` its BSON type.
  */
 const decimal128Instance = z
-  .custom<Decimal128>(
-    (value) =>
-      typeof value === 'object' &&
-      value !== null &&
-      '_bsontype' in value &&
-      value._bsontype === 'Decimal128'
-  )
+  .custom<Decimal128>((value) => isDecimal128Value(value) && !NOT_FINITE.test(value.toString()))
   .meta({ bsonType: 'decimal' })
 
-/** Whether bson takes a string as a `Decimal128` without rounding it. */
+/** Whether bson takes a string as a finite `Decimal128` without rounding it. */
 function isDecimal128(value: string) {
   try {
-    Decimal128.fromString(value)
-
-    return true
+    return !NOT_FINITE.test(Decimal128.fromString(value).toString())
   } catch (error) {
     // `fromString` throws a `BSONError` for anything it does not take: say so instead.
     if (BSONError.isBSONError(error)) return false
@@ -102,7 +107,8 @@ const DECIMAL128_ERROR =
 /**
  * A `Decimal128` field, the BSON type for money: it takes a `Decimal128`, which the server passes,
  * its string, such as `'10.50'`, or a number, as a JSON client sends them, and returns a
- * `Decimal128`. A string that bson would round, with more than 34 digits, fails, and so does a
+ * `Decimal128`. `NaN` and `Infinity` fail, in any of those forms: an amount is a number. A string
+ * that bson would round, with more than 34 digits, fails, and so does a
  * number that is not the decimal it was written as, with more than 15 significant digits, such as
  * the `0.30000000000000004` of `0.1 + 0.2`: it asks for the string instead. `z.encode` turns it
  * back into the string, and the `$jsonSchema` of `sync()` checks it as a `decimal`.

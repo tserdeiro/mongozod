@@ -240,6 +240,53 @@ describe('decimal128()', () => {
       AccountsModel.updateOne({ _id: 'a1' }, { $set: { balance: '-1' } })
     ).rejects.toMatchObject({ issues: [{ message: 'balance cannot be negative' }] })
     expect(accountUpdate.safeParse({ $inc: { balance: 'ten' } }).success).toBe(false)
+
+    // Not a number either, nor null, in a union with one: they change nothing as an amount.
+    const walletSchema = z.object({
+      _id: z.string(),
+      credit: z.union([
+        decimal128().refine((credit) => Number(credit.toString()) >= 0, 'cannot be negative'),
+        z.null()
+      ])
+    })
+    const WalletsModel = mongozod({ collection: 'wallets', db, schema: walletSchema })
+
+    await WalletsModel.insertOne({ _id: 'w1', credit: '5' })
+    await WalletsModel.updateOne({ _id: 'w1' }, { $inc: { credit: '-1' } })
+
+    expect((await WalletsModel.findOne({ _id: 'w1' }))?.credit?.toString()).toBe('4')
+
+    const rejected = ['NaN', 'Infinity'].flatMap((amount) => [
+      AccountsModel.updateOne({ _id: 'a1' }, { $inc: { balance: amount } }),
+      WalletsModel.updateOne({ _id: 'w1' }, { $inc: { credit: amount } })
+    ])
+
+    for (const result of await Promise.allSettled(rejected)) {
+      expect(result).toMatchObject({ reason: expect.any(z.ZodError), status: 'rejected' })
+    }
+
+    await expect(
+      // @ts-expect-error null is not an amount
+      WalletsModel.updateOne({ _id: 'w1' }, { $inc: { credit: null } })
+    ).rejects.toBeInstanceOf(z.ZodError)
+  })
+
+  test('rejects NaN and Infinity, in any of its forms: an amount is a number', () => {
+    const schema = decimal128()
+
+    for (const value of [
+      'NaN',
+      'Infinity',
+      '-Infinity',
+      'inf',
+      { $numberDecimal: 'NaN' },
+      Decimal128.fromString('NaN'),
+      Number.NaN
+    ]) {
+      expect(schema.safeParse(value).success).toBe(false)
+    }
+
+    expect(schema.parse('-0').toString()).toBe('-0')
   })
 })
 
