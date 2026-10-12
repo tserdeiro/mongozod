@@ -46,6 +46,8 @@ const marker: SetMarker = { '~set': true }
  *   import * as mz from 'mongozod/mzod'
  *
  *   const postSchema = z.object({ tags: mz.set(z.string()).default([]) })
+ *
+ * @see https://mongozod.dev/docs/api/mzod#mzset
  */
 export function set<T extends core.SomeType>(item: T): z.ZodArray<T> & SetMarker {
   return Object.assign(z.array(item).check(uniqueValues), marker)

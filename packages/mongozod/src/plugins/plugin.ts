@@ -27,10 +27,18 @@ export const GROUPS = {
   update: ['findOneAndReplace', 'findOneAndUpdate', 'replaceOne', 'updateMany', 'updateOne']
 } as const
 
-/** A group of operations. */
+/**
+ * A group of operations.
+ *
+ * @see https://mongozod.dev/docs/api/mongozod#group
+ */
 export type Group = keyof typeof GROUPS
 
-/** The arguments of each operation, as plugins see them: documents are `Document`s. */
+/**
+ * The arguments of each operation, as plugins see them: documents are `Document`s.
+ *
+ * @see https://mongozod.dev/docs/api/mongozod#operationargs
+ */
 export interface OperationArgs {
   aggregate: { options: Document; pipeline: Document[] }
   bulkWrite: { operations: Document[]; options: Document }
@@ -51,7 +59,11 @@ export interface OperationArgs {
   updateOne: { filter: Document; options: Document; update: Document | Document[] }
 }
 
-/** An operation of the model that plugins see. `watch` goes to the driver's collection. */
+/**
+ * An operation of the model that plugins see. `watch` goes to the driver's collection.
+ *
+ * @see https://mongozod.dev/docs/api/mongozod#operation
+ */
 export type Operation = keyof OperationArgs
 
 /** The driver's `UpdateResult`, with an `_id` of any type. */
@@ -75,6 +87,8 @@ export type AnyInsertManyResult = Omit<InsertManyResult, 'insertedIds'> & {
 /**
  * The result of each operation, as plugins see it, for any type of `_id`. `find` and `aggregate`
  * return a cursor, so their plugins see one batch of documents at a time.
+ *
+ * @see https://mongozod.dev/docs/api/mongozod#operationresults
  */
 export interface OperationResults {
   aggregate: unknown[]
@@ -106,6 +120,8 @@ type GroupOf<O extends Operation> = {
 /**
  * A model as plugins see it: its operations take and return `Document`s, and go through every
  * plugin again, so a hook can dispatch another operation. Methods declare `this` with it.
+ *
+ * @see https://mongozod.dev/docs/api/mongozod#anymodel
  */
 export interface AnyModel {
   readonly db: Db
@@ -171,6 +187,8 @@ type AfterReturn<O extends Operation> = { result: OperationResults[O] } | undefi
 /**
  * The hooks of one operation, or of the operations of a group. They are methods, so that the core
  * can run any of them with the arguments of its operation.
+ *
+ * @see https://mongozod.dev/docs/api/mongozod#operationhooks
  */
 export interface OperationHooks<O extends Operation, C> {
   /** Runs after the operation, with its result, and may replace it with `{ result }`. */
@@ -183,17 +201,29 @@ export interface OperationHooks<O extends Operation, C> {
   before?(input: HookInput<O, C>): BeforeReturn<O> | Promise<BeforeReturn<O>>
 }
 
-/** The hooks of a plugin, by operation or by group. */
+/**
+ * The hooks of a plugin, by operation or by group.
+ *
+ * @see https://mongozod.dev/docs/api/mongozod#hooks
+ */
 export type Hooks<C> = { [O in Operation]?: OperationHooks<O, C> } & {
   [G in Group]?: OperationHooks<GroupOperations<G>, C>
 }
 
-/** What `next()` takes in a middleware: the session of a transaction. */
+/**
+ * What `next()` takes in a middleware: the session of a transaction.
+ *
+ * @see https://mongozod.dev/docs/api/mongozod#nextoptions
+ */
 export interface NextOptions {
   session?: ClientSession
 }
 
-/** What a middleware receives: the operation, and `next()` to run it. */
+/**
+ * What a middleware receives: the operation, and `next()` to run it.
+ *
+ * @see https://mongozod.dev/docs/api/mongozod#middlewareinput
+ */
 export type MiddlewareInput<C> = {
   [O in Operation]: HookInput<O, C> & {
     next: (options?: NextOptions) => Promise<OperationResults[O]>
@@ -205,6 +235,8 @@ export type MiddlewareInput<C> = {
  * own configuration. The types know the fields it fills when `Fills` names them in a tuple, as
  * `definePlugin` infers it: a plugin typed without one, such as the return type of a factory
  * `Plugin<'tenant', { tenantId: z.ZodString }>`, takes a plugin that fills some, and fills none.
+ *
+ * @see https://mongozod.dev/docs/api/mongozod#plugin
  */
 export interface Plugin<
   Id extends string = string,
@@ -252,6 +284,8 @@ export interface Plugin<
  *   export function softDelete() {
  *   return definePlugin({ id: 'softDelete', fields: { deletedAt: z.date().optional() }, hooks: { … } })
  *   }
+ *
+ * @see https://mongozod.dev/docs/api/mongozod#defineplugin
  */
 // The plugin's own definition types it: `NoInfer` keeps the context of a call, such as the
 // `plugins` of a model, from inferring its generics.

@@ -56,6 +56,8 @@ export async function* inContext<T>(
  * It starts on the first read: `await` and `toArray()` read every document at once, and `for await`
  * reads them batch by batch, as the server returns them. Like the driver's, it closes the cursor
  * on the server when a loop ends early.
+ *
+ * @see https://mongozod.dev/docs/api/mongozod#modelcursor
  */
 export class ModelCursor<T> implements AsyncIterable<T>, PromiseLike<T[]> {
   readonly #open: () => AsyncGenerator<T[], void, void>

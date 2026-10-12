@@ -32,6 +32,8 @@ export type PopulateShape<W, D extends Side> = {
  *   populate: mz.populate({
  *     organization: organizationSchema.pick({ _id: true, name: true })
  *   }).optional()
+ *
+ * @see https://mongozod.dev/docs/api/mzod#mzpopulate
  */
 export function populate<const W extends Readonly<Record<string, core.$ZodObject>>>(
   whitelists: W

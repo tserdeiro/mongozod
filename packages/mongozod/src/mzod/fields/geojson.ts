@@ -51,12 +51,18 @@ const rings = z.array(ring).min(1, 'a polygon has its exterior ring')
  *
  *   const storeSchema = z.object({ name: z.string(), location: mz.point() })
  *   // { name: 'Centro', location: { type: 'Point', coordinates: [-58.38, -34.6] } }
+ *
+ * @see https://mongozod.dev/docs/api/mzod#mzpoint
  */
 export function point() {
   return z.object({ coordinates: position, type: z.literal('Point') })
 }
 
-/** A GeoJSON `LineString`: two different positions at least. */
+/**
+ * A GeoJSON `LineString`: two different positions at least.
+ *
+ * @see https://mongozod.dev/docs/api/mzod#mzlinestring
+ */
 export function lineString() {
   return z.object({ coordinates: linePositions, type: z.literal('LineString') })
 }
@@ -65,12 +71,18 @@ export function lineString() {
  * A GeoJSON `Polygon`: its exterior ring, then its holes, each closed and with 4 positions at
  * least. That a ring does not cross itself, and that a hole is inside the exterior ring, MongoDB
  * checks with a `2dsphere` index.
+ *
+ * @see https://mongozod.dev/docs/api/mzod#mzpolygon
  */
 export function polygon() {
   return z.object({ coordinates: rings, type: z.literal('Polygon') })
 }
 
-/** A GeoJSON `MultiPoint`: one position at least. MongoDB queries it with a `2dsphere` index. */
+/**
+ * A GeoJSON `MultiPoint`: one position at least. MongoDB queries it with a `2dsphere` index.
+ *
+ * @see https://mongozod.dev/docs/api/mzod#mzmultipoint
+ */
 export function multiPoint() {
   return z.object({
     coordinates: z.array(position).min(1, 'a MultiPoint has 1 position at least'),
@@ -78,7 +90,11 @@ export function multiPoint() {
   })
 }
 
-/** A GeoJSON `MultiLineString`: one line at least. MongoDB queries it with a `2dsphere` index. */
+/**
+ * A GeoJSON `MultiLineString`: one line at least. MongoDB queries it with a `2dsphere` index.
+ *
+ * @see https://mongozod.dev/docs/api/mzod#mzmultilinestring
+ */
 export function multiLineString() {
   return z.object({
     coordinates: z.array(linePositions).min(1, 'a MultiLineString has 1 line at least'),
@@ -86,7 +102,11 @@ export function multiLineString() {
   })
 }
 
-/** A GeoJSON `MultiPolygon`: one polygon at least. MongoDB queries it with a `2dsphere` index. */
+/**
+ * A GeoJSON `MultiPolygon`: one polygon at least. MongoDB queries it with a `2dsphere` index.
+ *
+ * @see https://mongozod.dev/docs/api/mzod#mzmultipolygon
+ */
 export function multiPolygon() {
   return z.object({
     coordinates: z.array(rings).min(1, 'a MultiPolygon has 1 polygon at least'),
@@ -97,6 +117,8 @@ export function multiPolygon() {
 /**
  * A GeoJSON `GeometryCollection`: one geometry at least, of the types above. MongoDB rejects an
  * empty one and one inside another, which RFC 7946 also advises against.
+ *
+ * @see https://mongozod.dev/docs/api/mzod#mzgeometrycollection
  */
 export function geometryCollection() {
   const geometry = z.discriminatedUnion('type', [

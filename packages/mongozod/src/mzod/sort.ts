@@ -17,6 +17,8 @@ import { withoutUndefined } from './internal/without-undefined'
  *   sort: mz.sort(noteSchema, { createdAt: true, title: true, updatedAt: true }).default({
  *     createdAt: -1
  *   })
+ *
+ * @see https://mongozod.dev/docs/api/mzod#mzsort
  */
 export function sort<S extends core.$ZodType, const K extends MaskCheck<S, K, 'filter'>>(
   schema: S,

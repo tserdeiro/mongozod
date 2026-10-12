@@ -77,6 +77,8 @@ function bulkOperation(operation: Document): Document {
  *     plugins: [softDelete()],
  *     schema: noteSchema
  *   })
+ *
+ * @see https://mongozod.dev/docs/plugins/soft-delete
  */
 export function softDelete() {
   return definePlugin({

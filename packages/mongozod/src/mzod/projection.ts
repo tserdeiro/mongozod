@@ -15,6 +15,8 @@ import { withoutUndefined } from './internal/without-undefined'
  *
  * @example
  *   projection: mz.projection(noteSchema, { _id: true, content: true, title: true }).optional()
+ *
+ * @see https://mongozod.dev/docs/api/mzod#mzprojection
  */
 export function projection<S extends core.$ZodType, const K extends MaskCheck<S, K, 'projection'>>(
   schema: S,

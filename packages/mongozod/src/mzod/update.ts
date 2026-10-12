@@ -172,6 +172,8 @@ function valueOf(schema: core.$ZodType, operator: string, path: string): core.$Z
  *     $unset: ['color'],
  *     $inc: ['views']
  *   })
+ *
+ * @see https://mongozod.dev/docs/api/mzod#mzupdate
  */
 export function update<S extends core.$ZodType, const U extends UpdateFieldsCheck<S, U>>(
   schema: S,

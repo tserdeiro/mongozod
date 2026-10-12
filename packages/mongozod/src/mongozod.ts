@@ -51,7 +51,11 @@ import { schemaAt } from './schema/schema-at'
 import { parseUpdate } from './updates/parse-update'
 import { filterEqualities, nullIdIssue } from './updates/upsert'
 
-/** The options of `mongozod()`. */
+/**
+ * The options of `mongozod()`.
+ *
+ * @see https://mongozod.dev/docs/api/mongozod#mongozodoptions
+ */
 export interface MongozodOptions<
   S extends ModelSchema,
   T extends TimestampsOption = false,
@@ -203,6 +207,8 @@ const STRING_OPTIONS = { projection: '{ name: 1 }', sort: '{ createdAt: -1 }' }
  *       await AccountsModel.updateOne({ _id: to }, { $inc: { balance: amount } }, { session })
  *     })
  *   )
+ *
+ * @see https://mongozod.dev/docs/api/mongozod#mongozod
  */
 export function mongozod<
   S extends ModelSchema,

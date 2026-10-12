@@ -360,6 +360,8 @@ function shapeOf(schema: core.$ZodType, declarations: Declarations) {
  *
  * @example
  *   filter: mz.filter(brandSchema, { _id: ['$eq', '$in'], name: ['$eq', '$exists'] }).default({})
+ *
+ * @see https://mongozod.dev/docs/api/mzod#mzfilter
  */
 export function filter<S extends core.$ZodType, const F extends FilterFieldsCheck<S, F>>(
   schema: S,

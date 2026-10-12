@@ -33,6 +33,8 @@ export type FindOpener = <T>(args: FindArgs) => AsyncGenerator<T[], void, void>
  *
  * The modifiers set the options of `find`, which the plugins see when the cursor starts: after it
  * starts, they throw an `Error`, like the driver's.
+ *
+ * @see https://mongozod.dev/docs/api/mongozod#modelfindcursor
  */
 export class ModelFindCursor<
   T,

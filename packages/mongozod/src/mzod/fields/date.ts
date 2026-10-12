@@ -23,6 +23,8 @@ const isoToDate = z.codec(z.iso.datetime({ offset: true }), z.date(), {
  *   import * as mz from 'mongozod/mzod'
  *
  *   const noteSchema = z.object({ createdAt: mz.date(), scheduledFor: mz.date().optional() })
+ *
+ * @see https://mongozod.dev/docs/api/mzod#mzdate
  */
 export function date() {
   // The codec goes first: with the `Date` first, `z.encode` would return it unchanged.

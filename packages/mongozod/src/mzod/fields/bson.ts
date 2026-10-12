@@ -49,6 +49,8 @@ const hexToObjectId = z.codec(z.hex().length(24), objectIdInstance, {
  *     _id: mz.objectId().default(() => new ObjectId()),
  *     owner: mz.objectId()
  *   })
+ *
+ * @see https://mongozod.dev/docs/api/mzod#mzobjectid
  */
 export function objectId() {
   // The codec goes first: with the `ObjectId` first, `z.encode` would return it unchanged.
@@ -117,6 +119,8 @@ const DECIMAL128_ERROR =
  *   import * as mz from 'mongozod/mzod'
  *
  *   const invoiceSchema = z.object({ total: mz.decimal128() })
+ *
+ * @see https://mongozod.dev/docs/api/mzod#mzdecimal128
  */
 export function decimal128() {
   const input = z.union(
@@ -181,6 +185,8 @@ const BINARY_ERROR =
  *   import * as mz from 'mongozod/mzod'
  *
  *   const fileSchema = z.object({ name: z.string(), data: mz.binary() })
+ *
+ * @see https://mongozod.dev/docs/api/mzod#mzbinary
  */
 // The return type is written out: TypeScript 7 would emit `Uint8Array<ArrayBufferLike>`, which
 // TypeScript 5.5, the minimum, does not take.
@@ -238,6 +244,8 @@ const UUID_ERROR = 'Invalid UUID: expected a UUID or its string'
  *   import * as mz from 'mongozod/mzod'
  *
  *   const sessionSchema = z.object({ _id: mz.uuid().default(() => new UUID()), user: mz.uuid() })
+ *
+ * @see https://mongozod.dev/docs/api/mzod#mzuuid
  */
 export function uuid() {
   const input = z.union([z.uuid({ error: UUID_ERROR }), uuidInstance], {

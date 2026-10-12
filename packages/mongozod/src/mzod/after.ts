@@ -80,6 +80,8 @@ export interface AfterFilter<S, O> {
  *
  * @example
  *   after: mz.after(brandSchema, { createdAt: -1, _id: -1 }).default({})
+ *
+ * @see https://mongozod.dev/docs/api/mzod#mzafter
  */
 export function after<S extends core.$ZodType, const O extends AfterSortCheck<S, O>>(
   schema: S,

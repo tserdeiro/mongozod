@@ -75,6 +75,8 @@ type DocumentUnion<O extends core.$ZodType> = core.$ZodDiscriminatedUnion<readon
  * stores several types of document. Its options can be discriminated unions too, for types with
  * subtypes, up to three levels: a recursive type is too deep for TypeScript. Zod Classic and Zod
  * Mini schemas are both accepted.
+ *
+ * @see https://mongozod.dev/docs/api/mongozod#modelschema
  */
 export type ModelSchema =
   | core.$ZodObject
@@ -84,10 +86,18 @@ export type ModelSchema =
 // oxlint-disable-next-line typescript/no-generated-empty-object-type -- an object without keys is the point
 export type None = Record<never, never>
 
-/** A document as stored: the output of the schema. */
+/**
+ * A document as stored: the output of the schema.
+ *
+ * @see https://mongozod.dev/docs/api/mongozod#output
+ */
 export type Output<S extends ModelSchema> = Extract<core.output<S>, Document>
 
-/** A document to write: the input of the schema. */
+/**
+ * A document to write: the input of the schema.
+ *
+ * @see https://mongozod.dev/docs/api/mongozod#input
+ */
 export type Input<S extends ModelSchema> = core.input<S>
 
 /** Driver options whose `sort` is checked against the schema, with the keys the editor suggests. */
@@ -250,6 +260,8 @@ type TimestampsOf<M> = M extends {
  * The documents of a model, as stored. A conditional, so that the type it gives does not carry the
  * model as the argument of this alias: inference walks into those arguments, and computing the
  * variance of a model costs about 150k instantiations.
+ *
+ * @see https://mongozod.dev/docs/api/mongozod#docof
  */
 export type DocOf<M> = M extends { readonly schema: infer S extends ModelSchema }
   ? WithId<Output<S>>
@@ -270,6 +282,8 @@ type PluginsOf<M> = M extends {
  *   function createNote(note: InsertOf<typeof NotesModel>) {
  *     return NotesModel.insertOne(note)
  *   }
+ *
+ * @see https://mongozod.dev/docs/api/mongozod#insertof
  */
 export type InsertOf<M> = M extends { readonly schema: infer S extends ModelSchema }
   ? TimestampedInput<S, TimestampsOf<M>, undefined, PluginFills<PluginsOf<M>> & PropertyKey>
@@ -287,6 +301,8 @@ type ReferencesOf<M> = M extends { readonly references: infer R } ? R : None
  * @example
  *   type Order = ReadOf<typeof OrdersModel, { populate: { customer: true } }>
  *   type Purchase = ReadOf<typeof EventsModel, { filter: { type: 'purchase' } }>
+ *
+ * @see https://mongozod.dev/docs/api/mongozod#readof
  */
 export type ReadOf<M, O = unknown> = ReadDocument<
   FoundSchema<SchemaOf<M>, FilterOfOptions<O>>,
@@ -304,33 +320,53 @@ export type ReadOf<M, O = unknown> = ReadDocument<
  *   function countNotes<const F extends FilterOf<typeof NotesModel, F>>(filter: F) {
  *     return NotesModel.countDocuments(filter)
  *   }
+ *
+ * @see https://mongozod.dev/docs/api/mongozod#filterof
  */
 export type FilterOf<M, F> = ModelFilter<SchemaOf<M>, F>
 
-/** A sort on the documents of a model, for a function that takes one and passes it to the model. */
+/**
+ * A sort on the documents of a model, for a function that takes one and passes it to the model.
+ *
+ * @see https://mongozod.dev/docs/api/mongozod#sortof
+ */
 export type SortOf<M, Sort> = SortCheck<SchemaOf<M>, Sort> & SuggestedSort<SchemaOf<M>>
 
 /**
  * An update of the documents of a model, given its filter and its options, for a function that
  * takes one and passes it to the model.
+ *
+ * @see https://mongozod.dev/docs/api/mongozod#updateof
  */
 export type UpdateOf<M, U, F, O = unknown> = ModelUpdate<SchemaOf<M>, U, F, O, TimestampsOf<M>>
 
-/** The options argument of the model's reads, with the context its plugins ask for. */
+/**
+ * The options argument of the model's reads, with the context its plugins ask for.
+ *
+ * @see https://mongozod.dev/docs/api/mongozod#readoptionsarg
+ */
 export type ReadOptionsArg<M> = M extends {
   countDocuments(filter?: never, ...options: infer A): unknown
 }
   ? A
   : never
 
-/** The options argument of the model's updates, with the context its plugins ask for. */
+/**
+ * The options argument of the model's updates, with the context its plugins ask for.
+ *
+ * @see https://mongozod.dev/docs/api/mongozod#updateoptionsarg
+ */
 export type UpdateOptionsArg<M> = M extends {
   updateMany(filter: never, update: never, ...options: infer A): unknown
 }
   ? A
   : never
 
-/** What `sync()` did, and the indexes it left as they are. */
+/**
+ * What `sync()` did, and the indexes it left as they are.
+ *
+ * @see https://mongozod.dev/docs/api/mongozod#syncresult
+ */
 export interface SyncResult {
   /** The names of the declared indexes, created now or already there. */
   indexes: string[]
@@ -344,6 +380,8 @@ export interface SyncResult {
  * and typing what is read. Filters, sorts and the `$match` stages of a pipeline are checked key by
  * key against the schema. The reads that return documents compute the virtuals `V` and populate the
  * references `R`.
+ *
+ * @see https://mongozod.dev/docs/api/mongozod#model
  */
 export interface Model<
   S extends ModelSchema,
