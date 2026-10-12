@@ -315,7 +315,10 @@ type SetAbove<
     : SetAbove<S, Rest, `${Prefix}${Seg}.`>
   : never
 
-type AllAre<T, Is extends 'array' | 'date' | 'decimal' | 'number' | 'optional'> = false extends (
+type AllAre<
+  T,
+  Is extends 'array' | 'date' | 'decimal' | 'nullable' | 'number' | 'optional'
+> = false extends (
   T extends [infer Sub]
     ? Is extends 'array'
       ? IsArray<Sub>
@@ -323,9 +326,13 @@ type AllAre<T, Is extends 'array' | 'date' | 'decimal' | 'number' | 'optional'> 
         ? IsDate<Sub>
         : Is extends 'decimal'
           ? IsDecimal<Sub>
-          : Is extends 'number'
-            ? IsNumber<Sub>
-            : IsOptional<Sub>
+          : Is extends 'nullable'
+            ? null extends core.output<Sub>
+              ? true
+              : false
+            : Is extends 'number'
+              ? IsNumber<Sub>
+              : IsOptional<Sub>
     : never
 )
   ? false
@@ -341,22 +348,42 @@ type ElementInputOf<T> = IntersectAll<
 
 type ElementOutputOf<T> = T extends [infer Sub] ? Loose<core.output<ElementSchema<Sub>>> : never
 
+/** A segment that names an element of an array: an index, `$`, `$[]` or `$[id]`. */
+type ElementSegment = `${number}` | '$' | `$[${string}]`
+
+/** The path above the last segment, and the last segment. */
+type SplitLast<
+  K extends string,
+  Prefix extends string = ''
+> = K extends `${infer Head}.${infer Rest}` ? SplitLast<Rest, `${Prefix}${Head}.`> : [Prefix, K]
+
+/**
+ * Whether a path names an element of an array or a tuple, which `$unset` sets to `null` and
+ * `$rename` cannot move, as MongoDB does.
+ */
+type NamesElement<S, K extends string> =
+  SplitLast<K> extends [`${infer Parent}.`, ElementSegment]
+    ? IsArray<SchemaAt<S, Parent, 'update'>>
+    : false
+
 type ArrayOnly<T, K extends string, Then> =
   AllAre<T, 'array'> extends true ? Then : `"${K}" is not an array`
 
 type RenameCheck<S, T, K extends string, To> =
-  AllAre<T, 'optional'> extends false
-    ? `"${K}" is required, so it cannot be renamed`
-    : To extends string
-      ? [SchemaAt<S, To, 'update'>] extends [never]
-        ? NotAPath<To>
-        : // The server moves the stored value as it is, without parsing it for its new path.
-          NonNullable<core.output<T extends [infer Sub] ? Sub : never>> extends core.output<
-              SchemaAt<S, To, 'update'>
-            >
-          ? To
-          : `"${K}" and "${To}" have different types`
-      : 'takes the new path'
+  NamesElement<S, K> extends true
+    ? `"${K}" is an element of an array, which $rename cannot move`
+    : AllAre<T, 'optional'> extends false
+      ? `"${K}" is required, so it cannot be renamed`
+      : To extends string
+        ? [SchemaAt<S, To, 'update'>] extends [never]
+          ? NotAPath<To>
+          : // The server moves the stored value as it is, without parsing it for its new path.
+            NonNullable<core.output<T extends [infer Sub] ? Sub : never>> extends core.output<
+                SchemaAt<S, To, 'update'>
+              >
+            ? To
+            : `"${K}" and "${To}" have different types`
+        : 'takes the new path'
 
 /** The value one operator takes at one path. `undefined` is dropped at runtime, so it compiles. */
 type FieldCheck<S, Op, K extends string, T, C> = [T] extends [string]
@@ -364,9 +391,13 @@ type FieldCheck<S, Op, K extends string, T, C> = [T] extends [string]
   : Op extends '$max' | '$min' | '$set' | '$setOnInsert'
     ? InputOf<T> | undefined
     : Op extends '$unset'
-      ? AllAre<T, 'optional'> extends true
-        ? '' | 1 | true | undefined
-        : `"${K}" is required, so it cannot be unset`
+      ? NamesElement<S, K> extends true
+        ? AllAre<T, 'nullable'> extends true
+          ? '' | 1 | true | undefined
+          : `$unset sets "${K}", an element of an array, to null, which it does not take`
+        : AllAre<T, 'optional'> extends true
+          ? '' | 1 | true | undefined
+          : `"${K}" is required, so it cannot be unset`
       : Op extends '$inc' | '$mul'
         ? AllAre<T, 'number'> extends true
           ? number | undefined

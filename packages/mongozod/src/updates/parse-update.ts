@@ -5,7 +5,7 @@ import type * as core from 'zod/v4/core'
 import { z } from 'zod'
 
 import { safeParseWritten } from '../model/parse-document'
-import { isDynamicKey, schemaAt } from '../schema/schema-at'
+import { isDynamicKey, namesElement, schemaAt } from '../schema/schema-at'
 import {
   elementsOf,
   isDecimal,
@@ -184,6 +184,17 @@ async function parseField(
       return parseEvery(schemas, value, at)
 
     case '$unset':
+      // MongoDB sets an element of an array to `null`, which keeps its position.
+      if (namesElement(schema, path)) {
+        return schemas.every((target) => takes(target, null))
+          ? { value }
+          : fail(
+              at,
+              `$unset sets "${path}", an element of an array, to null, which it does not take`,
+              value
+            )
+      }
+
       return schemas.every(isOptional) || isDynamicKey(schema, path)
         ? { value }
         : fail(at, `"${path}" is required, so it cannot be unset`, value)
@@ -229,6 +240,10 @@ async function parseField(
         : fail(at, `"${path}" is not an array`, value)
 
     case '$rename':
+      if (namesElement(schema, path)) {
+        return fail(at, `"${path}" is an element of an array, which $rename cannot move`, value)
+      }
+
       if (!schemas.every(isOptional) && !isDynamicKey(schema, path)) {
         return fail(at, `"${path}" is required, so it cannot be renamed`, value)
       }

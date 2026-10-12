@@ -256,6 +256,36 @@ describe('operators', () => {
     ])
   })
 
+  test('$unset an element to null, which it has to take, and $rename none', async () => {
+    const listSchema = z.object({
+      notes: z.array(z.string().nullable()),
+      pair: z.tuple([z.string(), z.number().optional()]),
+      tags: z.array(z.string())
+    })
+    const update = { $unset: { 'notes.$': '', 'notes.0': '' } }
+
+    expect(await parseUpdate(listSchema, {}, update)).toEqual(update)
+    expect(
+      await issuesOf(() =>
+        parseUpdate(
+          listSchema,
+          {},
+          { $rename: { 'pair.1': 'other' }, $unset: { 'pair.1': '', 'tags.$[]': '' } }
+        )
+      )
+    ).toEqual([
+      ['$rename pair.1', '"pair.1" is an element of an array, which $rename cannot move'],
+      [
+        '$unset pair.1',
+        '$unset sets "pair.1", an element of an array, to null, which it does not take'
+      ],
+      [
+        '$unset tags.$[]',
+        '$unset sets "tags.$[]", an element of an array, to null, which it does not take'
+      ]
+    ])
+  })
+
   test('keep a set: no $push, and no write to one of its elements', async () => {
     const postSchema = z.object({
       sections: z.array(z.object({ _id: z.string(), labels: set(z.string()) })),

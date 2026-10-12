@@ -193,6 +193,28 @@ test('a key typed as a pattern under a record, and an index of a tuple', () => {
   expect(true).toBe(true)
 })
 
+const listSchema = z.object({
+  notes: z.array(z.string().nullable()),
+  pair: z.tuple([z.string(), z.number().optional()]).optional()
+})
+
+function updateList<
+  const F extends ModelFilter<typeof listSchema, F>,
+  const U extends ModelUpdate<typeof listSchema, U, F, unknown>
+>(_filter: F, value: U) {
+  return value
+}
+
+test('$unset sets an element to null, which it has to take, and $rename moves none', () => {
+  updateList({}, { $unset: { 'notes.$': '', 'notes.0': '' } })
+
+  // @ts-expect-error the element takes no null
+  updateList({}, { $unset: { 'pair.1': '' } })
+  // @ts-expect-error MongoDB cannot move an element of an array
+  updateList({}, { $rename: { 'pair.1': 'pair' } })
+  expect(true).toBe(true)
+})
+
 test('each operator takes the fields it applies to', () => {
   update(
     {},

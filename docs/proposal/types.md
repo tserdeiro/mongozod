@@ -96,6 +96,10 @@ valor tiene que servir para su operador y su campo. Se aplica en `updateOne`, `u
 | `$pull`                                | Solo en arrays, con una condición sobre el elemento, como `$elemMatch`.                                            |
 | `$rename`                              | De un campo opcional a otro que guarda el mismo tipo: el servidor mueve el valor guardado, sin parsearlo.          |
 
+- **Elementos de un array**: sobre un índice, `$`, `$[]` o `$[id]`, `$unset` deja `null` en el
+  elemento, así que solo se acepta si el elemento toma `null`; y `$rename` no mueve un elemento
+  (código 2). Verificado con MongoDB 8.2.6, también en una tupla.
+
 - **El `_id`**: solo `$setOnInsert` lo escribe, y entero; `mz.update` no lo toma. El servidor
   rechaza cambiarlo con el código 66, también un path adentro como `_id.a` y el destino de un
   `$rename` (verificado). Un path adentro en `$setOnInsert` anda solo si es el único y el filtro no

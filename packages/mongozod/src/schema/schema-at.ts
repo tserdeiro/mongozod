@@ -252,3 +252,23 @@ export function isDynamicKey(schema: core.$ZodType, path: string): boolean {
     })
   )
 }
+
+/** A segment that names an element of an array: an index, `$`, `$[]` or `$[id]`. */
+const ELEMENT = /^(?:\d+|\$(?:\[[a-zA-Z0-9]*\])?)$/
+
+/**
+ * Whether the last segment of an update path names an element of an array or a tuple, which
+ * `$unset` sets to `null` and `$rename` cannot move, as MongoDB does.
+ */
+export function namesElement(schema: core.$ZodType, path: string): boolean {
+  const segments = path.split('.')
+  const last = segments.pop() ?? ''
+
+  return (
+    ELEMENT.test(last) &&
+    segments.length > 0 &&
+    schemaAt(schema, segments.join('.'), 'update')
+      .flatMap(variants)
+      .some((holder) => holder instanceof core.$ZodArray || holder instanceof core.$ZodTuple)
+  )
+}
