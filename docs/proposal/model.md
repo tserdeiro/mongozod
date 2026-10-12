@@ -26,9 +26,12 @@ export const NotesModel = mongozod({
   recién entonces. Un `z.set()` o un `z.map()` lanza
   un `Error` al definir el modelo, con el path y la alternativa: el driver guarda un `Set` como `{}`
   y un `Map` como un objeto, y ninguno vuelve en una lectura (verificado). Para un array sin
-  repetidos está `mz.set()`, y para keys dinámicas, `z.record()`. Vale también para su
-  `z.instanceof()`, en cualquier lugar del documento, como un elemento de una tupla. Un
-  `.transform()` que devuelve uno no se ve en runtime.
+  repetidos está `mz.set()`, y para keys dinámicas, `z.record()`. Vale en cualquier lugar del
+  documento, como un elemento de una tupla, y también para un `z.instanceof(Set)` o
+  `z.instanceof(Map)` tal como se escribe. La API de Zod no dice la clase de un `z.instanceof()`: el
+  chequeo la lee de un dato interno, que un clon no conserva, así que un método encadenado, como
+  `.refine()`, `.describe()`, `.meta()` o `.check()`, lo oculta, igual que una subclase, un
+  `z.custom()` o un `.transform()` que devuelve un `Set` (verificado). Esos casos guardan `{}`.
 - **`collection`**: el nombre de la colección.
 - **`db`**: un `Db` del driver o una función que lo devuelve, que se llama en cada operación. Así el
   modelo se puede definir al importar el módulo aunque la conexión dependa del entorno, como en los

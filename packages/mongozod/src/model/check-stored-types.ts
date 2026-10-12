@@ -3,12 +3,14 @@ import * as core from 'zod/v4/core'
 import { findPath } from '../schema/find-path'
 
 /**
- * Throws an `Error` when the schema stores a `z.set()` or a `z.map()`, or their `z.instanceof()`:
- * the driver writes a `Set` as an empty object and a `Map` as an object, so neither comes back from
- * a read. A transform that returns one is out of sight.
+ * Throws an `Error` when the schema stores a `z.set()` or a `z.map()`, or a `z.instanceof()` of
+ * them as written: the driver writes a `Set` as an empty object and a `Map` as an object, so
+ * neither comes back from a read. A transform that returns one is out of sight, and so is a
+ * `z.instanceof()` with a method chained, a subclass or a `z.custom()`.
  */
 export function checkStoredTypes(schema: core.$ZodType): void {
-  // `z.instanceof(Set)` keeps its class in the bag of the schema.
+  // `z.instanceof(Set)` keeps its class in the bag of the schema, which Zod does not document and a
+  // clone, such as the one `.refine()` returns, does not keep.
   const set = findPath(
     schema,
     (field) => field instanceof core.$ZodSet || field._zod.bag.Class === Set
