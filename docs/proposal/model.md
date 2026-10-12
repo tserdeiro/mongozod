@@ -26,7 +26,9 @@ export const NotesModel = mongozod({
   recién entonces. Un `z.set()` o un `z.map()` lanza
   un `Error` al definir el modelo, con el path y la alternativa: el driver guarda un `Set` como `{}`
   y un `Map` como un objeto, y ninguno vuelve en una lectura (verificado). Para un array sin
-  repetidos está `mz.set()`, y para keys dinámicas, `z.record()`.
+  repetidos está `mz.set()`, y para keys dinámicas, `z.record()`. Vale también para su
+  `z.instanceof()`, en cualquier lugar del documento, como un elemento de una tupla. Un
+  `.transform()` que devuelve uno no se ve en runtime.
 - **`collection`**: el nombre de la colección.
 - **`db`**: un `Db` del driver o una función que lo devuelve, que se llama en cada operación. Así el
   modelo se puede definir al importar el módulo aunque la conexión dependa del entorno, como en los

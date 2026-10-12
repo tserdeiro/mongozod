@@ -825,6 +825,16 @@ describe('schemas', () => {
     ).toThrow(
       '"items.prices" is a z.map(), which the driver stores as an object and reads as one: use z.record()'
     )
+    expect(() =>
+      mongozod({
+        collection: 'notes',
+        db,
+        schema: z.object({ pair: z.tuple([z.string()], z.set(z.string())) })
+      })
+    ).toThrow('"pair.1" is a z.set()')
+    expect(() =>
+      mongozod({ collection: 'notes', db, schema: z.object({ seen: z.instanceof(Set) }) })
+    ).toThrow('"seen" is a z.set()')
   })
 
   test('takes Zod Mini schemas and still throws a ZodError', async () => {

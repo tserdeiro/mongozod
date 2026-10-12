@@ -41,11 +41,17 @@ export function findPath(
     )
 
     if (unwrapped._zod.def.catchall) children.push([unwrapped._zod.def.catchall, at('*')])
-  } else if (unwrapped instanceof core.$ZodUnion || unwrapped instanceof core.$ZodTuple) {
-    const options =
-      unwrapped instanceof core.$ZodUnion ? unwrapped._zod.def.options : unwrapped._zod.def.items
+  } else if (unwrapped instanceof core.$ZodUnion) {
+    children.push(
+      ...unwrapped._zod.def.options.map((option): [core.$ZodType, string] => [option, path])
+    )
+  } else if (unwrapped instanceof core.$ZodTuple) {
+    const { items, rest } = unwrapped._zod.def
 
-    children.push(...options.map((option): [core.$ZodType, string] => [option, path]))
+    // Each element at its index, and the rest at the first index past the items.
+    children.push(...items.map((item, index): [core.$ZodType, string] => [item, at(String(index))]))
+
+    if (rest) children.push([rest, at(String(items.length))])
   } else if (unwrapped instanceof core.$ZodIntersection) {
     children.push([unwrapped._zod.def.left, path], [unwrapped._zod.def.right, path])
   }
