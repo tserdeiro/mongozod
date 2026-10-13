@@ -69,7 +69,8 @@ export async function listPosts(body: unknown, userId: ObjectId) {
   typed `z.record()` or `z.unknown()`, so a client can't send `{ "$ne": null }` as a value.
 - **Updates**: `mz.update` accepts the paths each operator declares. It can't declare the `_id`,
   and on a model with [timestamps](./timestamps.md) the model rejects `createdAt` and `updatedAt`.
-  The model validates every write against the schema again.
+  No value of `$set` can have a key with a `.` or starting with `$`, at any level, even on a field
+  typed `z.record()` or `z.unknown()`. The model validates every write against the schema again.
 - **Projections and populate**: the mask of `mz.projection` is the most a client gets, whatever it
   sends, and `mz.populate` returns the fields of the schema it picks.
 - **Keys such as `__proto__`**: the builders reject them. When a write reaches the model with one

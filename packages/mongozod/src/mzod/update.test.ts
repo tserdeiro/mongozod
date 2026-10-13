@@ -13,6 +13,7 @@ import { z } from 'zod'
 
 import { mongozod } from '../mongozod'
 
+import { binary } from './fields/bson'
 import { update } from './update'
 
 const client = new MongoClient(inject('mongoUri'))
@@ -83,6 +84,47 @@ describe('an update from a client', () => {
       '$inc.views: Invalid input: expected int, received number'
     ])
     expect(issues({ $unset: { color: 'x' } })).toHaveLength(1)
+  })
+
+  test('rejects the keys of a value that no path reaches, as the model does when it writes', () => {
+    const settingsUpdate = update(
+      z.object({ settings: z.record(z.string(), z.unknown()).default({}) }),
+      { $set: ['settings'] }
+    )
+    const message = 'cannot be a key: no path reaches a key with a "." or starting with "$"'
+
+    expect(settingsUpdate.parse({ $set: { settings: { theme: { dark: true } } } })).toEqual({
+      $set: { settings: { theme: { dark: true } } }
+    })
+
+    const problems = (value: unknown) => {
+      const result = settingsUpdate.safeParse({ $set: { settings: value } })
+
+      return result.success
+        ? []
+        : result.error.issues.map((issue) => `${issue.path.join('.')}: ${issue.message}`)
+    }
+
+    expect(problems({ $where: 'x' })).toEqual([`$set.settings.$where: "$where" ${message}`])
+    expect(problems({ 'a.b': 1 })).toEqual([`$set.settings.a.b: "a.b" ${message}`])
+    expect(problems({ theme: { $gt: 1 } })).toEqual([`$set.settings.theme.$gt: "$gt" ${message}`])
+    expect(problems({ list: [{ $x: 1 }] })).toEqual([`$set.settings.list.0.$x: "$x" ${message}`])
+
+    // One issue, for the first key: thousands of them would overflow the arguments Zod spreads
+    // its issues with, a RangeError instead of a ZodError.
+    const thousands = Object.fromEntries(Array.from({ length: 130_000 }, (_, i) => [`$${i}`, 1]))
+
+    expect(problems(thousands)).toEqual([`$set.settings.$0: "$0" ${message}`])
+  })
+
+  test('keeps a BSON value as it is, without walking its bytes', () => {
+    const filesUpdate = update(z.object({ data: binary() }), { $set: ['data'] })
+    const bytes = Buffer.alloc(65_536, 65)
+    const parsed = filesUpdate.parse({ $set: { data: bytes.toString('base64') } })
+
+    // By its `_bsontype`: the driver's `Binary` and the one of `bson` are two builds of the class.
+    expect(parsed.$set?.data?._bsontype).toBe('Binary')
+    expect(parsed.$set?.data?.buffer).toEqual(bytes)
   })
 
   test('the types of what the client sends and what the router gets', () => {

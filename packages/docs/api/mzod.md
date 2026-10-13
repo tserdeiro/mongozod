@@ -161,8 +161,11 @@ postsUpdate.parse({ $set: { title: 'Hello again' }, $inc: { views: 1 } })
   `"<operator>" is not an operator of mz.update: use $set, $unset or $inc`,
   `the _id is immutable`, `"<path>" goes through an array: mz.update takes paths outside arrays` and
   `"<path>" names an element of an array: mz.update takes paths outside arrays`.
-- **Errors when parsed**: `an update takes at least one operator` for `{}`, and Zod's
-  `Unrecognized key` for an operator or a path not declared.
+- **Errors when parsed**: `an update takes at least one operator` for `{}`, Zod's
+  `Unrecognized key` for an operator or a path not declared, and
+  `"<key>" cannot be a key: no path reaches a key with a "." or starting with "$"` for a key of a
+  value of `$set`, at any level, such as one of a `z.record()` or a `z.unknown()`: the model
+  rejects it when it writes, so the builder rejects it first.
 
 At runtime, `$unset` also takes a key that a record or a catchall may lack, such as
 `'labels.home'`, but the types don't take it yet.

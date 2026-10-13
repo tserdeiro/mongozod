@@ -850,3 +850,5 @@
   - `findOne({ email, resetToken: body.token })` con un body sin token encontraba al usuario sin
     `resetToken`: el driver manda `undefined` como `null`. Ahora el modelo lanza un `ZodError` por
     un `undefined` a cualquier nivel del filtro, también en `bulkWrite`.
+  - `mz.update` aceptaba en un `$set` de un `z.record()` o un `z.unknown()` un valor con keys `$` o
+    con punto, que `written()` rechazaba después al escribir. Ahora el builder corre la misma regla.

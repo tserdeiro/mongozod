@@ -247,6 +247,18 @@ manda `{ createdAt, _id }` del último elemento de la página.
      MongoDB lo acepta y no hace nada.
    - **Dos validaciones**: `mz.update` valida y parsea los valores, y el modelo los vuelve a validar
      al escribir. Con la forma documentada de las fechas, un `Date` vuelve a pasar igual.
+   - **Keys que ningún path alcanza** (2026-10-13, auditoría contra las guías de OWASP): el valor
+     de un `$set` corre la misma regla que `written()` del modelo, ninguna key con `.` o que
+     empiece con `$` a ningún nivel. Antes, en un campo `z.record()` o `z.unknown()`, el builder
+     aceptaba `{ $where: 'x' }` o `{ 'a.b': 1 }` y el modelo lo rechazaba al escribir: un 500, el que
+     la guía de seguridad pide para un `ZodError` de escritura, por un error del cliente. En
+     `mz.filter` no hace falta: una key `$` anidada en un valor de igualdad es un literal para
+     MongoDB (verificado con MongoDB 8.2.6, `{ meta: { a: { $ne: 1 } } }` no encuentra nada). El
+     recorrido entra solo en arrays y objetos planos, como `written()`, y se detiene en la primera
+     key, con un solo issue (revisión privada R01 y R02): entrar en un `Binary` de `mz.binary()`
+     recorría sus bytes, 200 ms por MiB antes de MongoDB, y 130.000 keys `$` daban 130.000 issues,
+     que desbordaban el `push(...issues)` con que Zod los propaga: un `RangeError` en vez de un
+     `ZodError`.
 9. **`mz.sort` y `mz.projection` se declaran con una máscara, como `.pick()`:**
    `mz.sort(noteSchema, { createdAt: true, title: true })`. Con un array, el editor no sugiere los
    paths y un error pierde su mensaje, el mismo límite de TypeScript que tuvo `indexes`.
