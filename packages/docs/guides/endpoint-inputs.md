@@ -223,6 +223,9 @@ postsFilter.parse({
   an equality takes an element or the whole array, and the ranges compare its elements.
 - **An object of operators** has one at least: `{}` would be an equality with an empty object.
 - **`$options`** goes only with `$regex`: MongoDB rejects it alone.
+- **`$regex`** takes any pattern the client sends, and one that isn't anchored to the start reads
+  the whole collection or index. For a search box, prefer `$text` or Atlas Search (see
+  [Security](./security.md#cost)).
 - **Dotted paths** into subdocuments, such as `'address.city'`, work as in a model's filter.
 
 ```ts
@@ -300,13 +303,19 @@ const updatePostInput = z.object({
   })
 })
 
+declare const session: { userId: ObjectId }
+
 const edit = updatePostInput.parse({
   filter: { _id: '65c3b9b4f1d2a34b5c6d7e8f' },
   update: { $set: { title: 'Hello again' }, $unset: { summary: '' } }
 })
 
-await PostsModel.updateOne(edit.filter, edit.update)
+await PostsModel.updateOne({ $and: [edit.filter, { authorId: session.userId }] }, edit.update)
 ```
+
+The client's filter picks the post, and the scope from the session decides whether this user may
+edit it: without it, any user could edit any post by its `_id`. The builders limit what a client
+can express, not which documents it may touch (see [Security](./security.md)).
 
 - **No defaults**: an update keeps what the client sent. Setting `title` doesn't reset `body` to its
   default, `''`.
@@ -468,31 +477,28 @@ work. `.pick()`, `.omit()` and `.partial()` throw: declare another `mz.filter` i
 ## `$and`, `$or` and `$nor`
 
 `mz.filter` takes only the declared fields. An endpoint that lets the client combine conditions adds
-the logical operators with `.extend()`, and the same allow list applies at every level:
+the logical operators with `.extend()`, with the same allow list inside them and a limit on their
+length:
 
 ```ts
-const usersFilter = mz
-  .filter(userSchema, {
-    name: ['$eq', '$regex'],
-    email: ['$eq']
-  })
-  .extend({
+const userConditions = mz.filter(userSchema, {
+  name: ['$eq', '$regex'],
+  email: ['$eq']
+})
 
-    get $and() {
-      return usersFilter
-        .array()
-        .optional()
-    },
+const usersFilter = userConditions.extend({
 
-    get $or() {
-      return usersFilter
-        .array()
-        .optional()
-    }
-  })
+  $or: userConditions
+    .array()
+    .max(5)
+    .optional()
+})
 
 usersFilter.parse({ $or: [{ name: { $regex: '^Ana' } }, { email: 'ana@example.com' }] })
 ```
+
+A getter that returns the filter itself, such as `get $or() { return usersFilter.array() }`,
+nests them at every level, without a limit on how deep.
 
 They are not accepted by default because they cost:
 [a `$or` uses indexes](https://www.mongodb.com/docs/manual/reference/operator/query/or/) only when
@@ -556,6 +562,7 @@ export const listPostsSchema = z.object({
   populate: authorInput,
 
   term: z.string()
+    .max(100)
     .optional()
     .transform(textSearch)
 })

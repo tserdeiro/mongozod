@@ -325,6 +325,7 @@ driver's.
 | Casting `'42'` to `42`, or a hex string to an `ObjectId`   | No casting: a value of the wrong type does not compile (see [Differences](./differences.md#filters-are-not-cast)) |
 | An array for a field that is not one, as an implicit `$in` | `{ $in: [ … ] }`                                                                                                  |
 | `strictQuery`                                              | A key that is not a path of the schema does not compile                                                           |
+| `sanitizeFilter: true`                                     | Parse each request value with `mz.filter`, `mz.objectId()` or a Zod schema                                        |
 
 ```ts
 const recent = await PostsModel.find({ status: 'published', tags: { $in: ['mongodb', 'zod'] } })
