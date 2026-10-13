@@ -141,8 +141,11 @@ manda `{ createdAt, _id }` del último elemento de la página.
    `?? {}` ni `|| {}`, y el proyecto convierte el `term` en filtro dentro del schema. Un filtro por
    id usa `.required({ _id: true })`, y un findOne que pide al menos uno de varios campos, como los
    de adsgpt y wortise, usa `.refine()`. `sort` y `populate` toman `.optional()` o un default, como
-   `.default({ createdAt: -1 })`, y `projection` toma `.prefault({})`, porque `.prefault()` parsea
-   su valor y `.default()` no: así una proyección que no llega también queda en la máscara. Reemplaza a la opción `{ required: ['_id'] }` del
+   `.default({ createdAt: -1 })`. `projection` es la excepción: trae su `.prefault({})`, porque una
+   proyección que no llega solo puede significar la máscara sin abrir el hueco que cierra (el modelo
+   sin proyección lee el documento entero). `.prefault()` parsea su valor, `.default()` no. Un
+   `.optional()` encima lo saltea: Zod devuelve `undefined` sin correr el builder, así que las docs
+   lo nombran como error común. Reemplaza a la opción `{ required: ['_id'] }` del
    prototipo.
    - **`mz.filter` es un `z.strictObject`**: por eso andan `.required()`, `.refine()`,
      `.default()` y `.extend()`. Como descarta las keys en `undefined` con `.overwrite()`, Zod no

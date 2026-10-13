@@ -145,8 +145,9 @@ the model.
 - **Checked declarations**: a path that doesn't exist, or an operator that doesn't apply to its
   field, doesn't compile. Most of these mistakes also throw an `Error` that names the builder when
   the schema is built.
-- **No defaults of their own**: you decide with Zod's methods what happens when the client sends
-  nothing (see [Defaults and required fields](#defaults-and-required-fields)).
+- **No defaults of their own**, but for `mz.projection`, whose missing value is the mask: you
+  decide with Zod's methods what happens when the client sends nothing (see
+  [Defaults and required fields](#defaults-and-required-fields)).
 - **Client-safe**: `mongozod/mzod` never imports the driver, so the same input schemas run in web and
   React Native clients, such as to type a form.
 
@@ -391,9 +392,9 @@ them. Excluding every declared path leaves the `_id`, which MongoDB returns unle
 `_id: 0`. A mask can't declare a path and a path inside it, such as `author` and `author.name`,
 because MongoDB rejects both in one projection.
 
-Declare it with `.prefault({})` so a client that sends no projection also gets the mask. Zod's
-`.prefault()` parses its value, and `.default()` doesn't. With `.optional()`, a missing projection
-reaches the model as none, which reads the whole document.
+A client that sends no projection gets the mask too, so its key is optional in an input. Don't add
+`.optional()`: Zod returns `undefined` without running the builder, and a model without a
+projection reads the whole document.
 
 The model doesn't know at compile time whether a projection that arrives at runtime includes or
 excludes, so the read types each projected field as optional. To let a client ask for a
@@ -435,8 +436,8 @@ fields optional, since the model doesn't know at compile time what the client as
 
 ## Defaults and required fields
 
-The builders return schemas without defaults. Zod's methods decide what an endpoint does when the
-client sends nothing:
+The builders return schemas without defaults, but for `mz.projection`. Zod's methods decide what an
+endpoint does when the client sends nothing:
 
 - **A list** takes `.default({})` on `mz.filter` and `mz.after`, so the router joins filters with
   `$and` and needs no `?? {}`.
@@ -445,7 +446,7 @@ client sends nothing:
 - **At least one of several fields** takes a `.refine()`.
 - **`sort` and `populate`** take `.optional()` or a default, such as
   `.default({ createdAt: -1 })`.
-- **`projection`** takes `.prefault({})`, so a missing one also stays within the mask.
+- **`projection`** needs nothing: a missing one is the mask.
 
 ```ts
 const findPostInput = z.object({
@@ -606,6 +607,8 @@ the `createdAt` and `_id` of the last post it got. Validate the request body wit
 
 ## Common mistakes
 
+- **`.optional()` on `mz.projection`**: a client that sends no projection gets the whole document,
+  with the fields the mask leaves out. Leave it as it is: a missing projection is the mask.
 - **A filter by id without `.required({ _id: true })`**: a request without `_id` gives `{}`, which
   matches any document, so an update or a delete acts on the first one. Require the fields that
   identify the document.

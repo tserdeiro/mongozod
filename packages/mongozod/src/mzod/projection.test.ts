@@ -37,12 +37,18 @@ test('turns what the client sends into an inclusion of the declared paths', () =
   // An exclusion means the declared paths but those, and nothing means all of them.
   expect(notesProjection.parse({ 'content': false, 'owner.name': 0 })).toEqual({ title: 1 })
   expect(notesProjection.parse({})).toEqual({ 'content': 1, 'owner.name': 1, 'title': 1 })
-  // .prefault() parses its value, so a missing projection gets the same, and .optional() none.
-  expect(notesProjection.prefault({}).parse(undefined)).toEqual({
-    'content': 1,
-    'owner.name': 1,
-    'title': 1
-  })
+  // A missing projection gets the same, so the key of an input is optional.
+  const listInput = z.object({ projection: notesProjection })
+
+  expect(listInput.parse({})).toEqual({ projection: { 'content': 1, 'owner.name': 1, 'title': 1 } })
+  expectTypeOf<z.input<typeof listInput>>().toEqualTypeOf<{
+    projection?:
+      | Partial<Record<'_id' | 'content' | 'owner.name' | 'title', 0 | 1 | boolean>>
+      | undefined
+  }>()
+  expectTypeOf<z.output<typeof listInput>['projection']>().toEqualTypeOf<
+    Partial<Record<'_id' | 'content' | 'owner.name' | 'title', 0 | 1>>
+  >()
   expect(notesProjection.parse({ _id: 0 })).toEqual({
     '_id': 0,
     'content': 1,

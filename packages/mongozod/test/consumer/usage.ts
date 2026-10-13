@@ -140,7 +140,7 @@ const listNotesSchema = z.object({
     .filter(noteSchema, { '_id': ['$eq', '$in'], 'author.name': ['$eq'], 'tags': ['$all', '$eq'] })
     .default({}),
   limit: z.number().int().min(1).max(100).default(20),
-  projection: mz.projection(noteSchema, { tags: true, title: true }).optional(),
+  projection: mz.projection(noteSchema, { tags: true, title: true }),
   sort: mz.sort(noteSchema, { title: true, views: true }).default({ views: -1 })
 })
 
