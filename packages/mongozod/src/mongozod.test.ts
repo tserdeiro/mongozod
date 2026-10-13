@@ -80,6 +80,14 @@ describe('insertOne', () => {
     expect(stored?.author).toEqual({ name: 'Ana' })
   })
 
+  test('stores a __proto__ key of a value as a field', async () => {
+    const DataModel = mongozod({ collection: 'data', db, schema: z.object({ data: z.unknown() }) })
+    const { insertedId } = await DataModel.insertOne({ data: JSON.parse('{"__proto__":{"a":1}}') })
+    const stored = await DataModel.collection.findOne({ _id: insertedId })
+
+    expect(Object.keys(stored?.data ?? {})).toEqual(['__proto__'])
+  })
+
   test('lets the driver generate an ObjectId when the schema has no _id', async () => {
     const EventsModel = mongozod({
       collection: 'events',

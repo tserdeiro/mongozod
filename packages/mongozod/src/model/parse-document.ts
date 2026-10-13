@@ -4,6 +4,7 @@ import type * as core from 'zod/v4/core'
 import { z } from 'zod'
 
 import { isPlainObject } from '../utils/is-plain-object'
+import { setField } from '../utils/set-field'
 
 /** The result of parsing a value to write: the value, or every problem it has. */
 export type WrittenResult =
@@ -76,7 +77,7 @@ function written(value: unknown, path: PropertyKey[], issues: core.$ZodIssue[]):
       })
     }
 
-    copy[key] = written(field, [...path, key], issues)
+    setField(copy, key, written(field, [...path, key], issues))
   }
 
   return copy
