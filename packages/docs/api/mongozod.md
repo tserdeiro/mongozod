@@ -170,8 +170,9 @@ const { indexes, extraIndexes } = await PostsModel.sync()
 Each operation wraps the driver's
 [`Collection`](https://mongodb.github.io/node-mongodb-native/7.0/classes/Collection.html) method of
 the same name, with the same arguments, options and result. On top of the driver, it checks its
-filter against the schema, validates what it writes, throwing Zod's `ZodError`, and runs the
-plugins. See [Operations](../guides/operations.md) and [Validation](../guides/validation.md).
+filter against the schema, rejects an `undefined` value in it at runtime, validates what it writes,
+throwing Zod's `ZodError`, and runs the plugins. See [Operations](../guides/operations.md) and
+[Validation](../guides/validation.md).
 
 ### aggregate()
 

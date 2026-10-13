@@ -114,6 +114,23 @@ The model can't do it alone. The schema describes values, and an injection is an
 same as one a client sent. What a client may send is a decision of each endpoint, which its input
 declares.
 
+A value that is missing is the other half of this. The driver sends an `undefined` value as
+`null`, which matches the documents without the field, so a request without a token would match
+the users that have none:
+
+```ts
+import type { AnyModel } from 'mongozod'
+
+declare const UsersModel: AnyModel
+
+// Throws a ZodError when the body has no token: the driver would send { resetToken: null }.
+await UsersModel.findOne({ email: request.body.email, resetToken: request.body.token })
+```
+
+The types of the model reject an `undefined` value, and the model throws a `ZodError` at runtime
+for the ones that arrive typed `any`, at any level of the filter. Leave the key out, or write `null`
+or `{ $exists: false }` when that is what you mean.
+
 The same goes for inserts: a body parsed with the whole schema lets a client choose the `_id`,
 `createdAt` or a field of a plugin, such as `deletedAt`. Parse it with `.pick()` of the fields a
 client may write.
@@ -170,12 +187,12 @@ recommends.
 
 ## From Mongoose
 
-| Mongoose               | MongoZod                                                                                                  |
-| ---------------------- | --------------------------------------------------------------------------------------------------------- |
-| `sanitizeFilter: true` | Parse each request value with `mz.filter`, `mz.objectId()` or a Zod schema: model methods don't sanitize. |
-| `strictQuery`          | A path outside the schema doesn't compile, and `mz.filter` rejects undeclared paths at runtime.           |
-| `mongoose.trusted()`   | Not needed: a filter the server builds goes to the model as it is.                                        |
-| `select: false`        | Not there yet: see [Sensitive fields](#sensitive-fields).                                                 |
+| Mongoose               | MongoZod                                                                                                                                                                   |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `sanitizeFilter: true` | Parse each request value with `mz.filter`, `mz.objectId()` or a Zod schema: model methods don't sanitize.                                                                  |
+| `strictQuery`          | A path outside the schema doesn't compile, and `mz.filter` rejects undeclared paths at runtime. An `undefined` value doesn't compile, and the model rejects it at runtime. |
+| `mongoose.trusted()`   | Not needed: a filter the server builds goes to the model as it is.                                                                                                         |
+| `select: false`        | Not there yet: see [Sensitive fields](#sensitive-fields).                                                                                                                  |
 
 ## Reporting a vulnerability
 

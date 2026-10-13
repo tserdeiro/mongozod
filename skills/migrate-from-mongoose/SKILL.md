@@ -97,8 +97,9 @@ Rewrite each use of the Mongoose model with the cheatsheet and `mongoose/differe
 
 Keep the security of each call site, with `guides/security.md` and `guides/endpoint-inputs.md`:
 
-- MongoZod doesn't sanitize or cast filters at runtime, and a request body is typed `any`, so `tsc`
-  doesn't catch a request value that reaches the model. Parse the input of each endpoint once,
+- MongoZod doesn't sanitize or cast filters at runtime, beyond rejecting an `undefined` value, and
+  a request body is typed `any`, so `tsc` doesn't catch a request value that reaches the model,
+  such as an object of operators. Parse the input of each endpoint once,
   before the model: a schema from `.pick()` of the model's schema for values, `mz.filter`,
   `mz.update`, `mz.sort`, `mz.projection` or `mz.populate` for what the client sends as MongoDB
   syntax, and `mz.objectId()` for an id.

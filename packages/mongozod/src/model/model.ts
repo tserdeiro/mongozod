@@ -488,9 +488,10 @@ export interface Model<
    * with `for await` and chained like the driver's. A projection adjusts the type of the documents,
    * and asks for virtuals like for fields. `populate` replaces each reference with its document,
    * with one `$in` query per reference and per batch: `null` when it is missing. The filter is
-   * checked by its types only, as the driver's, without casting: one that arrives without types,
-   * such as a client's, goes through `mz.filter` first. `ReadOf` types what it returns, with the
-   * same `projection` and `populate`, for a service or a response.
+   * checked by its types, as the driver's, without casting, and at runtime only an `undefined`
+   * value is rejected, which the driver would send as `null`: one that arrives without types, such
+   * as a client's, goes through `mz.filter` first. `ReadOf` types what it returns, with the same
+   * `projection` and `populate`, for a service or a response.
    *
    * @example
    *   await TransactionsModel.find({}, { populate: { createdBy: { projection: { fullName: 1 } } } })

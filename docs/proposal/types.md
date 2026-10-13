@@ -63,8 +63,16 @@ tipo del campo y `E` el de sus elementos, si es un array:
 - **`_id`**: siempre existe; es un `ObjectId` si el schema no lo declara.
 - **`undefined`**: no compila. El driver lo manda como `null`, que coincide con los documentos sin
   el campo o con `null`, y con `ignoreUndefined` la key desaparece y coincide con todos. Para eso
-  se escribe `null` o `$exists: false`. En runtime no se toca. Un filtro armado con tipos que tienen
-  keys opcionales, como la salida de `mz.filter`, sigue compilando.
+  se escribe `null` o `$exists: false`. Un filtro armado con tipos que tienen keys opcionales, como
+  la salida de `mz.filter`, sigue compilando.
+  - **En runtime también se rechaza** (2026-10-13, auditoría contra las guías de OWASP): un
+    `req.body.token` es `any` y compila, y `findOne({ email, resetToken: body.token })` sin token
+    encontraba al usuario sin `resetToken` (verificado con MongoDB 8.2.6). Como un `sort` string, el
+    modelo lanza un `ZodError` cuando un filtro tiene un `undefined` a cualquier nivel, también en
+    `$and`/`$or`, en un operador y en un elemento de `$in`, con el path del valor. Corre sobre el
+    filtro que dejan los plugins, antes del driver, y sobre los filtros de `bulkWrite`. No se usa
+    `ignoreUndefined` del driver: borra la key y el filtro coincide con todos. Los builders de `mz`
+    no lo sufren: descartan las keys `undefined`.
 - **Sin casting**: Mongoose convierte cada valor del filtro según el schema, como `'42'` a `42` o
   un hex a `ObjectId`, y lanza un `CastError` si no puede
   ([Query Casting](https://mongoosejs.com/docs/tutorials/query_casting.html)). mongozod no toca

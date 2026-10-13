@@ -483,6 +483,46 @@ describe('runtime validation of updates', () => {
     expect(await db.collection('notes').countDocuments({ title: 'Three' })).toBe(0)
   })
 
+  test('rejects an undefined value in a filter, which the driver would send as null', async () => {
+    await NotesModel.insertOne({ title: 'Without summary' })
+
+    // A request body is typed any, so an undefined value compiles: the types reject a typed one.
+    const body: { summary?: string } = {}
+    const message =
+      'a filter cannot have an undefined value: the driver would send null, which matches the documents without the field'
+
+    // The driver matches the document without the field.
+    expect(await NotesModel.collection.findOne({ summary: body.summary })).toMatchObject({
+      title: 'Without summary'
+    })
+
+    await expect(
+      // @ts-expect-error the driver would send an undefined summary as null
+      NotesModel.findOne({ summary: body.summary })
+    ).rejects.toMatchObject({
+      issues: [{ message, path: ['summary'] }]
+    })
+    await expect(
+      // @ts-expect-error the driver would send an undefined summary as null
+      NotesModel.find({ $and: [{ summary: body.summary }] })
+    ).rejects.toMatchObject({
+      issues: [{ message, path: ['$and', 0, 'summary'] }]
+    })
+    await expect(
+      // @ts-expect-error the driver would send an undefined summary as null
+      NotesModel.updateOne({ summary: { $eq: body.summary } }, { $set: { title: 'x' } })
+    ).rejects.toMatchObject({ issues: [{ message, path: ['summary', '$eq'] }] })
+    await expect(
+      // @ts-expect-error the driver would send an undefined summary as null
+      NotesModel.deleteMany({ summary: { $in: [body.summary] } })
+    ).rejects.toMatchObject({ issues: [{ message, path: ['summary', '$in', 0] }] })
+    await expect(
+      // @ts-expect-error the driver would send an undefined summary as null
+      NotesModel.bulkWrite([{ deleteOne: { filter: { summary: body.summary } } }])
+    ).rejects.toMatchObject({ issues: [{ message, path: [0, 'summary'] }] })
+    expect(await NotesModel.countDocuments()).toBe(1)
+  })
+
   test('rejects keys no path can reach, such as those of a record', async () => {
     const MetricsModel = mongozod({
       collection: 'metrics',

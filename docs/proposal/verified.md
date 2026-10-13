@@ -842,3 +842,11 @@
     que parsear `{}` falla, y `.default()` lo devuelve sin parsear (Zod 4.6.5). `mz.sort` y
     `mz.populate` traen su `.optional()`, y un `.default({ createdAt: -1 })` encima sigue andando,
     con una salida sin `undefined`.
+- **La auditoría contra las guías oficiales** (2026-10-13, OWASP WSTG NoSQL Injection, Node.js
+  Security Best Practices y el Security Checklist de MongoDB; MongoDB 8.2.6, Zod 4.6.5): 21 pruebas
+  y un fuzz de 80 payloads en 8 posiciones contra un `mz.filter` con `$or`, sin ningún operador no
+  declarado aceptado ni contaminación de `Object.prototype`. Lo que se arregló, con un test que
+  fallaba antes:
+  - `findOne({ email, resetToken: body.token })` con un body sin token encontraba al usuario sin
+    `resetToken`: el driver manda `undefined` como `null`. Ahora el modelo lanza un `ZodError` por
+    un `undefined` a cualquier nivel del filtro, también en `bulkWrite`.
