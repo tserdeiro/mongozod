@@ -266,6 +266,8 @@ postsPopulate.parse({ authorId: { name: 1 } })
 // { authorId: { projection: { name: 1 } } }
 ```
 
+- **Errors when declared**: `"<reference>" declares no fields: pick at least one`, since MongoDB
+  reads an empty projection as the whole document.
 - **Errors when parsed**: `takes true, or an object with 1 or true for some of its fields` for `{}`
   and an exclusion, and Zod's `Unrecognized key` for a field outside the whitelist or a reference
   not declared.

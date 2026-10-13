@@ -46,6 +46,11 @@ export function populate(whitelists: Readonly<Record<string, core.$ZodObject>>):
       Object.fromEntries(
         Object.entries(whitelists).map(([reference, whitelist]) => {
           const fields = Object.keys(whitelist._zod.def.shape)
+
+          // `true` would give `projection: {}`, which MongoDB reads as the whole document.
+          if (fields.length === 0) {
+            throw new Error(`mz.populate: "${reference}" declares no fields: pick at least one`)
+          }
           const some = nonEmptyObject(
             Object.fromEntries(fields.map((field) => [field, z.literal([1, true])])),
             'takes true, or at least one field'

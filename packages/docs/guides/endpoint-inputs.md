@@ -426,6 +426,8 @@ authorPopulate.parse({ author: { name: 1 } })
 
 The client sends `true` for the whole whitelist, never the whole document, or `1` or `true` for some
 of its fields. `{}`, an exclusion, a field outside the whitelist or a reference not declared fail.
+A whitelist without fields, such as one picked by role that ends up empty, throws when the builder
+is declared: MongoDB reads an empty projection as the whole document, so "no field" fails closed.
 The router gets the `populate` option of the model, with a `projection`. The client never sends a
 `filter` or a `sort`: those belong to the endpoint.
 

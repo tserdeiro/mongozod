@@ -863,3 +863,7 @@
     para la app, `dbAdmin` solo para el `sync()` del deploy) y el servidor
     (`security.javascriptEnabled: false` cuando la app no usa `$where`, `$function`, `$accumulator`
     ni `mapReduce`, como pide el checklist), más lo que queda fuera de la librería.
+- **La auditoría privada de otro agente** (2026-10-13, `.private-security-audit/`, fuera de Git;
+  MongoDB 8.2.6): sus reproducciones pasaban contra `0.3.2`. Lo que se arregló:
+  - `mz.populate` con un whitelist sin campos y un `true` del cliente daba `projection: {}`, el
+    documento entero. Ahora lanza un `Error` al declararse.

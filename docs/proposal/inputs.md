@@ -178,7 +178,10 @@ manda `{ createdAt, _id }` del último elemento de la página.
      con `takes true, or an object with 1 or true for some of its fields`, en vez del
      `Invalid input` de una unión, y el campo de afuera con el `Unrecognized key` de Zod. El router recibe
      el `populate` del modelo, con una `projection` de `1`. El cliente no manda `filter` ni `sort`:
-     son decisiones del endpoint.
+     son decisiones del endpoint. Una lista blanca sin campos lanza un `Error` al declararse
+     (2026-10-13, auditoría privada A01): con `true` daba `projection: {}`, que MongoDB lee como el
+     documento entero, así que un `.pick()` por rol que quedaba vacío abría toda la referencia;
+     «ningún campo» falla cerrado.
    - **Tipos**: un `populate` escrito en el código da el tipo exacto. El que manda un cliente deja
      el campo como unión con el id, igual que hoy `WithPopulate`, pero calculada sola: desaparecen
      `WithPopulate` y los tipos `BrandRecord`. Como el modelo no sabe si una proyección que llega
