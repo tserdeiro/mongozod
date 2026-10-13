@@ -2,6 +2,7 @@ import type { Document } from 'mongodb'
 import type * as core from 'zod/v4/core'
 
 import { isPlainObject } from '../utils/is-plain-object'
+import { setField } from '../utils/set-field'
 import { valueKey } from '../utils/value-key'
 
 /** An object with operators, as opposed to a value to compare with. */
@@ -83,20 +84,21 @@ function created(operator: string, value: unknown): { value: unknown } | undefin
   }
 }
 
+/** Writes a value at a dotted path through own fields only, so `__proto__` is a field name too. */
 function setPath(document: Document, path: string, value: unknown) {
   const segments = path.split('.')
   const last = segments.pop() ?? path
   let node = document
 
   for (const segment of segments) {
-    const child: unknown = node[segment]
+    const child: unknown = Object.hasOwn(node, segment) ? node[segment] : undefined
+    const next = isPlainObject(child) ? child : {}
 
-    if (!isPlainObject(child)) node[segment] = {}
-
-    node = node[segment]
+    setField(node, segment, next)
+    node = next
   }
 
-  node[last] = value
+  setField(node, last, value)
 }
 
 /** Whether a path names array elements with `$`, `$[]` or `$[id]`. */
@@ -191,11 +193,13 @@ export function nullIdIssue(filter: Document): core.$ZodIssue | undefined {
   }
 }
 
-/** The value at a dotted path of a document, through its objects. */
+/** The value at a dotted path of a document, through its own fields. */
 function valueAt(document: Document, path: string): unknown {
   let value: unknown = document
 
-  for (const segment of path.split('.')) value = isPlainObject(value) ? value[segment] : undefined
+  for (const segment of path.split('.')) {
+    value = isPlainObject(value) && Object.hasOwn(value, segment) ? value[segment] : undefined
+  }
 
   return value
 }

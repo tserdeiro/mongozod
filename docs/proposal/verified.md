@@ -807,3 +807,13 @@
     TypeScript 7 y 5.5 es igual a `InsertOf`, sin `timestamps`, con `timestamps` y con un plugin que
     completa un campo. El que da `never` es `Parameters<typeof NotesModel.find>[0]`, como dice la
     receta de repositorios.
+- **La auditoría de seguridad** (MongoDB 8.2.6, Zod 4.6.5): cada punto, con un test que fallaba
+  antes de su arreglo.
+  - Un upsert recorría las rutas del documento que insertaría por propiedades heredadas: un
+    segmento `__proto__`, de un filtro como `{ '__proto__.polluted': true }` o de un path como
+    `'settings.__proto__.isAdmin'`, escribía en `Object.prototype`, aunque el upsert fallara la
+    validación después. Ahora solo baja por propiedades propias y las crea con
+    `Object.defineProperty`. El filtro ahora falla con un `ZodError`: el schema descarta un campo
+    `__proto__`, así que el upsert no insertaría lo que fija.
+  - Un insert con un valor `z.unknown()` que traía una clave `__proto__` propia, como la que crea
+    `JSON.parse`, la perdía y le cambiaba el prototipo a la copia. Ahora la guarda como campo.

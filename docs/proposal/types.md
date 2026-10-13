@@ -206,6 +206,11 @@ runtime o código sin tipos. Cada problema se junta en un solo `ZodError`, con e
   - **`_id` nulo**: un upsert cuyo filtro deja el `_id` en `null`, o en un `undefined`, lanza un
     `ZodError`, también en los reemplazos: insertaría un documento con `_id: null`, el caso de
     Mongoose [#9201](https://github.com/Automattic/mongoose/issues/9201).
+  - **`__proto__`**: el documento se arma con propiedades propias, así que un segmento `__proto__`
+    de un filtro o de un path del update es un nombre de campo, como en MongoDB, y no llega a
+    `Object.prototype`. Recorrerlo como propiedad dejaba que un upsert con
+    `$set: { 'settings.__proto__.isAdmin': true }` cambiara el prototipo de todos los objetos del
+    proceso. Lo mismo vale para la copia sin `undefined` que se escribe en un insert.
   - **Valores que el schema cambia**: el servidor copia el valor del filtro tal cual, sin pasar por
     Zod. Si el schema lo guardaría distinto, como un email que un transform pasa a minúsculas o un
     objeto al que le falta un default, el upsert lanza un `ZodError` en ese path: filtrar por el

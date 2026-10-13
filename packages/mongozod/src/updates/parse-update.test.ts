@@ -594,6 +594,35 @@ describe('upserts', () => {
     })
   })
 
+  test('build the document with __proto__ as a field name, without reaching Object.prototype', async () => {
+    const filter = { createdAt: new Date(0), title: 'Ads' }
+
+    try {
+      // The schema drops a __proto__ field, so the upsert would not insert what the filter fixes.
+      expect(
+        await issuesOf(() =>
+          parseUpdate(pluginSchema, { ...filter, '__proto__.polluted': true }, {}, { upsert: true })
+        )
+      ).toEqual([
+        [
+          '__proto__ polluted',
+          'the upsert would insert the filter\'s "__proto__.polluted" as it is, which the schema stores differently: filter by the value the schema stores'
+        ]
+      ])
+      expect(
+        await parseUpdate(
+          pluginSchema,
+          filter,
+          { $set: { 'data.__proto__.polluted': true } },
+          { upsert: true }
+        )
+      ).toMatchObject({ $set: { 'data.__proto__.polluted': true } })
+      expect(Reflect.get({}, 'polluted')).toBeUndefined()
+    } finally {
+      Reflect.deleteProperty(Object.prototype, 'polluted')
+    }
+  })
+
   test('copy the filter as the server does: a regex matches, and undefined is null', async () => {
     // The regex is not copied, so only the missing title fails.
     expect(await upsertIssues({ title: /^Ads/ })).toEqual([
