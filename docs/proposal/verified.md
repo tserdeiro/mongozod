@@ -817,3 +817,10 @@
     `__proto__`, así que el upsert no insertaría lo que fija.
   - Un insert con un valor `z.unknown()` que traía una clave `__proto__` propia, como la que crea
     `JSON.parse`, la perdía y le cambiaba el prototipo a la copia. Ahora la guarda como campo.
+  - `mz.filter` aceptaba cualquier operador en un campo `z.record()`, `z.unknown()`,
+    `z.looseObject()` o con catchall que declaraba `$eq`: `{ labels: { $ne: null } }` no cumplía el
+    objeto estricto de operadores y pasaba como valor del campo, y MongoDB lo leía como operador y
+    devolvía todos los documentos. `mz.after` hacía lo mismo con sus claves. MongoDB lee un objeto
+    con claves `$` como operadores en una igualdad y en `$all` (`$elemMatch`), lanza
+    `cannot nest $ under $in` en `$in` y `$nin`, y lo compara como literal en `$eq`, `$ne` y `$gt`.
+    Ahora ningún valor puede tener esas claves.

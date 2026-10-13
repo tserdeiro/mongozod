@@ -179,6 +179,14 @@ manda `{ createdAt, _id }` del último elemento de la página.
      cada uno, solo sus operadores.
    - **Igualdad**: un campo que declara `$eq` también acepta el valor solo, como en Mongo. En un
      array, la igualdad toma un elemento o el array entero, y los rangos comparan elementos.
+   - **Valores sin claves `$`**: ningún valor, solo o dentro de un operador, puede ser un objeto
+     con una clave que empieza con `$`, que falla con un `ZodError`. MongoDB lee ese objeto como
+     operadores en una igualdad y en `$all`, y lo rechaza en `$in` (verificado con MongoDB 8.2.6),
+     así que un campo que acepta cualquier objeto, como `z.record()`, `z.unknown()` o un
+     `z.looseObject()`, dejaba pasar `{ $ne: null }` como valor. Ningún documento puede guardar
+     esas claves, así que como valor nunca encontrarían nada. Se rechaza en vez de envolverlo en
+     `$eq`, como hace el `sanitizeFilter` de Mongoose, porque esa igualdad pasaría sin encontrar
+     nada y sin avisar. Lo mismo vale para los valores de `mz.after`.
    - **Objeto de operadores**: tiene al menos uno, porque `{}` es en Mongo una igualdad con un
      objeto vacío.
    - **`$options`**: solo va con `$regex`. Sin él, MongoDB rechaza el filtro con el código 2

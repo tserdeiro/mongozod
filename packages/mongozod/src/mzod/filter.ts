@@ -9,6 +9,7 @@ import { z } from 'zod'
 import { schemaAt } from '../schema/schema-at'
 import { elementsOf } from '../schema/schema-kinds'
 
+import { filterValue } from './internal/filter-value'
 import { nonEmptyObject } from './internal/non-empty-object'
 import { valueSchema } from './internal/value-schema'
 import { withoutUndefined } from './internal/without-undefined'
@@ -228,7 +229,9 @@ function operatorsSchema(
   operators: readonly string[],
   under: Declarations
 ): core.$ZodType {
-  const equal = element ? z.union([value, element]) : value
+  const compared = filterValue(value)
+  const comparedElement = element && filterValue(element)
+  const equal = comparedElement ? z.union([compared, comparedElement]) : compared
   const shape: Record<string, core.$ZodType> = {}
 
   for (const operator of operators) {
@@ -257,7 +260,7 @@ function operatorsSchema(
         shape.$options = z.string()
         break
       case '$all':
-        shape[operator] = z.array(element ?? value)
+        shape[operator] = z.array(comparedElement ?? compared)
         break
       case '$size':
         shape[operator] = z.number().int().nonnegative()
@@ -267,7 +270,7 @@ function operatorsSchema(
         break
       default:
         // `$gt`, `$gte`, `$lt` and `$lte` compare the value or, in an array, each element.
-        shape[operator] = element ?? value
+        shape[operator] = comparedElement ?? compared
     }
   }
 
@@ -319,7 +322,7 @@ function conditionSchema(
   const element = elements.every(Boolean)
     ? valueSchema(elements.flatMap((each) => each ?? []))
     : undefined
-  const equal = element ? z.union([value, element]) : value
+  const equal = element ? z.union([filterValue(value), filterValue(element)]) : filterValue(value)
   const object = operatorsSchema(value, element, path, operators, under)
 
   if (!operators.includes('$eq')) return object

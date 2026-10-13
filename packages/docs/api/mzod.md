@@ -133,8 +133,10 @@ postsFilter.parse({ status: 'published', createdAt: { $gte: '2026-10-01T00:00:00
   `"<operator>" is not an operator of mz.filter`,
   `"$size" only applies to arrays, and "<path>" is not one` (also for `$all` and `$elemMatch`), and
   `"$elemMatch" on "<path>" needs operators for its elements, or paths declared under it`.
-- **Errors when parsed**: `takes at least one operator` for `{}`, `"$options" needs "$regex"`, and
-  Zod's `Unrecognized key` for what isn't declared.
+- **Errors when parsed**: `takes at least one operator` for `{}`, `"$options" needs "$regex"`,
+  Zod's `Unrecognized key` for what isn't declared, and
+  `a value cannot have keys that start with "$", which MongoDB reads as operators`, also on fields
+  that take any object, such as `z.record()` or `z.unknown()`.
 
 `$and`, `$or` and `$nor` are added with `.extend()`: see
 [`$and`, `$or` and `$nor`](../guides/endpoint-inputs.md#and-or-and-nor).
