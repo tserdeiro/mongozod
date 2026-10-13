@@ -93,6 +93,12 @@
   ([changesets/changesets#2025](https://github.com/changesets/changesets/issues/2025)); se quita
   cuando lo soporte. El paquete exige 2FA y no acepta tokens que la salteen. El PR de versión y su
   commit se llaman `chore(release): version packages`, que pasa Conventions.
+- **Actions fijadas por SHA**: cada `uses:` lleva el SHA completo del commit, con la versión en un
+  comentario, porque, según la guía de seguridad de GitHub Actions, es la única forma de usar una
+  action como una release inmutable: alguien que mueva una tag podría correr código en el job que
+  publica en npm. Bun también va en una versión exacta. Los jobs `version` y `publish` instalan con
+  permisos de escritura, así que no descargan el binario de MongoDB
+  (`MONGOMS_DISABLE_POSTINSTALL`), y lefthook ya no instala sus hooks cuando `CI` está definido.
 - **Flujo de trabajo**: el repo es público para poder proteger `main` con un ruleset, que exige un
   pull request con el CI y Conventions en verde, solo con squash, y bloquea el force push y el
   borrado. El admin puede saltear los checks solo dentro de un pull request: el PR de versión lo

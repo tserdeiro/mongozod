@@ -21,14 +21,14 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: pnpm/setup@v3
+      - uses: pnpm/setup@a0881977cd8ea73b1ed212236c99ca10dcc80cf4 # v3.1.1
         with:
           require-lockfile: true
       - id: select-mode
-        uses: changesets/action/select-mode@v2
+        uses: changesets/action/select-mode@ae32849d5ba541f9ae29e40e22a623bc13562f51 # v2.1.2
 
   version:
     if: needs.select-mode.outputs.mode == 'version'
@@ -37,17 +37,20 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
+    env:
+      # The install runs with write permissions: skip the MongoDB binary, which only tests need.
+      MONGOMS_DISABLE_POSTINSTALL: 1
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           # The changelog needs the commit that added each changeset. In a shallow clone, Changesets
           # deepens it with `git fetch`, which has no credentials without `persist-credentials`.
           fetch-depth: 0
           persist-credentials: false
-      - uses: pnpm/setup@v3
+      - uses: pnpm/setup@a0881977cd8ea73b1ed212236c99ca10dcc80cf4 # v3.1.1
         with:
           require-lockfile: true
-      - uses: changesets/action/version@v2
+      - uses: changesets/action/version@ae32849d5ba541f9ae29e40e22a623bc13562f51 # v2.1.2
         with:
           # The repository naming, which the Conventions check enforces on pull requests.
           commit-message: 'chore(release): version packages'
@@ -62,15 +65,15 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: pnpm/setup@v3
+      - uses: pnpm/setup@a0881977cd8ea73b1ed212236c99ca10dcc80cf4 # v3.1.1
         with:
           require-lockfile: true
       - run: pnpm build
       - id: pack
-        uses: changesets/action/pack@v2
+        uses: changesets/action/pack@ae32849d5ba541f9ae29e40e22a623bc13562f51 # v2.1.2
         with:
           publish-plan-artifact-id: ${{ needs.select-mode.outputs.publish-plan-artifact-id }}
 
@@ -81,15 +84,18 @@ jobs:
       contents: write
       # npm trusted publishing.
       id-token: write
+    env:
+      # The install runs with the token that publishes: skip the MongoDB binary, which only tests need.
+      MONGOMS_DISABLE_POSTINSTALL: 1
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       # Node.js 24 brings the npm that trusted publishing needs.
-      - uses: pnpm/setup@v3
+      - uses: pnpm/setup@a0881977cd8ea73b1ed212236c99ca10dcc80cf4 # v3.1.1
         with:
           runtime: node@24
           require-lockfile: true
-      - uses: changesets/action/publish@v2
+      - uses: changesets/action/publish@ae32849d5ba541f9ae29e40e22a623bc13562f51 # v2.1.2
         with:
           pack-dir-artifact-id: ${{ needs.pack.outputs.pack-dir-artifact-id }}
