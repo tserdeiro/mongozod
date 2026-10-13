@@ -63,7 +63,8 @@ export async function listPosts(body: unknown, userId: ObjectId) {
 
 - **Fields and operators**: `mz.filter` accepts the paths and the operators it declares, and
   anything else fails with a `ZodError`. `$where`, `$expr` and `$function` are never accepted (see
-  [`$where` and `$expr`](./endpoint-inputs.md#where-and-expr)).
+  [`$where` and `$expr`](./endpoint-inputs.md#where-and-expr)), and MongoZod never runs JavaScript
+  on the server itself.
 - **Values**: each value is parsed with the schema of its field, so an id is an `ObjectId` and a
   date is a `Date`. No value can be an object with a key that starts with `$`, even on a field
   typed `z.record()` or `z.unknown()`, so a client can't send `{ "$ne": null }` as a value.
@@ -179,12 +180,22 @@ and answer with a 500. Some issues that MongoZod adds carry the value in `input`
 whole filter with your scope, so don't return `error.issues` as they are. The same goes for driver
 errors, such as the `keyValue` of a duplicate key, which tells a client which email exists.
 
+### Server-side JavaScript
+
+A filter of a model, an `aggregate` pipeline and an update with `updatePipeline: true` reach the
+server as you write them, `$where`, `$function` and `$accumulator` included: they are the driver's.
+Never build one from what a client sends, and disable server-side scripting when the application
+doesn't use them, with `security.javascriptEnabled: false`, as the MongoDB security checklist says
+(see [The server](../getting-started/connection.md#the-server)).
+
 ### The connection
 
-Connect with a database user that has only the roles the application needs, and read the
-connection string from the environment, as the
+Read the connection string from the environment, as the
 [OWASP NoSQL Security Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/NoSQL_Security_Cheat_Sheet.html)
-recommends.
+recommends, and connect with a user that has `readWrite` on its database and nothing more:
+`sync()` with `jsonSchema` needs `dbAdmin`, so it runs from a deploy step with another user. The
+client options that matter, and what the server side needs, are in
+[Connection](../getting-started/connection.md).
 
 ## From Mongoose
 

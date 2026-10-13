@@ -858,3 +858,8 @@
     raíz `z.looseObject` se perdía en silencio, con `modifiedCount: 0`. Ahora es un campo propio.
   - `$inc` y `$mul` del modelo aceptaban `Infinity` y `NaN`, que el servidor guarda y un `z.number()`
     no acepta. Ahora piden un número finito.
+  - Las docs ganan `getting-started/connection.md`: el cliente (`useBigInt64`, `maxTimeMS`,
+    `ignoreUndefined` como lo que no es una protección, `promoteBuffers`), el usuario (`readWrite`
+    para la app, `dbAdmin` solo para el `sync()` del deploy) y el servidor
+    (`security.javascriptEnabled: false` cuando la app no usa `$where`, `$function`, `$accumulator`
+    ni `mapReduce`, como pide el checklist), más lo que queda fuera de la librería.

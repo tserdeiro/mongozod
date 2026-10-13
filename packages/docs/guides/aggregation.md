@@ -95,6 +95,8 @@ for await (const tag of PostsModel.aggregate(
 ```
 
 Unlike the cursor of `find`, it chains nothing: `$sort`, `$skip` and `$limit` go in the pipeline.
+A pipeline is the server's language, `$function` and `$accumulator` included, so it never comes
+from a client (see [Security](./security.md#server-side-javascript)).
 `close()` frees the cursor on the server before it ends. The driver's options, such as
 `allowDiskUse`, `maxTimeMS`, `hint`, `comment` and `session`, go next to `schema` and reach the
 driver as they are.

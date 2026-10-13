@@ -183,7 +183,11 @@ driver or other apps, and a dotted `$set` that creates a parent without its requ
   `{ validationAction: 'warn' }` logs instead of rejecting. See
   [validation levels](https://www.mongodb.com/docs/manual/core/schema-validation/specify-validation-level/).
 - **Applied with `collMod`**, or when `sync()` creates the collection. It replaces the validator the
-  collection had. Without the option, `sync()` leaves the validator alone.
+  collection had, one set by hand included. Without the option, `sync()` leaves the validator
+  alone.
+- **Needs `dbAdmin`**: `collMod` is an action of that role, not of `readWrite`, which covers the
+  indexes. Run `sync()` from a deploy step with a user that has it, and keep the application's user
+  at `readWrite` (see [The user](../getting-started/connection.md#the-user)).
 
 A write that fails the validator fails with the server's error, code 121:
 
@@ -258,6 +262,8 @@ rejects unknown keywords, and uses `bsonType` for dates and the other BSON types
 
 - **Never calling `sync()`**: the model works, but a `unique` index doesn't exist, so duplicates get
   in, and queries scan the collection. Run it on each deploy.
+- **Running `sync()` with `jsonSchema` as the application's user**: `collMod` fails with the code
+  13, `Unauthorized`, unless the user has `dbAdmin`. Give it to the user of the deploy step only.
 - **Changing the options of an existing index**: `sync()` fails with the code 85 or 86. Drop the
   index with `model.collection.dropIndex()` first.
 - **Expecting `sync()` to drop the indexes you removed**: they stay, listed in `extraIndexes`.

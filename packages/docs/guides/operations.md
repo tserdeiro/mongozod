@@ -165,7 +165,9 @@ await PostsModel.updateOne(
 ```
 
 An update with an aggregation pipeline needs `updatePipeline: true` in its options, and its values
-are not validated, because the server computes them:
+are not validated, because the server computes them. A pipeline is the server's language,
+`$function` included, so it never comes from a client (see
+[Security](./security.md#server-side-javascript)):
 
 ```ts
 await PostsModel.updateMany(

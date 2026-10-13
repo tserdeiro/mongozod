@@ -146,6 +146,12 @@ export const PluginsModel = mongozod({
 const { extraIndexes } = await PluginsModel.sync()
 ```
 
+- **Privilegios** (2026-10-13, auditoría contra el Security Checklist de MongoDB): los índices los
+  crea el `readWrite` de la app, que incluye `createIndex`, `createCollection` y
+  `listCollections`; el `$jsonSchema` va por `collMod`, que solo está en `dbAdmin` (built-in roles
+  del manual). La guía de conexión pide correr `sync()` desde el deploy con un usuario que tenga
+  `dbAdmin`, y dejar la app en `readWrite`, el mínimo privilegio del checklist. `collMod` reemplaza
+  el validator entero de la colección, también uno puesto a mano: la guía de `sync` lo avisa.
 - **Índices**: un callback que declara cada uno con `index(key, options)`, como el
   `createIndex(key, options)` del driver y el `schema.index(fields, options)` de Mongoose. Las
   opciones son las del `IndexDescription` del driver (`unique`, `partialFilterExpression`, `name`,
