@@ -192,7 +192,8 @@ postsSort.parse({ title: 1, createdAt: -1 })
 ### mz.projection()
 
 `mz.projection(schema, mask)` builds the projection a client can send, with `1`, `0`, `true` or
-`false` on the paths the mask declares. See
+`false` on the paths the mask declares, and returns an inclusion of declared paths: an exclusion
+means the declared paths but those, and `{}` means all of them. See
 [`mz.projection`](../guides/endpoint-inputs.md#mzprojection).
 
 ```ts
@@ -203,12 +204,16 @@ const postsProjection = mz.projection(postSchema, {
 })
 
 postsProjection.parse({ title: 1, tags: true })
-// { title: 1, tags: true }
+// { title: 1, tags: 1 }
+postsProjection.parse({ body: 0 })
+// { title: 1, tags: 1 }
 ```
 
-- **Errors when declared**: `"<path>" is not a path of the document`, and
-  `declare at least one path` for an empty mask.
-- **Errors when parsed**: `a projection cannot mix inclusion and exclusion, except for _id`.
+- **Errors when declared**: `"<path>" is not a path of the document`,
+  `"<path>" and "<path inside it>" overlap, which MongoDB rejects in one projection: declare one of them`,
+  and `declare at least one path` for an empty mask.
+- **Errors when parsed**: `a projection cannot mix inclusion and exclusion, except for _id`, and
+  `a projection cannot exclude every path the endpoint offers` when it also excludes the `_id`.
 
 ### mz.after()
 

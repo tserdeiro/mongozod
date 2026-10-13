@@ -14,7 +14,8 @@ directamente la sintaxis de Mongo.
     campos opcionales y `$inc`, solo numéricos. No completa defaults: un update parcial no pisa
     `content` con `''`.
   - **`mz.sort`**: los campos declarados, con `1` o `-1`, en el orden en que los manda el cliente.
-  - **`mz.projection`**: los campos declarados, sin mezclar inclusión y exclusión.
+  - **`mz.projection`**: los campos declarados, sin mezclar inclusión y exclusión; la máscara es lo
+    máximo que recibe el cliente.
   - **`mz.after`**: la página después de un documento, la paginación por clave.
   - **`mz.populate`**: las referencias que el cliente puede expandir y los campos que puede ver.
 - **Errores de tipos al declarar**: un `$regex` sobre una fecha, un `$unset` de un campo
@@ -139,8 +140,9 @@ manda `{ createdAt, _id }` del último elemento de la página.
    `.default({})` en `mz.filter` y `mz.after`, así el router solo junta filtros con `$and`, sin
    `?? {}` ni `|| {}`, y el proyecto convierte el `term` en filtro dentro del schema. Un filtro por
    id usa `.required({ _id: true })`, y un findOne que pide al menos uno de varios campos, como los
-   de adsgpt y wortise, usa `.refine()`. `sort`, `projection` y `populate` toman `.optional()` o un
-   default, como `.default({ createdAt: -1 })`. Reemplaza a la opción `{ required: ['_id'] }` del
+   de adsgpt y wortise, usa `.refine()`. `sort` y `populate` toman `.optional()` o un default, como
+   `.default({ createdAt: -1 })`, y `projection` toma `.prefault({})`, porque `.prefault()` parsea
+   su valor y `.default()` no: así una proyección que no llega también queda en la máscara. Reemplaza a la opción `{ required: ['_id'] }` del
    prototipo.
    - **`mz.filter` es un `z.strictObject`**: por eso andan `.required()`, `.refine()`,
      `.default()` y `.extend()`. Como descarta las keys en `undefined` con `.overwrite()`, Zod no
@@ -243,6 +245,16 @@ manda `{ createdAt, _id }` del último elemento de la página.
      `z.partialRecord`. Las tablas de los tres proyectos mandan una sola columna, a veces con punto.
    - **Valores**: `mz.sort` toma `1` o `-1`. `mz.projection` toma `1` o `true` para incluir y `0` o
      `false` para excluir, como MongoDB, sin mezclar salvo `_id`.
+   - **La máscara es un allow list de lo que recibe el cliente**: `mz.projection` siempre devuelve
+     una inclusión de paths declarados. MongoDB lee una exclusión como `{ title: 0 }`, `{}` y
+     `{ _id: 0 }` como el documento entero, con los campos que la máscara deja afuera (verificado con
+     MongoDB 8.2.6), así que una exclusión pasa a ser los paths declarados menos esos, y `{}`, todos.
+     Sin ningún campo queda el `_id`, que MongoDB devuelve salvo con `_id: 0`; excluir también el
+     `_id` falla. Una máscara con un path y otro adentro, como `owner` y `owner.name`, lanza al
+     declararla, porque MongoDB rechaza los dos en una proyección (código 31249). Se descartaron
+     aceptar solo inclusiones, que le quita al cliente «todo menos X» y deja abiertos `{}` y
+     `{ _id: 0 }`, y recibir un schema con `.pick()` en vez de la máscara: MongoDB no conoce ese
+     schema, `.pick()` no toma paths con punto, y `mz.sort` usa la misma máscara.
 10. **`mz.after` pide `_id` al final y campos obligatorios.** MongoDB ordena un valor que falta o
     es `null` antes que cualquier otro, y un `$lt` sobre una fecha no lo alcanza, así que esos
     documentos se perderían. Sin un campo único al final, las páginas repiten o saltean empates.

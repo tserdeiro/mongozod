@@ -829,3 +829,7 @@
     `mz.objectId()` y `mz.filter`, y el driver lanzaba `BSONVersionError`, un 500 para un error del
     cliente, mientras el código entre el parse y la escritura recibía un objeto plano. Ahora piden
     también `Symbol.for('@@mdb.bson.version')`, el que mira el serializador (bson 6.10.4 y 7.3.3).
+  - `mz.projection` dejaba pasar una exclusión, `{}` y `{ _id: 0 }`, y MongoDB devolvía el
+    documento entero, con los campos que la máscara no declara: un endpoint que ocultaba
+    `owner.email` con su máscara lo devolvía con `{ content: 0 }`. Ahora siempre devuelve una
+    inclusión de paths declarados.
