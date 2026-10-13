@@ -25,6 +25,7 @@ version.
 - [TypeScript](./guides/typescript.md): How the schema types filters, updates, projections and sorts, and the types to pass them through services and repositories.
 - [BSON types](./guides/bson-types.md): Store ObjectId, Decimal128, binary data, UUIDs, dates, sets and GeoJSON, and take them as JSON from clients.
 - [Endpoint inputs](./guides/endpoint-inputs.md): Accept MongoDB filters, updates, sorts, projections and populate from clients, limited to what each endpoint declares.
+- [Security](./guides/security.md): What MongoZod protects against when an endpoint takes a query from a client, and what stays with your application.
 - [Pagination](./guides/pagination.md): Page through a collection with mz.after, the keyset pagination of MongoDB's range queries, or with skip and limit.
 - [Populate](./guides/populate.md): Declare the references between models and replace the stored ids with the documents they point to.
 - [Virtuals](./guides/virtuals.md): Compute fields from the stored ones when you read, without storing them.

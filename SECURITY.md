@@ -14,3 +14,8 @@ under the Security tab of the repository.
 Include the version, a minimal reproduction and the impact you see. You'll get a first answer
 within 7 days. When a fix is released, the advisory is published with credit to you, unless you
 prefer otherwise.
+
+## What MongoZod protects against
+
+What the input builders guarantee, and what stays with your application, is in the
+[security guide](https://mongozod.dev/docs/guides/security).

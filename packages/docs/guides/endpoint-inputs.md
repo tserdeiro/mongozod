@@ -156,6 +156,9 @@ them and superjson does, so a request means the same with both.
 The builders take Zod and Zod Mini schemas, and a `z.discriminatedUnion` at the root, which looks
 for each field in its types. They build classic Zod schemas.
 
+What the builders protect against, and what stays with your application, such as authorization and
+the cost of a query, is in [Security](./security.md).
+
 ## Importing `mz`
 
 Import it as a namespace, next to Zod's `z`:
