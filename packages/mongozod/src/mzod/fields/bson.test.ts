@@ -61,7 +61,18 @@ describe('objectId()', () => {
   })
 
   test('rejects anything else with one message', () => {
-    for (const value of ['65c3', `${hex}0`, 'z'.repeat(24), 42, null, { _bsontype: 'UUID' }]) {
+    // A client can send a _bsontype in JSON, so a plain object with one is not an ObjectId.
+    const forged = JSON.parse('{ "_bsontype": "ObjectId", "$ne": null }')
+
+    for (const value of [
+      '65c3',
+      `${hex}0`,
+      'z'.repeat(24),
+      42,
+      null,
+      { _bsontype: 'UUID' },
+      forged
+    ]) {
       expect(objectId().safeParse(value).error?.issues).toMatchObject([
         { message: 'Invalid ObjectId: expected an ObjectId or its 24-character hex string' }
       ])
@@ -158,7 +169,16 @@ describe('decimal128()', () => {
   test('rejects a string bson would round or not take, and anything else', () => {
     const tooPrecise = `0.${'1'.repeat(40)}`
 
-    for (const value of ['abc', '1.2.3', ' 10', '', tooPrecise, null, { _bsontype: 'Long' }]) {
+    for (const value of [
+      'abc',
+      '1.2.3',
+      ' 10',
+      '',
+      tooPrecise,
+      null,
+      { _bsontype: 'Long' },
+      { _bsontype: 'Decimal128', bytes: 'x' }
+    ]) {
       expect(decimal128().safeParse(value).error?.issues).toMatchObject([
         {
           message:
@@ -316,7 +336,13 @@ describe('binary()', () => {
   })
 
   test('rejects anything else with one message', () => {
-    for (const value of ['not base64!', 42, null, { _bsontype: 'ObjectId' }]) {
+    for (const value of [
+      'not base64!',
+      42,
+      null,
+      { _bsontype: 'ObjectId' },
+      { _bsontype: 'Binary' }
+    ]) {
       expect(binary().safeParse(value).error?.issues).toMatchObject([
         {
           message:
@@ -382,7 +408,8 @@ describe('uuid()', () => {
       '0f1aef5ae7a84f60811b6685550d99ff',
       new Binary(new Uint8Array(16)),
       42,
-      null
+      null,
+      { _bsontype: 'Binary', sub_type: 4 }
     ]) {
       expect(uuid().safeParse(value).error?.issues).toMatchObject([
         { message: 'Invalid UUID: expected a UUID or its string' }
