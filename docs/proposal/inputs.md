@@ -201,7 +201,11 @@ manda `{ createdAt, _id }` del último elemento de la página.
      `z.looseObject()`, dejaba pasar `{ $ne: null }` como valor. Ningún documento puede guardar
      esas claves, así que como valor nunca encontrarían nada. Se rechaza en vez de envolverlo en
      `$eq`, como hace el `sanitizeFilter` de Mongoose, porque esa igualdad pasaría sin encontrar
-     nada y sin avisar. Lo mismo vale para los valores de `mz.after`.
+     nada y sin avisar. Lo mismo vale para los valores de `mz.after`. El chequeo corre sobre lo que
+     manda el cliente y otra vez sobre lo que devuelve el schema (2026-10-13, auditoría privada
+     A03): un campo `z.string().transform(JSON.parse)` convertía el string `'{"$ne":null}'` en el
+     objeto de operadores después del chequeo, y MongoDB lo ejecutaba (verificado con MongoDB
+     8.2.6). Es el mismo orden que `mz.update`, que chequea las keys de la salida.
    - **Objeto de operadores**: tiene al menos uno, porque `{}` es en Mongo una igualdad con un
      objeto vacío.
    - **Flags de `$options`** (2026-10-13, auditoría contra las guías de OWASP): solo `i`, `m`, `x`,

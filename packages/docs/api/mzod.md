@@ -135,7 +135,8 @@ postsFilter.parse({ status: 'published', createdAt: { $gte: '2026-10-01T00:00:00
   `"$options" takes the flags i, m, x, s and u`, Zod's `Unrecognized key` for what isn't declared,
   and
   `a value cannot have keys that start with "$", which MongoDB reads as operators`, also on fields
-  that take any object, such as `z.record()` or `z.unknown()`.
+  that take any object, such as `z.record()` or `z.unknown()`, and also when a transform of the
+  field builds such an object out of what the client sent.
 
 `$and`, `$or` and `$nor` are added with `.extend()`: see
 [`$and`, `$or` and `$nor`](../guides/endpoint-inputs.md#and-or-and-nor).

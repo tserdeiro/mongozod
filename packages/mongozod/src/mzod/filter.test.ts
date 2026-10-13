@@ -198,6 +198,18 @@ test('a value with keys that start with $ fails, even where the field takes any 
     data: { step: { $ne: 1 } },
     labels: { team: 'ads' }
   })
+
+  // A transform can build one out of a string: the check runs on what the schema returns too.
+  const parsedFilter = filter(
+    z.object({ payload: z.string().transform((json): unknown => JSON.parse(json)) }),
+    { payload: ['$eq', '$in'] }
+  )
+
+  expect(parsedFilter.parse({ payload: '{"step":1}' })).toEqual({ payload: { step: 1 } })
+  expect(issues(parsedFilter, { payload: '{"$ne":null}' })).toEqual([`payload: ${message}`])
+  expect(issues(parsedFilter, { payload: { $in: ['{"$ne":null}'] } })).toEqual([
+    `payload.$in.0: ${message}`
+  ])
 })
 
 test('takes Zod Mini schemas, and a discriminated union finds each field in its types', () => {

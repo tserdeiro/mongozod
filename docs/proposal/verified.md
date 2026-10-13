@@ -867,3 +867,6 @@
   MongoDB 8.2.6): sus reproducciones pasaban contra `0.3.2`. Lo que se arregló:
   - `mz.populate` con un whitelist sin campos y un `true` del cliente daba `projection: {}`, el
     documento entero. Ahora lanza un `Error` al declararse.
+  - `filterValue` chequeaba las keys `$` solo en la entrada: un `z.string().transform(JSON.parse)`
+    devolvía `{ $ne: null }` como valor de igualdad, en `mz.filter` y en `mz.after`. Ahora chequea
+    también la salida del schema.
