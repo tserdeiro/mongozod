@@ -51,8 +51,12 @@
 
 ## Herramientas
 
-- **pnpm** con workspaces, y `savePrefix: ''` para versiones exactas. Respeta la edad mínima de
-  publicación de pnpm: no instala una versión publicada hace menos de un día.
+- **pnpm** con workspaces, y `savePrefix: ''` para versiones exactas. `minimumReleaseAge: 1440` no
+  instala una versión publicada hace menos de un día; escrito, pnpm falla en vez de caer a una más
+  vieja (`minimumReleaseAgeStrict`). `trustPolicy: no-downgrade` rechaza una versión publicada con
+  menos garantías que las anteriores, como sin provenance, el patrón de una cuenta robada.
+  `trustPolicyExclude` exceptúa `semver@6.3.1` y `undici-types@6.21.0`, de sus propios autores, que
+  salieron sin provenance después de una versión que la tenía.
 - **Turborepo** corre `build`, `check-types` y `test` en cada paquete. `check-types` y `test`
   dependen de un nodo `transit`, como recomienda su guía, para correr en paralelo sin perder los
   cambios de las dependencias.
