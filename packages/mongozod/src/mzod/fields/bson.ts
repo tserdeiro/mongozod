@@ -6,19 +6,28 @@ import { z } from 'zod'
 import { fieldError } from '../internal/field-error'
 
 /**
- * An `ObjectId`, recognized by its `_bsontype` as the driver's serializer does. `instanceof` would
- * fail between copies of bson, and between its CommonJS build, which the driver loads, and its ES
- * module build, which an app that imports `bson` gets. Its metadata gives the `$jsonSchema` its
- * BSON type.
+ * Whether a value is an instance of a BSON type, recognized as the driver's serializer does: by its
+ * `_bsontype` and the version that bson's classes carry under `Symbol.for('@@mdb.bson.version')`,
+ * which JSON cannot produce, so a client cannot send `{ "_bsontype": "ObjectId" }` as one.
+ * `instanceof` would fail between copies of bson, and between its CommonJS build, which the driver
+ * loads, and its ES module build, which an app that imports `bson` gets.
  */
-const objectIdInstance = z
-  .custom<ObjectId>(
-    (value) =>
-      typeof value === 'object' &&
-      value !== null &&
-      '_bsontype' in value &&
-      value._bsontype === 'ObjectId'
+function isBSONValue<T extends { _bsontype: string }>(
+  value: unknown,
+  type: T['_bsontype']
+): value is T {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    Symbol.for('@@mdb.bson.version') in value &&
+    '_bsontype' in value &&
+    value._bsontype === type
   )
+}
+
+/** An `ObjectId` of any build of bson. Its metadata gives the `$jsonSchema` its BSON type. */
+const objectIdInstance = z
+  .custom<ObjectId>((value) => isBSONValue<ObjectId>(value, 'ObjectId'))
   .meta({ bsonType: 'objectId' })
 
 /** The 24-character hex string of an `ObjectId`, as a JSON client sends it, decoded to one. */
@@ -62,22 +71,11 @@ export function objectId() {
 /** The string of a `Decimal128` that is not a number: an amount is never one. */
 const NOT_FINITE = /^-?(?:Infinity|NaN)$/
 
-/** Whether a value is a `Decimal128` of any build of bson, known by its `_bsontype`. */
-function isDecimal128Value(value: unknown): value is Decimal128 {
-  return (
-    typeof value === 'object' &&
-    value !== null &&
-    '_bsontype' in value &&
-    value._bsontype === 'Decimal128'
-  )
-}
-
-/**
- * A finite `Decimal128`, recognized by its `_bsontype` like an `ObjectId`. Its metadata gives the
- * `$jsonSchema` its BSON type.
- */
+/** A finite `Decimal128` of any build of bson. Its metadata gives the `$jsonSchema` its BSON type. */
 const decimal128Instance = z
-  .custom<Decimal128>((value) => isDecimal128Value(value) && !NOT_FINITE.test(value.toString()))
+  .custom<Decimal128>(
+    (value) => isBSONValue<Decimal128>(value, 'Decimal128') && !NOT_FINITE.test(value.toString())
+  )
   .meta({ bsonType: 'decimal' })
 
 /** Whether bson takes a string as a finite `Decimal128` without rounding it. */
@@ -158,17 +156,11 @@ export function decimal128() {
 }
 
 /**
- * A `Binary`, the type the driver reads binary data as, recognized by its `_bsontype` like an
- * `ObjectId`. Its metadata gives the `$jsonSchema` its BSON type.
+ * A `Binary` of any build of bson, the type the driver reads binary data as. Its metadata gives the
+ * `$jsonSchema` its BSON type.
  */
 const binaryInstance = z
-  .custom<Binary>(
-    (value) =>
-      typeof value === 'object' &&
-      value !== null &&
-      '_bsontype' in value &&
-      value._bsontype === 'Binary'
-  )
+  .custom<Binary>((value) => isBSONValue<Binary>(value, 'Binary'))
   .meta({ bsonType: 'binData' })
 
 const BINARY_ERROR =
@@ -216,18 +208,12 @@ export function binary(): z.ZodCodec<
 }
 
 /**
- * A `UUID`, a `Binary` of subtype 4, recognized by its `_bsontype` and subtype like an `ObjectId`.
- * Its metadata gives the `$jsonSchema` its BSON type.
+ * A `UUID` of any build of bson, a `Binary` of subtype 4. Its metadata gives the `$jsonSchema` its
+ * BSON type.
  */
 const uuidInstance = z
   .custom<UUID>(
-    (value) =>
-      typeof value === 'object' &&
-      value !== null &&
-      '_bsontype' in value &&
-      value._bsontype === 'Binary' &&
-      'sub_type' in value &&
-      value.sub_type === Binary.SUBTYPE_UUID
+    (value) => isBSONValue<Binary>(value, 'Binary') && value.sub_type === Binary.SUBTYPE_UUID
   )
   .meta({ bsonType: 'binData' })
 

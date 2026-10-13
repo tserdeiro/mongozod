@@ -295,7 +295,11 @@ manda `{ createdAt, _id }` del último elemento de la página.
     - **Sin `instanceof`**: reconoce un `ObjectId` por su `_bsontype`, como el serializador de
       bson. `instanceof` falla entre dos copias de bson, y también con una sola: en Node, el driver
       carga el build CommonJS de bson, y una app que importa `bson` como módulo ES recibe otra clase.
-      El símbolo `bsonType` serviría, pero bson 6 no lo tiene.
+      El símbolo `bsonType` serviría, pero bson 6 no lo tiene. Además pide el símbolo
+      `Symbol.for('@@mdb.bson.version')`, que el serializador también mira y que tienen las clases
+      de bson 6 y 7: un `_bsontype` solo lo puede mandar un cliente en JSON, y
+      `{ "_bsontype": "ObjectId", "$ne": null }` pasaba como un `ObjectId`. Lo mismo vale para
+      `mz.decimal128()`, `mz.binary()` y `mz.uuid()`.
     - **Codec y no `.transform()`**: un transform no se puede encodear. El `ObjectId` de
       `mz.objectId()` declara `.meta({ bsonType: 'objectId' })`, la misma metadata que cualquier campo
       puede usar, así el `$jsonSchema` le da su tipo (ver

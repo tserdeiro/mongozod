@@ -824,3 +824,8 @@
     con claves `$` como operadores en una igualdad y en `$all` (`$elemMatch`), lanza
     `cannot nest $ under $in` en `$in` y `$nin`, y lo compara como literal en `$eq`, `$ne` y `$gt`.
     Ahora ningún valor puede tener esas claves.
+  - `mz.objectId()`, `mz.decimal128()`, `mz.binary()` y `mz.uuid()` reconocían un valor BSON solo
+    por su `_bsontype`, que JSON puede traer: `{ "_bsontype": "ObjectId", "$ne": null }` pasaba
+    `mz.objectId()` y `mz.filter`, y el driver lanzaba `BSONVersionError`, un 500 para un error del
+    cliente, mientras el código entre el parse y la escritura recibía un objeto plano. Ahora piden
+    también `Symbol.for('@@mdb.bson.version')`, el que mira el serializador (bson 6.10.4 y 7.3.3).
