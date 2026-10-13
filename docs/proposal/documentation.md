@@ -155,6 +155,10 @@ las rutas para agentes.
   `README.md`, que es el índice de GitHub. Fumadocs MDX compila cada `.md` como Markdown y no como
   MDX (lo elige por la extensión, verificado en su código), así que un `<` o un `{` del texto no
   rompe nada. Los links relativos entre archivos funcionan con `createRelativeLink`.
+- **Headers de seguridad**: los de la guía de Next.js, en `next.config.mjs`: `nosniff`,
+  `Referrer-Policy`, `Permissions-Policy` y una CSP que cierra frames, plugins y formularios ajenos.
+  No restringe scripts ni estilos: las páginas estáticas los tienen en línea, y los nonces obligan
+  a renderizar en cada pedido.
 - **Alertas**: un plugin de remark propio (`lib/remark-github-alerts.ts`) convierte cada
   `> [!NOTE]` en el `Callout` de Fumadocs, que no las reconoce solo.
 - **Para agentes**: cada página en `/docs/<página>.md` y en la misma URL con
