@@ -333,7 +333,11 @@ await TransactionsModel.find(
   de la lectura, así ve las escrituras de su transacción, salvo una uno a muchos con `limit`, que
   hace una por documento. Las referencias de un lote se consultan
   en paralelo. También llevan el `context` de la lectura, y los plugins de cada modelo de destino
-  validan su parte, como un multi-tenant que pide el tenant en las lecturas de los dos modelos.
+  validan su parte, como un multi-tenant que pide el tenant en las lecturas de los dos modelos. Y
+  el `maxTimeMS` y el `signal` de la lectura (2026-10-13, auditoría privada A04): el monitoreo de
+  comandos mostró que el `find` principal llevaba el `maxTimeMS` y el de cada referencia no, así
+  que el límite de un endpoint no acotaba las consultas que populate agrega. Es un límite por
+  consulta, no un presupuesto de la lectura entera; `timeoutMS` va en el cliente y ya las cubría.
 - **Con una proyección**: una inclusión trae igual las referencias que se populan, como trae los
   campos de un virtual, salvo que ya incluya la referencia o un objeto de arriba, como `items`: pedir
   las dos sería una colisión de paths para MongoDB. Una exclusión que deja afuera una referencia que

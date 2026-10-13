@@ -305,7 +305,9 @@ export function mongozod(
 
     const plan = planRead({ ...context, db: () => db }, driverOptions.projection, populate, {
       context: operationContext,
-      session: driverOptions.session
+      maxTimeMS: driverOptions.maxTimeMS,
+      session: driverOptions.session,
+      signal: driverOptions.signal
     })
 
     if (plan.projection) driverOptions.projection = plan.projection

@@ -873,3 +873,6 @@
   - Un `RegExp` o un `BSONRegExp` pasaba el chequeo de keys `$` de `filterValue`, y el driver lo
     mandaba como patrón donde el endpoint declaraba `$eq`. Ahora se rechaza, antes y después del
     schema.
+  - Las consultas de `populate` no llevaban el `maxTimeMS` ni el `signal` de la lectura: el
+    monitoreo de comandos lo mostró en el `find` de cada referencia. Ahora los comparten, como la
+    sesión y el contexto.
