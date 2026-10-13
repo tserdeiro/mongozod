@@ -197,6 +197,11 @@ installed version, which may differ from your training data.
 <!-- END:mongozod-agent-rules -->
 ```
 
+## Security
+
+To report a vulnerability, report it privately, as the
+[security policy](https://github.com/tserdeiro/mongozod/security/policy) says.
+
 ## License
 
 [Apache 2.0](https://github.com/tserdeiro/mongozod/blob/main/LICENSE)

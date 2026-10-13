@@ -140,6 +140,10 @@ export default function HomePage() {
             GitHub
           </a>{' '}
           ·{' '}
+          <a href={`${githubUrl}/security/policy`} className="underline">
+            Security
+          </a>{' '}
+          ·{' '}
           <a href="/llms.txt" className="underline">
             llms.txt
           </a>
