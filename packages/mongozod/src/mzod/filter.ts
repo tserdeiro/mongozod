@@ -335,7 +335,7 @@ function conditionSchema(
   // one without operators: it is rejected before the union, so that the message says what it is.
   return z
     .unknown()
-    .refine((value) => !isRegExp(value), REGEX_MESSAGE)
+    .refine((input) => !isRegExp(input), REGEX_MESSAGE)
     .pipe(z.union([object, equal]))
 }
 
