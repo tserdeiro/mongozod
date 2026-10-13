@@ -160,6 +160,13 @@ las rutas para agentes.
   `Referrer-Policy`, `Permissions-Policy` y una CSP que cierra frames, plugins y formularios ajenos.
   No restringe scripts ni estilos: las páginas estáticas los tienen en línea, y los nonces obligan
   a renderizar en cada pedido.
+- **Analytics**: Google Analytics 4, gratis, con el `<GoogleAnalytics />` de
+  `@next/third-parties/google` en el layout raíz, como dice la guía de Next.js. Vercel Web Analytics
+  se descartó por el límite de eventos del plan Hobby. El ID de medición sale de
+  `NEXT_PUBLIC_GA_ID`, que solo se define en producción, así que en local y en los previews no se
+  mide nada (Turborepo incluye las `NEXT_PUBLIC_*` de Next.js en el hash del build). La CSP no
+  restringe scripts ni conexiones, así que no cambia. Va sin banner de consentimiento por ahora,
+  aunque GA usa cookies y el GDPR lo pide para visitantes de la UE.
 - **Alertas**: un plugin de remark propio (`lib/remark-github-alerts.ts`) convierte cada
   `> [!NOTE]` en el `Callout` de Fumadocs, que no las reconoce solo.
 - **Para agentes**: cada página en `/docs/<página>.md` y en la misma URL con

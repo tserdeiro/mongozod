@@ -3,6 +3,7 @@ import type { Metadata } from 'next'
 import './global.css'
 
 import { appName, siteUrl } from '@/lib/shared'
+import { GoogleAnalytics } from '@next/third-parties/google'
 import { RootProvider } from 'fumadocs-ui/provider/next'
 import { Inter } from 'next/font/google'
 
@@ -26,6 +27,8 @@ export default function Layout({ children }: LayoutProps<'/'>) {
       <body className="flex min-h-screen flex-col">
         <RootProvider>{children}</RootProvider>
       </body>
+      {/* Measures only where the deployment sets the ID, so local and preview builds stay out. */}
+      {process.env.NEXT_PUBLIC_GA_ID && <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_ID} />}
     </html>
   )
 }

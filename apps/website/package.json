@@ -11,6 +11,7 @@
     "start": "next start"
   },
   "dependencies": {
+    "@next/third-parties": "16.4.0",
     "@repo/docs": "workspace:*",
     "fumadocs-core": "16.17.1",
     "fumadocs-mdx": "15.4.7",
