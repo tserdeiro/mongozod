@@ -200,7 +200,10 @@ runtime o código sin tipos. Cada problema se junta en un solo `ZodError`, con e
 - **Checks en `$inc` y `$mul`**: los del campo, como `.min(0)`, no se aplican, porque valen para el
   valor, que calcula el servidor con el guardado. Mongoose tampoco: sus update validators ignoran
   `$inc`. El `$jsonSchema` no lleva límites, así que la guarda va en el filtro del update, como en
-  el manual de MongoDB (`available: { $gt: 0 }` con `$inc: { available: -1 }`).
+  el manual de MongoDB (`available: { $gt: 0 }` con `$inc: { available: -1 }`). Sí se rechazan
+  `Infinity` y `NaN` (2026-10-13): `typeof` los da por números, el servidor los guarda y ningún
+  `z.number()` los vuelve a aceptar, así que el documento dejaba de pasar su schema. `mz.update` ya
+  los rechazaba, porque usa `z.number()`.
 - **Upserts**: además, se arma el documento que insertaría el servidor, como lo hace MongoDB 8.2, y
   se valida con el schema; sus errores llevan el path del documento, y el de un campo que falta
   agrega que se da en el filtro o con `$setOnInsert`. Los conflictos entre operadores, como el mismo

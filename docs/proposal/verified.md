@@ -856,3 +856,5 @@
     rechaza con el código 51108. Ahora solo toma `i`, `m`, `x`, `s` y `u`.
   - `parseUpdate` asignaba los paths de cada operador con `=`: un path `__proto__` en un schema
     raíz `z.looseObject` se perdía en silencio, con `modifiedCount: 0`. Ahora es un campo propio.
+  - `$inc` y `$mul` del modelo aceptaban `Infinity` y `NaN`, que el servidor guarda y un `z.number()`
+    no acepta. Ahora piden un número finito.

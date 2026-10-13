@@ -217,6 +217,11 @@ async function parseField(
         return fail(at, `${operator} takes a number`, value)
       }
 
+      // The server stores `Infinity` and `NaN`, which no `z.number()` takes back.
+      if (typeof value === 'number' && !Number.isFinite(value)) {
+        return fail(at, `${operator} takes a finite number`, value)
+      }
+
       if (typeof value === 'number' && !Number.isInteger(value) && schemas.some(isInteger)) {
         return fail(at, `"${path}" is an integer`, value)
       }
