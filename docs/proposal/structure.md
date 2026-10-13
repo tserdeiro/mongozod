@@ -88,8 +88,8 @@
 - **Releases** con Changesets y el workflow de trusted publishing de su guía: cada push a `main`
   abre o actualiza el PR de versión, y al mergearlo publica en npm, con la tag `mongozod@x.y.z` y
   su GitHub Release. Se publica cuando se mergea ese PR, no con cada cambio. El trusted publisher
-  se configuró en npm después de la primera publicación (fase 6), con `release.yml`, sin
-  environment y con «Allow npm publish», porque `changeset publish` no publica en modo stage
+  se configuró en npm después de la primera publicación (fase 6), con `release.yml`, el
+  environment `npm` y «Allow npm publish», porque `changeset publish` no publica en modo stage
   ([changesets/changesets#2025](https://github.com/changesets/changesets/issues/2025)); se quita
   cuando lo soporte. El paquete exige 2FA y no acepta tokens que la salteen. El PR de versión y su
   commit se llaman `chore(release): version packages`, que pasa Conventions.
@@ -99,6 +99,9 @@
   publica en npm. Bun también va en una versión exacta. Los jobs `version` y `publish` instalan con
   permisos de escritura, así que no descargan el binario de MongoDB
   (`MONGOMS_DISABLE_POSTINSTALL`), y lefthook ya no instala sus hooks cuando `CI` está definido.
+- **Environment `npm`**: el job `publish` corre en el environment `npm` de GitHub, que solo acepta
+  `main`, y el trusted publisher de npm lo nombra. Sin él, cualquier workflow de cualquier rama
+  podía pedir el token OIDC, porque npm comprueba el nombre del archivo pero no la rama.
 - **Flujo de trabajo**: el repo es público para poder proteger `main` con un ruleset, que exige un
   pull request con el CI y Conventions en verde, solo con squash, y bloquea el force push y el
   borrado. El admin puede saltear los checks solo dentro de un pull request: el PR de versión lo
