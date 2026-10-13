@@ -66,6 +66,20 @@ describe('the page after a document, from a client', () => {
   })
 })
 
+test('a value with keys that start with $ fails, which MongoDB would read as operators', () => {
+  const rankedAfter = after(z.object({ _id: z.string(), rank: z.record(z.string(), z.number()) }), {
+    rank: 1,
+    _id: 1
+  })
+
+  expect(rankedAfter.safeParse({ _id: 'n4', rank: { $ne: -1 } }).error?.issues).toMatchObject([
+    {
+      message: 'a value cannot have keys that start with "$", which MongoDB reads as operators',
+      path: ['rank']
+    }
+  ])
+})
+
 describe('the declarations', () => {
   test('the sort ends with _id, which breaks ties', () => {
     // @ts-expect-error _id is missing

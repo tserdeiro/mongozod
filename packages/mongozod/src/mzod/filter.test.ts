@@ -144,6 +144,50 @@ describe('a filter from a client', () => {
   })
 })
 
+test('a value with keys that start with $ fails, even where the field takes any object', async () => {
+  const eventSchema = z.object({
+    data: z.unknown(),
+    labels: z.record(z.string(), z.string()),
+    meta: z.looseObject({ source: z.string() }),
+    steps: z.array(z.unknown())
+  })
+  const eventsFilter = filter(eventSchema, {
+    data: ['$eq', '$in', '$ne'],
+    labels: ['$eq'],
+    meta: ['$eq'],
+    steps: ['$all']
+  })
+  const message = 'a value cannot have keys that start with "$", which MongoDB reads as operators'
+
+  // MongoDB reads them as operators in an equality and in $all, so a client would get any of them.
+  await db.collection('events').insertMany([{ labels: { team: 'ads' } }, { labels: {} }])
+  expect(await db.collection('events').countDocuments({ labels: { $ne: null } })).toBe(2)
+
+  expect(
+    [
+      { labels: { $ne: null } },
+      { meta: { $exists: true, source: 'web' } },
+      { data: { $where: 'sleep(1000)' } },
+      { data: { $in: [{ $ne: null }] } },
+      { data: { $ne: { $ne: null } } },
+      { steps: { $all: [{ $elemMatch: { $exists: true } }] } }
+    ].map((value) => issues(eventsFilter, value).join(', '))
+  ).toEqual([
+    'labels: Unrecognized key: "$ne"',
+    'meta: Unrecognized keys: "$exists", "source"',
+    'data: Unrecognized key: "$where"',
+    `data.$in.0: ${message}`,
+    `data.$ne: ${message}`,
+    `steps.$all.0: ${message}`
+  ])
+
+  // An object without them is still a value, at any depth.
+  expect(eventsFilter.parse({ data: { step: { $ne: 1 } }, labels: { team: 'ads' } })).toEqual({
+    data: { step: { $ne: 1 } },
+    labels: { team: 'ads' }
+  })
+})
+
 test('takes Zod Mini schemas, and a discriminated union finds each field in its types', () => {
   const miniFilter = filter(zm.object({ _id: zm.string(), views: zm.optional(zm.number()) }), {
     views: ['$gte']

@@ -8,6 +8,7 @@ import * as core from 'zod/v4/core'
 
 import { isOptional, variants } from '../schema/schema-kinds'
 
+import { filterValue } from './internal/filter-value'
 import { schemasOutsideArrays } from './internal/outside-arrays'
 import { valueSchema } from './internal/value-schema'
 
@@ -119,7 +120,7 @@ export function after(schema: core.$ZodType, sort: Readonly<Record<string, numbe
       )
     }
 
-    shape[key] = valueSchema(targets)
+    shape[key] = filterValue(valueSchema(targets))
   }
 
   return z.strictObject(shape).transform((last) => ({
