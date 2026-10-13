@@ -96,7 +96,7 @@ const EventsModel = mongozod({
 
 // The inputs of the endpoints.
 const listPluginsInput = z.object({
-  after: mz.after(pluginSchema, { createdAt: -1, _id: -1 }).default({}),
+  after: mz.after(pluginSchema, { createdAt: -1, _id: -1 }),
   filter: mz
     .filter(pluginSchema, {
       'connections.status': ['$eq', '$in'],
@@ -106,7 +106,7 @@ const listPluginsInput = z.object({
     })
     .default({}),
   limit: z.number().int().min(1).max(100).default(20),
-  populate: mz.populate({ createdBy: accountSchema.pick({ email: true }) }).optional(),
+  populate: mz.populate({ createdBy: accountSchema.pick({ email: true }) }),
   projection: mz.projection(pluginSchema, { connections: true, name: true, tags: true }),
   sort: mz.sort(pluginSchema, { createdAt: true, name: true }).default({ createdAt: -1 })
 })

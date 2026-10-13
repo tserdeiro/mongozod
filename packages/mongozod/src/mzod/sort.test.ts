@@ -13,21 +13,27 @@ const noteSchema = z.object({
 const notesSort = sort(noteSchema, { 'charge.feature': true, 'createdAt': true, 'title': true })
 
 test('keeps the order of the client, which decides what sorts first', () => {
-  expect(Object.keys(notesSort.parse({ title: 1, createdAt: -1 }))).toEqual(['title', 'createdAt'])
-  expect(Object.keys(notesSort.parse({ createdAt: -1, title: 1 }))).toEqual(['createdAt', 'title'])
+  expect(JSON.stringify(notesSort.parse({ title: 1, createdAt: -1 }))).toBe(
+    '{"title":1,"createdAt":-1}'
+  )
+  expect(JSON.stringify(notesSort.parse({ createdAt: -1, title: 1 }))).toBe(
+    '{"createdAt":-1,"title":1}'
+  )
   expect(notesSort.parse({ 'charge.feature': 1, 'title': undefined })).toEqual({
     'charge.feature': 1
   })
 })
 
-test('takes the declared paths with 1 or -1, and a default from Zod', () => {
+test('takes the declared paths with 1 or -1, nothing, or a default from Zod', () => {
   expect(notesSort.safeParse({ _id: 1 }).success).toBe(false)
   expect(notesSort.safeParse({ title: 'asc' }).success).toBe(false)
   expect(notesSort.safeParse({ title: { $meta: 'textScore' } }).success).toBe(false)
-  expect(z.object({ sort: notesSort.default({ createdAt: -1 }) }).parse({})).toEqual({
-    sort: { createdAt: -1 }
-  })
-  expectTypeOf<z.output<typeof notesSort>>().toEqualTypeOf<{
+  // Nothing is the natural order, unless the project gives a default.
+  expect(z.object({ sort: notesSort }).parse({})).toEqual({})
+  const listSort = notesSort.default({ createdAt: -1 })
+
+  expect(z.object({ sort: listSort }).parse({})).toEqual({ sort: { createdAt: -1 } })
+  expectTypeOf<z.output<typeof listSort>>().toEqualTypeOf<{
     'charge.feature'?: -1 | 1
     'createdAt'?: -1 | 1
     'title'?: -1 | 1

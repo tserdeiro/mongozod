@@ -20,8 +20,9 @@ directamente la sintaxis de Mongo.
   - **`mz.populate`**: las referencias que el cliente puede expandir y los campos que puede ver.
 - **Errores de tipos al declarar**: un `$regex` sobre una fecha, un `$unset` de un campo
   obligatorio, un `$inc` sobre un string o un campo que no existe no compilan.
-- **Con la API de Zod**: cada constructor devuelve un schema de Zod sin default. El proyecto decide
-  qué pasa cuando el cliente no manda algo, con los métodos de Zod: `.default({})` en una lista,
+- **Con la API de Zod**: cada constructor devuelve un schema de Zod. `mz.after`, `mz.projection`,
+  `mz.sort` y `mz.populate` saben qué significa un input que no llega; en el filtro lo decide el
+  proyecto, con los métodos de Zod: `.default({})` en una lista,
   `.required({ _id: true })` en un filtro por id, para que un `{}` no coincida con cualquier
   documento, o `.refine()` para pedir al menos un campo.
 
@@ -54,12 +55,12 @@ function textSearch(term?: string) {
   return { $text: { $search: term } }
 }
 
-const organizationPopulate = mz
-  .populate({ organization: organizationSchema.pick({ _id: true, name: true }) })
-  .optional()
+const organizationPopulate = mz.populate({
+  organization: organizationSchema.pick({ _id: true, name: true })
+})
 
 export const listBrandsSchema = z.object({
-  after: mz.after(brandSchema, { createdAt: -1, _id: -1 }).default({}),
+  after: mz.after(brandSchema, { createdAt: -1, _id: -1 }),
   filter: mz
     .filter(brandSchema, {
       _id: ['$eq', '$in'],
@@ -136,12 +137,18 @@ manda `{ createdAt, _id }` del último elemento de la página.
      native. Sus tipos tampoco: toman `Document`, `ObjectId`, `Binary` y los tipos BSON de `bson`,
      que el driver reexporta, así un proyecto web no carga las declaraciones del driver.
 2. **Sin fallbacks en el router, con la API de Zod.** Los constructores no tienen props propias
-   para lo que pasa cuando el cliente no manda algo: lo decide el proyecto con Zod. Una lista usa
-   `.default({})` en `mz.filter` y `mz.after`, así el router solo junta filtros con `$and`, sin
-   `?? {}` ni `|| {}`, y el proyecto convierte el `term` en filtro dentro del schema. Un filtro por
-   id usa `.required({ _id: true })`, y un findOne que pide al menos uno de varios campos, como los
-   de adsgpt y wortise, usa `.refine()`. `sort` y `populate` toman `.optional()` o un default, como
-   `.default({ createdAt: -1 })`. `projection` es la excepción: trae su `.prefault({})`, porque una
+   para lo que pasa cuando el cliente no manda algo. Cuando un input ausente tiene un solo
+   significado, el constructor lo trae: `mz.after` es `.default({})`, la primera página, que el
+   router junta en el `$and` sin `?? {}`, y `mz.sort` y `mz.populate` son `.optional()`, el orden
+   natural y no expandir nada. Un orden por defecto lo da el proyecto con `.default()` encima. En el
+   filtro no hay uno solo: una lista usa `.default({})` en `mz.filter`, así el router solo junta
+   filtros con `$and`, sin `?? {}` ni `|| {}`, y el proyecto convierte el `term` en filtro dentro
+   del schema; un filtro por id usa `.required({ _id: true })`, y un findOne que pide al menos uno
+   de varios campos, como los de adsgpt y wortise, usa `.refine()`. Con un default en el filtro,
+   olvidarse del `.required()` haría que un `deleteOne` sin filtro borre el primer documento: sin
+   él falla cerrado, con un `ZodError`. Además `.required()`, `.refine()` y `.extend()` existen
+   porque `mz.filter` devuelve un `z.strictObject`, y un default lo envolvería.
+   `projection` trae su `.prefault({})`, porque una
    proyección que no llega solo puede significar la máscara sin abrir el hueco que cierra (el modelo
    sin proyección lee el documento entero). `.prefault()` parsea su valor, `.default()` no. Un
    `.optional()` encima lo saltea: Zod devuelve `undefined` sin correr el builder, así que las docs

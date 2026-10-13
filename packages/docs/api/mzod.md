@@ -61,15 +61,11 @@ export const listPostsInput = z.object({
     })
     .default({}),
 
-  after: mz
-    .after(postSchema, { createdAt: -1, _id: -1 })
-    .default({}),
+  after: mz.after(postSchema, { createdAt: -1, _id: -1 }),
 
-  populate: mz
-    .populate({
-      authorId: userSchema.pick({ _id: true, name: true })
-    })
-    .optional(),
+  populate: mz.populate({
+    authorId: userSchema.pick({ _id: true, name: true })
+  }),
 
   limit: z.number()
     .int()
@@ -93,8 +89,9 @@ Native. The examples on this page reuse `userSchema` and `postSchema` above.
 ## Builders
 
 Each builder takes a declaration, and the schema of the document for all of them but
-`mz.populate`, and returns a Zod schema to nest in the input of an endpoint, without defaults but
-for `mz.projection`, whose missing value is the mask. A
+`mz.populate`, and returns a Zod schema to nest in the input of an endpoint. A missing `after` is
+the first page, a missing projection is the mask, and a missing sort or populate is `undefined`; a
+missing filter is up to each endpoint. A
 wrong declaration doesn't compile and throws an `Error` prefixed with the builder's name, and a
 wrong input fails with Zod's `ZodError`. See [Endpoint inputs](../guides/endpoint-inputs.md), and
 [Defaults and required fields](../guides/endpoint-inputs.md#defaults-and-required-fields) for what a
@@ -173,7 +170,9 @@ At runtime, `$unset` also takes a key that a record or a catchall may lack, such
 ### mz.sort()
 
 `mz.sort(schema, mask)` builds the sort a client can send, with `1` or `-1` on the paths the mask
-declares, in the order the client sends them. See [`mz.sort`](../guides/endpoint-inputs.md#mzsort).
+declares, in the order the client sends them. It is optional: a missing sort is `undefined`, the
+natural order, unless you give a default with `.default()`. See
+[`mz.sort`](../guides/endpoint-inputs.md#mzsort).
 
 ```ts
 const postsSort = mz
@@ -221,8 +220,8 @@ postsProjection.parse(undefined)
 ### mz.after()
 
 `mz.after(schema, sort)` builds the filter of the page after a document, for keyset pagination: the
-client sends the sort values of the last document, and the router gets an `{ $or: [...] }`. See
-[Pagination](../guides/pagination.md).
+client sends the sort values of the last document, and the router gets an `{ $or: [...] }`. A
+missing one is `{}`, the first page. See [Pagination](../guides/pagination.md).
 
 ```ts
 const postsAfter = mz.after(postSchema, { createdAt: -1, _id: -1 })
@@ -232,6 +231,8 @@ postsAfter.parse({ createdAt: '2026-10-05T10:00:00Z', _id: '65c3b9b4f1d2a34b5c6d
 //   { createdAt: { $lt: new Date('2026-10-05T10:00:00Z') } },
 //   { createdAt: new Date('2026-10-05T10:00:00Z'), _id: { $lt: ObjectId('65c3…') } }
 // ] }
+postsAfter.parse(undefined)
+// {}
 ```
 
 - **Errors when declared**: `the sort ends with _id, which breaks ties`,
@@ -245,7 +246,8 @@ postsAfter.parse({ createdAt: '2026-10-05T10:00:00Z', _id: '65c3b9b4f1d2a34b5c6d
 ### mz.populate()
 
 `mz.populate(whitelists)` builds the `populate` a client can send: the references it can expand,
-each with a `z.object` of the fields it can see. See
+each with a `z.object` of the fields it can see. It is optional: a missing one is `undefined`,
+which expands nothing. See
 [`mz.populate`](../guides/endpoint-inputs.md#mzpopulate) and [Populate](../guides/populate.md).
 
 ```ts

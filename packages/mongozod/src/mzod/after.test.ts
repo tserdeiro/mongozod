@@ -52,17 +52,16 @@ describe('the page after a document, from a client', () => {
     })
   })
 
-  test('takes every field of the sort, and the first page gets what the project says', () => {
+  test('takes every field of the sort, and nothing is the first page', () => {
     expect(notesAfter.safeParse({ _id: 'n4', title: 'B' }).success).toBe(false)
     expect(
       notesAfter.safeParse({ _id: 'n4', color: 'red', createdAt: new Date(), title: 'B' }).success
     ).toBe(false)
-    expect(z.object({ after: notesAfter.default({}) }).parse({})).toEqual({ after: {} })
-    expectTypeOf<z.input<typeof notesAfter>>().toEqualTypeOf<{
-      _id: string
-      createdAt: string | Date
-      title: string
-    }>()
+    // `{}`, which the router joins in an `$and` as it is.
+    expect(z.object({ after: notesAfter }).parse({})).toEqual({ after: {} })
+    expectTypeOf<z.input<typeof notesAfter>>().toEqualTypeOf<
+      { _id: string; createdAt: string | Date; title: string } | undefined
+    >()
   })
 })
 

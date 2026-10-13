@@ -46,9 +46,11 @@ test('a client never gets more than the whitelist', () => {
     }
   ])
   expect(brandsPopulate.safeParse({ owner: true }).success).toBe(false)
-  expectTypeOf<z.input<typeof brandsPopulate>>().toEqualTypeOf<{
-    organization?: true | { _id?: 1 | true; name?: 1 | true; slug?: 1 | true }
-  }>()
+  // Nothing expands nothing.
+  expect(z.object({ populate: brandsPopulate }).parse({})).toEqual({})
+  expectTypeOf<z.input<typeof brandsPopulate>>().toEqualTypeOf<
+    { organization?: true | { _id?: 1 | true; name?: 1 | true; slug?: 1 | true } } | undefined
+  >()
 })
 
 test('the router passes it to the model, and each reference may still be its id', async () => {
