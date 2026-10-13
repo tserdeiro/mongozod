@@ -19,11 +19,11 @@ jobs:
     name: Lint, format, types and build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       # Installs pnpm from `packageManager`, Node.js from `.node-version`, and the dependencies.
-      - uses: pnpm/setup@v3
+      - uses: pnpm/setup@a0881977cd8ea73b1ed212236c99ca10dcc80cf4 # v3.1.1
         with:
           require-lockfile: true
       - run: pnpm lint
@@ -46,10 +46,10 @@ jobs:
         # The minimum in `engines`, then each newer major with support.
         node: ['22.15.0', '24', '26']
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: pnpm/setup@v3
+      - uses: pnpm/setup@a0881977cd8ea73b1ed212236c99ca10dcc80cf4 # v3.1.1
         with:
           runtime: node@${{ matrix.node }}
           require-lockfile: true
@@ -59,10 +59,10 @@ jobs:
     name: Types and tests with driver 6.20
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: pnpm/setup@v3
+      - uses: pnpm/setup@a0881977cd8ea73b1ed212236c99ca10dcc80cf4 # v3.1.1
         with:
           require-lockfile: true
       # The driver of Mongoose 8, the lowest in the peer range, and its bson major, in place of the
@@ -82,16 +82,16 @@ jobs:
     name: Test on Bun
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       # Node.js still runs the install scripts (lefthook, mongodb-memory-server).
-      - uses: pnpm/setup@v3
+      - uses: pnpm/setup@a0881977cd8ea73b1ed212236c99ca10dcc80cf4 # v3.1.1
         with:
           require-lockfile: true
-      - uses: oven-sh/setup-bun@v2
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
-          bun-version: latest
+          bun-version: 1.4.3
       # `--bun` runs Vitest and the tests on Bun instead of the `node` in its shebang.
       - run: bun --bun vitest run
         working-directory: packages/mongozod
