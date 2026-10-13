@@ -43,12 +43,10 @@ const listPostsInput = z.object({
     })
     .default({}),
 
-  projection: mz
-    .projection(postSchema, {
-      status: true,
-      title: true
-    })
-    .prefault({})
+  projection: mz.projection(postSchema, {
+    status: true,
+    title: true
+  })
 })
 
 export async function listPosts(body: unknown, userId: ObjectId) {

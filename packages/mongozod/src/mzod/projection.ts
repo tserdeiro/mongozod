@@ -11,22 +11,25 @@ import { withoutUndefined } from './internal/without-undefined'
  * The projection a client can send: MongoDB syntax over the declared paths, with `1` or `true` to
  * include and `0` or `false` to exclude, without mixing both except for `_id`; `undefined` keys are
  * dropped. The mask is the most a client gets: the router always receives an inclusion within it,
- * so an exclusion means the declared paths but those, and `{}` means all of them. MongoDB reads
- * `{ title: 0 }` or `{}` as the whole document, with the fields the mask leaves out. A virtual is
+ * so an exclusion means the declared paths but those, and `{}` or no projection at all means all of
+ * them. MongoDB reads `{ title: 0 }` or `{}` as the whole document, with the fields the mask leaves
+ * out. Don't wrap it in `.optional()`, which gives the model no projection. A virtual is
  * declared as a field, with a schema that adds it, such as
  * `accountSchema.extend({ fullName: z.string() })`.
  *
  * @example
- *   projection: mz.projection(noteSchema, { _id: true, content: true, title: true }).prefault({})
+ *   projection: mz.projection(noteSchema, { _id: true, content: true, title: true })
  *
  * @see https://mongozod.dev/docs/api/mzod#mzprojection
  */
 export function projection<S extends core.$ZodType, const K extends MaskCheck<S, K, 'projection'>>(
   schema: S,
   mask: K & SuggestedMask<S, 'projection'>
-): z.ZodType<
-  Partial<Record<keyof K & string, 0 | 1>>,
-  Partial<Record<keyof K & string, 0 | 1 | boolean>>
+): z.ZodPrefault<
+  z.ZodType<
+    Partial<Record<keyof K & string, 0 | 1>>,
+    Partial<Record<keyof K & string, 0 | 1 | boolean>>
+  >
 >
 
 export function projection(schema: core.$ZodType, mask: Readonly<Record<string, true>>): z.ZodType {
@@ -53,6 +56,7 @@ export function projection(schema: core.$ZodType, mask: Readonly<Record<string, 
 
   const fields = paths.filter((path) => path !== '_id')
 
+  // A missing projection is the mask too: without one, the model would read the whole document.
   return z
     .partialRecord(z.enum([first, ...rest]), z.optional(z.union([z.literal([0, 1]), z.boolean()])))
     .overwrite(withoutUndefined)
@@ -96,4 +100,5 @@ export function projection(schema: core.$ZodType, mask: Readonly<Record<string, 
 
       return projected
     })
+    .prefault({})
 }

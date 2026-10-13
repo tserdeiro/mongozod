@@ -107,7 +107,7 @@ const listPluginsInput = z.object({
     .default({}),
   limit: z.number().int().min(1).max(100).default(20),
   populate: mz.populate({ createdBy: accountSchema.pick({ email: true }) }).optional(),
-  projection: mz.projection(pluginSchema, { connections: true, name: true, tags: true }).optional(),
+  projection: mz.projection(pluginSchema, { connections: true, name: true, tags: true }),
   sort: mz.sort(pluginSchema, { createdAt: true, name: true }).default({ createdAt: -1 })
 })
 

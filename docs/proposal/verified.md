@@ -833,3 +833,7 @@
     documento entero, con los campos que la máscara no declara: un endpoint que ocultaba
     `owner.email` con su máscara lo devolvía con `{ content: 0 }`. Ahora siempre devuelve una
     inclusión de paths declarados.
+  - `mz.projection` con `.optional()` o sin nada, en un input donde la proyección no llegaba, le
+    daba al modelo ninguna proyección, y el modelo leía el documento entero. Ahora el builder trae
+    su `.prefault({})`: una proyección que no llega es la máscara, y la clave es opcional en el
+    input (Zod 4.6.5: `.prefault()` parsea su valor y marca la clave opcional en un `z.object`).

@@ -93,7 +93,8 @@ Native. The examples on this page reuse `userSchema` and `postSchema` above.
 ## Builders
 
 Each builder takes a declaration, and the schema of the document for all of them but
-`mz.populate`, and returns a Zod schema without defaults to nest in the input of an endpoint. A
+`mz.populate`, and returns a Zod schema to nest in the input of an endpoint, without defaults but
+for `mz.projection`, whose missing value is the mask. A
 wrong declaration doesn't compile and throws an `Error` prefixed with the builder's name, and a
 wrong input fails with Zod's `ZodError`. See [Endpoint inputs](../guides/endpoint-inputs.md), and
 [Defaults and required fields](../guides/endpoint-inputs.md#defaults-and-required-fields) for what a
@@ -193,7 +194,7 @@ postsSort.parse({ title: 1, createdAt: -1 })
 
 `mz.projection(schema, mask)` builds the projection a client can send, with `1`, `0`, `true` or
 `false` on the paths the mask declares, and returns an inclusion of declared paths: an exclusion
-means the declared paths but those, and `{}` means all of them. See
+means the declared paths but those, and `{}` or no projection means all of them. See
 [`mz.projection`](../guides/endpoint-inputs.md#mzprojection).
 
 ```ts
@@ -207,6 +208,8 @@ postsProjection.parse({ title: 1, tags: true })
 // { title: 1, tags: 1 }
 postsProjection.parse({ body: 0 })
 // { title: 1, tags: 1 }
+postsProjection.parse(undefined)
+// { title: 1, body: 1, tags: 1 }
 ```
 
 - **Errors when declared**: `"<path>" is not a path of the document`,
