@@ -137,7 +137,7 @@ export async function getPost(id: string) {
 
   if (!parsed.success) return Response.json(z.flattenError(parsed.error), { status: 400 })
 
-  const post = await PostsModel.findOne({ _id: parsed.data })
+  const post = await PostsModel.findOne({ _id: parsed.data, status: 'published' })
 
   if (!post) return Response.json({ error: 'not found' }, { status: 404 })
 
@@ -145,34 +145,40 @@ export async function getPost(id: string) {
 }
 ```
 
+The filter keeps drafts out, as the list does: a draft is reachable by its `_id` otherwise.
+
 ## Errors to clients
 
 A `ZodError` comes from the input of the endpoint or from a write whose data doesn't fit the schema,
-and the driver's errors arrive unchanged, such as a duplicate key on the unique index of `slug`. One
-function turns them into responses:
+and the driver's errors arrive unchanged, such as a duplicate key on the unique index of `slug`. The
+input is parsed apart, so its errors answer 400, and one function turns the errors of the write into
+responses:
 
 ```ts
 function errorResponse(error: unknown) {
 
-  if (error instanceof z.ZodError) return Response.json(z.flattenError(error), { status: 400 })
-
   if (error instanceof MongoServerError && error.code === 11000) {
-    return Response.json({ error: 'already exists', keyValue: error.keyValue }, { status: 409 })
+    return Response.json(
+      { error: 'already exists', fields: Object.keys(error.keyValue ?? {}) },
+      { status: 409 }
+    )
   }
 
-  console.error(error)
+  console.error(error instanceof z.ZodError ? z.prettifyError(error) : error)
 
   return Response.json({ error: 'internal error' }, { status: 500 })
 }
 
-const createPostBody = postSchema.pick({ title: true, slug: true, tags: true, authorId: true })
+const createPostBody = postSchema.pick({ title: true, slug: true, tags: true })
 
-export async function createPost(request: Request) {
+export async function createPost(request: Request, userId: ObjectId) {
+
+  const body = createPostBody.safeParse(await request.json())
+
+  if (!body.success) return Response.json(z.flattenError(body.error), { status: 400 })
 
   try {
-    const body = createPostBody.parse(await request.json())
-
-    const { document } = await PostsModel.insertOne(body)
+    const { document } = await PostsModel.insertOne({ ...body.data, authorId: userId })
 
     return Response.json(document, { status: 201 })
   } catch (error) {
@@ -181,13 +187,19 @@ export async function createPost(request: Request) {
 }
 ```
 
+The author comes from the session, not from the body: with `authorId` in `createPostBody`, a client
+could publish as anyone. The 409 names the fields of the index, not their values, which would tell
+a client which slug or email exists.
+
 `z.flattenError` gives the messages of each field, `{ formErrors, fieldErrors }`. The errors of an
 update are under their operator, as in `{ fieldErrors: { $set: ['Too small: …'] } }`, because
 their path is `['$set', 'title']`. For nested objects, `z.treeifyError` mirrors the schema
 ([Zod docs](https://zod.dev/error-formatting)).
 
-`errorResponse` answers 400 to every `ZodError`, which fits when the client sent the data. A
-`ZodError` from data your own code builds is a bug: catch it apart, log it and answer 500.
+A `ZodError` from the write means your own code built data the schema rejects, a bug, so it is
+logged and answers 500. Some issues carry the value they are about in `input`, so return
+`z.flattenError` and never `error.issues` as they are (see
+[Security](../guides/security.md#errors)).
 
 ## Readable errors in logs
 
@@ -203,6 +215,8 @@ A cursor of `find` can be awaited, but it has no `.catch()`. Await it inside `tr
   field rejects. Send the filter as JSON in `q`.
 - **Passing query or route parameters to the model without parsing them**: MongoZod doesn't cast
   filters, so a hex string never matches an `ObjectId`. Parse with `mz.filter` or `mz.objectId()`.
-- **Answering 500 to a client's invalid data**: catch `ZodError` and answer 400, and 409 for a
-  duplicate key (`code` 11000).
+- **Answering 500 to a client's invalid data**: parse the input apart and answer 400 to its
+  `ZodError`, and 409 for a duplicate key (`code` 11000).
+- **Taking the owner from the body**: a field such as `authorId` comes from the session. Leave it out
+  of the schema the body is parsed with.
 - **Logging `error.message` of a `ZodError`**: it's a JSON string. Log `z.prettifyError(error)`.

@@ -136,10 +136,13 @@ await PostsModel.find({ status: { $in: ['draft', 'published'] } })
 
 - **Without types**, such as in JavaScript or with a filter typed `any`, a value of another type
   matches nothing, without an error: `{ _id: '64f1…' }` finds no document whose `_id` is an
-  `ObjectId`.
+  `ObjectId`. An object of operators is worse: `{ email: { $ne: null } }` matches every document,
+  because MongoDB reads it as an operator. A request body is often typed `any`, so it compiles.
 - **What a client sends** arrives without types, so parse it first: `mz.objectId().parse(id)` for an
   id, and [`mz.filter`](../guides/endpoint-inputs.md) for a whole filter, which converts each value
-  with the schema of its field and accepts only what the endpoint declares.
+  with the schema of its field and accepts only what the endpoint declares. This replaces
+  Mongoose's `sanitizeFilter`: model methods don't sanitize at runtime (see
+  [Security](../guides/security.md)).
 - **Keys** that are not paths of the schema do not compile, where Mongoose's `strictQuery` keeps or
   drops them ([Mongoose docs](https://mongoosejs.com/docs/tutorials/query_casting.html#the-strictquery-option)).
 - **Pipelines**: Mongoose does not cast them

@@ -226,6 +226,7 @@ const tableInput = z.object({
   page: z.number()
     .int()
     .min(1)
+    .max(500)
     .default(1),
 
   pageSize: z.number()
@@ -247,6 +248,9 @@ export async function postsTable(body: unknown) {
   return { rows, total }
 }
 ```
+
+The `.max()` of `page` matters: MongoDB reads every document a `skip` passes over, so a client that
+asks for page 1,000,000 makes the server read the whole collection.
 
 The cursor of `find` also chains them, as the driver's does:
 `PostsModel.find({}).sort(newestFirst).skip(40).limit(20)`.
