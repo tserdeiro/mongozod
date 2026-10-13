@@ -253,8 +253,8 @@ postsAfter.parse(undefined)
 ### mz.populate()
 
 `mz.populate(whitelists)` builds the `populate` a client can send: the references it can expand,
-each with a `z.object` of the fields it can see. It is optional: a missing one is `undefined`,
-which expands nothing. See
+each with a `z.object` of the fields it can see, the ones of its first level: a field that is an
+object comes whole. It is optional: a missing one is `undefined`, which expands nothing. See
 [`mz.populate`](../guides/endpoint-inputs.md#mzpopulate) and [Populate](../guides/populate.md).
 
 ```ts

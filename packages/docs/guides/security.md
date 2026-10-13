@@ -76,7 +76,8 @@ export async function listPosts(body: unknown, userId: ObjectId) {
   No value of `$set` can have a key with a `.` or starting with `$`, at any level, even on a field
   typed `z.record()` or `z.unknown()`. The model validates every write against the schema again.
 - **Projections and populate**: the mask of `mz.projection` is the most a client gets, whatever it
-  sends, and `mz.populate` returns the fields of the schema it picks.
+  sends, and `mz.populate` returns the fields of the first level of the schema it picks: a field
+  that is an object comes whole (see [`mz.populate`](./endpoint-inputs.md#mzpopulate)).
 - **Keys such as `__proto__`**: the builders reject them. When a write reaches the model with one
   in a path or a value, it is a field name, as MongoDB stores it, and never reaches
   `Object.prototype`.

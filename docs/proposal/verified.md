@@ -876,3 +876,6 @@
   - Las consultas de `populate` no llevaban el `maxTimeMS` ni el `signal` de la lectura: el
     monitoreo de comandos lo mostró en el `find` de cada referencia. Ahora los comparten, como la
     sesión y el contexto.
+  - `mz.populate` lee las keys del primer nivel del whitelist: un `profile` recortado a `{ label }`
+    daba `profile: 1` y la lectura traía `profile.token`. Es el contrato, ahora documentado, con la
+    proyección por paths del servidor como salida.

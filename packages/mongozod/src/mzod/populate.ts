@@ -29,6 +29,12 @@ export type PopulateShape<W, D extends Side> = {
  * optional: a client that sends nothing gives `undefined`, which expands nothing. A virtual is
  * declared as a field, with a schema that adds it.
  *
+ * The whitelist is the fields of the first level of the schema, which become the projection: a
+ * field that is an object comes whole, whatever the whitelist declares inside it, and the read is
+ * not parsed with the whitelist. To hide a part of an object, the server sets the `projection` of
+ * the model's `populate` by paths, such as `{ 'profile.label': 1 }`, instead of taking it from
+ * the client.
+ *
  * @example
  *   populate: mz.populate({
  *     organization: organizationSchema.pick({ _id: true, name: true })
@@ -51,6 +57,7 @@ export function populate(whitelists: Readonly<Record<string, core.$ZodObject>>):
           if (fields.length === 0) {
             throw new Error(`mz.populate: "${reference}" declares no fields: pick at least one`)
           }
+
           const some = nonEmptyObject(
             Object.fromEntries(fields.map((field) => [field, z.literal([1, true])])),
             'takes true, or at least one field'

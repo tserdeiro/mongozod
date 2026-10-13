@@ -182,6 +182,14 @@ manda `{ createdAt, _id }` del último elemento de la página.
      (2026-10-13, auditoría privada A01): con `true` daba `projection: {}`, que MongoDB lee como el
      documento entero, así que un `.pick()` por rol que quedaba vacío abría toda la referencia;
      «ningún campo» falla cerrado.
+   - **Campos del primer nivel** (2026-10-13, auditoría privada A02): la lista blanca son las keys
+     del shape, que pasan a la proyección; un campo que es un objeto va entero, aunque la lista lo
+     recorte adentro con otro `.pick()`, y la lectura no se parsea con la lista. Un endpoint que
+     recortaba `profile` a `{ label }` recibía `profile.token`. Se documenta como contrato, con la
+     salida: la proyección por paths del `populate` del modelo, fijada en el servidor. Un recorte
+     profundo, con paths con punto a partir de los `z.object` anidados, cambia los tipos de salida
+     del builder y pide decidir arrays, records y catchalls: es una feature, y queda para la
+     fase 7 del [roadmap](./roadmap.md).
    - **Tipos**: un `populate` escrito en el código da el tipo exacto. El que manda un cliente deja
      el campo como unión con el id, igual que hoy `WithPopulate`, pero calculada sola: desaparecen
      `WithPopulate` y los tipos `BrandRecord`. Como el modelo no sabe si una proyección que llega

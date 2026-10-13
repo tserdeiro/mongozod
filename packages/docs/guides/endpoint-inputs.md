@@ -431,6 +431,13 @@ is declared: MongoDB reads an empty projection as the whole document, so "no fie
 The router gets the `populate` option of the model, with a `projection`. The client never sends a
 `filter` or a `sort`: those belong to the endpoint.
 
+The whitelist is the fields of the first level of its schema, which become the projection: a field
+that is an object comes whole, whatever the whitelist declares inside it, and the documents read are
+not parsed with the whitelist. `userSchema.pick({ profile: true })` gives the whole `profile`, also
+with a `profile` picked down to `{ label }`. To hide a part of an object, set the `projection` of
+the model's `populate` by paths on the server, such as `{ 'profile.label': 1 }`, instead of taking
+the populate from the client.
+
 In the result, the populated field is typed as the id or the referenced document, with each of its
 fields optional, since the model doesn't know at compile time what the client asks for.
 
