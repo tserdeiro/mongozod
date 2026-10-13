@@ -80,6 +80,9 @@ jobs:
   publish:
     needs: pack
     runs-on: ubuntu-latest
+    # Only `main` can deploy to it, and npm's trusted publisher names it, so a workflow on another
+    # branch can't publish.
+    environment: npm
     permissions:
       contents: write
       # npm trusted publishing.
