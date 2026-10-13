@@ -84,6 +84,11 @@ instead:
   `ObjectId` field doesn't compile. Parse what a client sends with
   [`mz.filter`](../guides/endpoint-inputs.md) or `mz.objectId()`, or build it with
   `new ObjectId(id)`.
+- **Request data straight to the model**: `findOne({ email: req.body.email })` compiles, because a
+  request body is typed `any`, and a body of `{ "email": { "$ne": null } }` matches every user.
+  Ask for the input of each endpoint to be parsed once, with `.pick()` of the schema or the `mz`
+  builders, and for owner or tenant conditions to be joined with `$and`. See
+  [Security](../guides/security.md).
 - **`import { mz } from 'mongozod/mzod'`**: there is no `mz` export. Write
   `import * as mz from 'mongozod/mzod'`, as with Zod.
 - **`z.set()` or `z.map()` in a document**: defining the model throws an `Error`, because the driver

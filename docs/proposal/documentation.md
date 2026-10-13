@@ -140,7 +140,9 @@ sabiendo que la norma 7 les permite objetar (decidido el 2026-10-12).
 - **Skills**: solo `skills/migrate-from-mongoose/`, con el texto del «Copy prompt» de la guía. El
   conocimiento va en las docs, que el agente tiene siempre: Next.js midió que rinden más que las
   skills ([evals](https://vercel.com/blog/agents-md-outperforms-skills-in-our-agent-evals)), y deja
-  las skills para los flujos de trabajo.
+  las skills para los flujos de trabajo. La skill y el prompt tienen un paso para conservar la
+  seguridad de cada llamada: parsear el input de cada endpoint antes del modelo, que no sanitiza
+  como el `sanitizeFilter` de Mongoose, y conservar con `$and` las condiciones de dueño o tenant.
 - **JSDoc**: cada export público lleva el link a su página.
 
 ## Sitio

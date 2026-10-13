@@ -356,8 +356,9 @@ that MongoDB stores. Do this model only.
 
 Read first, from the mongozod docs installed with the package, in node_modules/mongozod/dist/docs/:
 README.md, mongoose/index.md, mongoose/cheatsheet.md and mongoose/differences.md, then
-guides/schemas.md, guides/models.md, guides/operations.md and guides/validation.md, and the guide
-of each feature the model uses (populate, virtuals, timestamps, document-types, sync, plugins).
+guides/schemas.md, guides/models.md, guides/operations.md, guides/validation.md and
+guides/security.md, and the guide of each feature the model uses (populate, virtuals, timestamps,
+document-types, sync, plugins).
 They match the installed version: follow them over what you remember of mongozod or Mongoose.
 
 1. Write the Zod schema of the stored document, with mongoose/cheatsheet.md:
@@ -387,7 +388,19 @@ They match the installed version: follow them over what you remember of mongozod
    projection, sort and populate as objects in the options. Keep the Mongoose model if other code
    still uses it or another Mongoose schema has a ref to it.
 
-4. Check, and fix what fails:
+4. Keep the security of each call site, with guides/security.md. mongozod doesn't sanitize or
+   cast filters at runtime, and a request body is typed `any`, so tsc doesn't catch it:
+   - Parse the input of each endpoint once, before the model: .pick() of the model's schema for
+     values, the mz builders (mz.filter, mz.update, mz.projection…) for MongoDB syntax from the
+     client, and mz.objectId() for an id. Check whether the project used sanitizeFilter,
+     strictQuery or mongoose.trusted().
+   - Never pass req.body or req.query whole as a filter, an update or a document to insert.
+   - Keep every owner or tenant condition, joined with the client's filter with $and, never with
+     a spread.
+   - A query that becomes an aggregate skips the plugins, such as soft delete: keep their
+     conditions in its $match. Exclude each select: false field in every read of the model.
+
+5. Check, and fix what fails:
    - tsc passes, with no `as` casts, `any`, @ts-ignore or @ts-expect-error added to make it
      compile.
    - The tests pass against MongoDB.
@@ -395,8 +408,9 @@ They match the installed version: follow them over what you remember of mongozod
      `collection`, as mongoose/index.md shows, and reports the ones that fail `schema.safeParse()`.
    - Run sync() only against a development database, and report its extraIndexes.
 
-5. Report the files you changed, every decision the Mongoose schema left open, and what mongozod
-   does not have yet that the model used, as listed in mongoose/differences.md.
+6. Report the files you changed, every decision the Mongoose schema left open, what mongozod
+   does not have yet that the model used, as listed in mongoose/differences.md, and each call
+   site that takes data from a request, with how its input is parsed now.
 ```
 
 ## Common mistakes

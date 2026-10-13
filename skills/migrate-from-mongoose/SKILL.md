@@ -24,7 +24,8 @@ the Mongoose models of the project and ask which one.
    - Run `npm ls mongodb` again: it shows one version, `deduped` under `mongoose`.
 3. Read these pages of `node_modules/mongozod/dist/docs/`: `README.md`, `mongoose/index.md`,
    `mongoose/cheatsheet.md` and `mongoose/differences.md`, then `guides/schemas.md`,
-   `guides/models.md`, `guides/operations.md` and `guides/validation.md`, and the guide of each
+   `guides/models.md`, `guides/operations.md`, `guides/validation.md` and `guides/security.md`, and
+   the guide of each
    feature the model uses, such as `guides/populate.md`, `guides/virtuals.md`,
    `guides/timestamps.md`, `guides/document-types.md`, `guides/sync.md` or `guides/plugins.md`.
    They match the installed version: follow them over what you remember of MongoZod or Mongoose.
@@ -37,6 +38,8 @@ the Mongoose models of the project and ask which one.
 - The Mongoose schema and model, with its middleware, methods, statics, virtuals, indexes and
   plugins.
 - Every file that uses the model, including other Mongoose schemas with a `ref` to it.
+- How the project protects its queries: whether it sets `sanitizeFilter` or `strictQuery`, calls
+  `mongoose.trusted()`, and which call sites pass data from a request to the model.
 - The name of its collection: the one the schema sets in `collection`, or the model name lowercased
   and in plural, such as `posts` for `Post`.
 - Without a Mongoose schema, such as for a collection that another service writes, a `$jsonSchema`
@@ -92,6 +95,22 @@ Rewrite each use of the Mongoose model with the cheatsheet and `mongoose/differe
 - A transaction passes `{ session }` to each MongoZod operation, also when Mongoose sets
   `transactionAsyncLocalStorage`.
 
+Keep the security of each call site, with `guides/security.md` and `guides/endpoint-inputs.md`:
+
+- MongoZod doesn't sanitize or cast filters at runtime, and a request body is typed `any`, so `tsc`
+  doesn't catch a request value that reaches the model. Parse the input of each endpoint once,
+  before the model: a schema from `.pick()` of the model's schema for values, `mz.filter`,
+  `mz.update`, `mz.sort`, `mz.projection` or `mz.populate` for what the client sends as MongoDB
+  syntax, and `mz.objectId()` for an id.
+- Never pass `req.body`, `req.query` or another request object whole as a filter, an update or a
+  document to insert. An insert takes `.pick()` of the fields a client may write.
+- Keep every condition that scopes the documents to the user, such as an owner or a tenant, and
+  join it with the client's filter with `$and`, never with a spread.
+- A query that becomes an `aggregate` skips the model's plugins, such as soft delete: keep their
+  conditions in its `$match`.
+- For each `select: false` field, find every read of the model, `findOneAnd*` and `populate`
+  included, and exclude the field there.
+
 Keep the Mongoose model while other code calls it or another Mongoose schema has a `ref` to it.
 
 ## 6. Verify
@@ -119,4 +138,5 @@ Tell the user:
 - Each decision the Mongoose schema or the `$jsonSchema` left open, such as a field you made
   optional or an enum you inferred from the code.
 - What the model used that MongoZod does not have yet, and the workaround you used.
+- Each call site that takes data from a request, and how its input is parsed now.
 - The script that checks the stored documents, and what `sync()` reported.
