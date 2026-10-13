@@ -109,6 +109,11 @@
   mergear el PR de versión, el `.tgz` de `pnpm pack` se prueba en adsgpt. Una versión rota no se
   reemplaza: se publica un patch y se la marca con `npm deprecate`.
 
+- **Seguridad**: `SECURITY.md` en la raíz pide reportar una vulnerabilidad por el reporte privado
+  de GitHub, no en un issue, y promete una primera respuesta en 7 días. Los arreglos van a la
+  última versión. El README y el pie del sitio la enlazan. Una auditoría de seguridad no se sube al
+  repo: describe cómo explotar lo que todavía no salió arreglado.
+
 ## Documentación
 
 El sitio, el formato de los docs y cómo llegan a los agentes están en
