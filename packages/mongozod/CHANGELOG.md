@@ -1,5 +1,19 @@
 # mongozod
 
+## 0.3.3
+
+### Patch Changes
+
+- 345bfa7: The `$options` of `mz.filter` takes only the flags MongoDB takes, `i`, `m`, `x`, `s` and `u`: any other reached the server, which rejects it with the code 51108.
+- 345bfa7: `mz.filter` and `mz.after` reject a `RegExp` or a `BSONRegExp` as a value, which MongoDB matches as a pattern where the endpoint declared an equality: a transport such as superjson sends one, and a transform can build one. A pattern enters through a declared `$regex` only.
+- 345bfa7: `mz.filter` and `mz.after` check the values the schema returns too, not only the ones the client sends: a field with a transform that parses JSON turned a string into `{ $ne: null }` after the check, and MongoDB read it as an operator.
+- 345bfa7: The model throws a `ZodError` when a filter has an `undefined` value, at any level: the driver sends it as `null`, which matches the documents without the field, so `findOne({ email, resetToken: body.token })` with a body without a token matched the users without one. The types already rejected it, and a value typed `any` compiled.
+- 345bfa7: `mz.populate` throws an `Error` when it is declared with a whitelist that has no fields: a client that sent `true` got `projection: {}`, which MongoDB reads as the whole referenced document.
+- 345bfa7: The queries of `populate` take the `maxTimeMS` and the `signal` of the read that asks for them, as they take its session: the limit of a read bounds each of its queries, not only the first one.
+- 345bfa7: `$inc` and `$mul` reject `Infinity` and `NaN`, which the server stores and no `z.number()` takes back.
+- 345bfa7: An update whose path is `__proto__`, on a schema that takes any key, such as `z.looseObject()`, is written as a field, as MongoDB stores it: the model dropped it in silence.
+- 345bfa7: `mz.update` rejects a value of `$set` with a key that has a `.` or starts with `$`, at any level, as the model does when it writes: on a field that takes any object, such as `z.record()` or `z.unknown()`, the builder accepted it and the write threw.
+
 ## 0.3.2
 
 ### Patch Changes
