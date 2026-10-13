@@ -842,3 +842,40 @@
     que parsear `{}` falla, y `.default()` lo devuelve sin parsear (Zod 4.6.5). `mz.sort` y
     `mz.populate` traen su `.optional()`, y un `.default({ createdAt: -1 })` encima sigue andando,
     con una salida sin `undefined`.
+- **La auditoría contra las guías oficiales** (2026-10-13, OWASP WSTG NoSQL Injection, Node.js
+  Security Best Practices y el Security Checklist de MongoDB; MongoDB 8.2.6, Zod 4.6.5): 21 pruebas
+  y un fuzz de 80 payloads en 8 posiciones contra un `mz.filter` con `$or`, sin ningún operador no
+  declarado aceptado ni contaminación de `Object.prototype`. Lo que se arregló, con un test que
+  fallaba antes:
+  - `findOne({ email, resetToken: body.token })` con un body sin token encontraba al usuario sin
+    `resetToken`: el driver manda `undefined` como `null`. Ahora el modelo lanza un `ZodError` por
+    un `undefined` a cualquier nivel del filtro, también en `bulkWrite`.
+  - `mz.update` aceptaba en un `$set` de un `z.record()` o un `z.unknown()` un valor con keys `$` o
+    con punto, que `written()` rechazaba después al escribir. Ahora el builder corre la misma regla.
+  - `$options` de `mz.filter` tomaba cualquier string, y `g` o `zz` llegaban al servidor, que los
+    rechaza con el código 51108. Ahora solo toma `i`, `m`, `x`, `s` y `u`.
+  - `parseUpdate` asignaba los paths de cada operador con `=`: un path `__proto__` en un schema
+    raíz `z.looseObject` se perdía en silencio, con `modifiedCount: 0`. Ahora es un campo propio.
+  - `$inc` y `$mul` del modelo aceptaban `Infinity` y `NaN`, que el servidor guarda y un `z.number()`
+    no acepta. Ahora piden un número finito.
+  - Las docs ganan `getting-started/connection.md`: el cliente (`useBigInt64`, `maxTimeMS`,
+    `ignoreUndefined` como lo que no es una protección, `promoteBuffers`), el usuario (`readWrite`
+    para la app, `dbAdmin` solo para el `sync()` del deploy) y el servidor
+    (`security.javascriptEnabled: false` cuando la app no usa `$where`, `$function`, `$accumulator`
+    ni `mapReduce`, como pide el checklist), más lo que queda fuera de la librería.
+- **La auditoría privada de otro agente** (2026-10-13, `.private-security-audit/`, fuera de Git;
+  MongoDB 8.2.6): sus reproducciones pasaban contra `0.3.2`. Lo que se arregló:
+  - `mz.populate` con un whitelist sin campos y un `true` del cliente daba `projection: {}`, el
+    documento entero. Ahora lanza un `Error` al declararse.
+  - `filterValue` chequeaba las keys `$` solo en la entrada: un `z.string().transform(JSON.parse)`
+    devolvía `{ $ne: null }` como valor de igualdad, en `mz.filter` y en `mz.after`. Ahora chequea
+    también la salida del schema.
+  - Un `RegExp` o un `BSONRegExp` pasaba el chequeo de keys `$` de `filterValue`, y el driver lo
+    mandaba como patrón donde el endpoint declaraba `$eq`. Ahora se rechaza, antes y después del
+    schema.
+  - Las consultas de `populate` no llevaban el `maxTimeMS` ni el `signal` de la lectura: el
+    monitoreo de comandos lo mostró en el `find` de cada referencia. Ahora los comparten, como la
+    sesión y el contexto.
+  - `mz.populate` lee las keys del primer nivel del whitelist: un `profile` recortado a `{ label }`
+    daba `profile: 1` y la lectura traía `profile.token`. Es el contrato, ahora documentado, con la
+    proyección por paths del servidor como salida.

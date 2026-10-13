@@ -53,6 +53,13 @@ test('a client never gets more than the whitelist', () => {
   >()
 })
 
+test('a whitelist without fields throws, since {} would be the whole document', () => {
+  expect(() => populate({ organization: organizationSchema.pick({}) })).toThrow(
+    'mz.populate: "organization" declares no fields: pick at least one'
+  )
+  expect(() => populate({ organization: z.object({}) })).toThrow('declares no fields')
+})
+
 test('the router passes it to the model, and each reference may still be its id', async () => {
   const BrandsModel = mongozod({
     collection: 'brands',

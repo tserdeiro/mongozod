@@ -5,6 +5,7 @@ import { z } from 'zod'
 
 import { isPlainObject } from '../utils/is-plain-object'
 import { setField } from '../utils/set-field'
+import { unreachableKey } from '../utils/unreachable-key'
 
 /** The result of parsing a value to write: the value, or every problem it has. */
 export type WrittenResult =
@@ -68,14 +69,9 @@ function written(value: unknown, path: PropertyKey[], issues: core.$ZodIssue[]):
   for (const [key, field] of Object.entries(value)) {
     if (field === undefined) continue
 
-    if (key.includes('.') || key.startsWith('$')) {
-      issues.push({
-        code: 'custom',
-        input: field,
-        message: `"${key}" cannot be a key: no path reaches a key with a "." or starting with "$"`,
-        path: [...path, key]
-      })
-    }
+    const message = unreachableKey(key)
+
+    if (message) issues.push({ code: 'custom', input: field, message, path: [...path, key] })
 
     setField(copy, key, written(field, [...path, key], issues))
   }

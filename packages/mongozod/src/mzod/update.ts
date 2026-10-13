@@ -9,6 +9,7 @@ import { z } from 'zod'
 import { isDynamicKey } from '../schema/schema-at'
 import { isDecimal, isInteger, isNumber, isOptional } from '../schema/schema-kinds'
 import { withoutChecks } from '../schema/without-checks'
+import { firstUnreachableKey } from '../utils/unreachable-key'
 
 import { nonEmptyObject } from './internal/non-empty-object'
 import { schemasOutsideArrays } from './internal/outside-arrays'
@@ -125,6 +126,23 @@ export type UpdateShape<S, U, D extends Side> = {
   }
 }
 
+/**
+ * The value of a `$set`, checked as the model checks what it writes: no key with a `.` or starting
+ * with `$` at any level, which a field that takes any object, such as `z.record()` or
+ * `z.unknown()`, would let through. The builder rejects it, so the client gets the error instead
+ * of the write, with one issue, for the first key.
+ */
+function writtenValue(schema: core.$ZodType): core.$ZodType {
+  return z.pipe(
+    schema,
+    z.unknown().check((ctx) => {
+      const found = firstUnreachableKey(ctx.value)
+
+      if (found) ctx.issues.push({ code: 'custom', input: ctx.value, ...found })
+    })
+  )
+}
+
 function valueOf(schema: core.$ZodType, operator: string, path: string): core.$ZodType {
   if (path === '_id' || path.startsWith('_id.')) throw new Error('mz.update: the _id is immutable')
 
@@ -132,7 +150,7 @@ function valueOf(schema: core.$ZodType, operator: string, path: string): core.$Z
 
   switch (operator) {
     case '$set':
-      return valueSchema(targets)
+      return writtenValue(valueSchema(targets))
 
     case '$unset':
       // A key of a record or a catchall may be missing, as the model's updates take it.
@@ -162,9 +180,10 @@ function valueOf(schema: core.$ZodType, operator: string, path: string): core.$Z
  * one declares, outside arrays. Values are parsed with the schema of their field, refinements
  * included, and a default is never filled in: an update of one field does not reset the others.
  * `$unset` only takes optional fields, and `$inc` numbers or a `Decimal128`, which takes what its
- * schema parses, such as the string of an amount. An update without operators fails, as
- * in the driver; `undefined` keys are dropped. The fields of `timestamps` are not declared: the
- * model sets them, and its update rejects them.
+ * schema parses, such as the string of an amount. A value of `$set` cannot have a key with a `.`
+ * or starting with `$`, at any level, as the model rejects it when it writes. An update without
+ * operators fails, as in the driver; `undefined` keys are dropped. The fields of `timestamps` are
+ * not declared: the model sets them, and its update rejects them.
  *
  * @example
  *   update: mz.update(noteSchema, {

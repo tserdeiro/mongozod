@@ -77,6 +77,19 @@ test('a value with keys that start with $ fails, which MongoDB would read as ope
       path: ['rank']
     }
   ])
+
+  // Also when a transform builds the object out of what the client sends.
+  const parsedAfter = after(
+    z.object({
+      _id: z.string(),
+      key: z.string().transform((json): Record<string, unknown> => JSON.parse(json))
+    }),
+    { key: 1, _id: 1 }
+  )
+
+  expect(parsedAfter.safeParse({ _id: 'n4', key: '{"$ne":null}' }).error?.issues).toMatchObject([
+    { path: ['key'] }
+  ])
 })
 
 describe('the declarations', () => {

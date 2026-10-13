@@ -63,15 +63,21 @@ export async function listPosts(body: unknown, userId: ObjectId) {
 
 - **Fields and operators**: `mz.filter` accepts the paths and the operators it declares, and
   anything else fails with a `ZodError`. `$where`, `$expr` and `$function` are never accepted (see
-  [`$where` and `$expr`](./endpoint-inputs.md#where-and-expr)).
+  [`$where` and `$expr`](./endpoint-inputs.md#where-and-expr)), and MongoZod never runs JavaScript
+  on the server itself.
 - **Values**: each value is parsed with the schema of its field, so an id is an `ObjectId` and a
   date is a `Date`. No value can be an object with a key that starts with `$`, even on a field
-  typed `z.record()` or `z.unknown()`, so a client can't send `{ "$ne": null }` as a value.
+  typed `z.record()` or `z.unknown()`, so a client can't send `{ "$ne": null }` as a value. Nor a
+  regular expression, which MongoDB matches as a pattern: a pattern only enters through a declared
+  `$regex`. The checks run on what the client sends and on what the schema returns, so a transform
+  that parses JSON or builds a `RegExp` can't produce one either.
 - **Updates**: `mz.update` accepts the paths each operator declares. It can't declare the `_id`,
   and on a model with [timestamps](./timestamps.md) the model rejects `createdAt` and `updatedAt`.
-  The model validates every write against the schema again.
+  No value of `$set` can have a key with a `.` or starting with `$`, at any level, even on a field
+  typed `z.record()` or `z.unknown()`. The model validates every write against the schema again.
 - **Projections and populate**: the mask of `mz.projection` is the most a client gets, whatever it
-  sends, and `mz.populate` returns the fields of the schema it picks.
+  sends, and `mz.populate` returns the fields of the first level of the schema it picks: a field
+  that is an object comes whole (see [`mz.populate`](./endpoint-inputs.md#mzpopulate)).
 - **Keys such as `__proto__`**: the builders reject them. When a write reaches the model with one
   in a path or a value, it is a field name, as MongoDB stores it, and never reaches
   `Object.prototype`.
@@ -113,6 +119,23 @@ The model can't do it alone. The schema describes values, and an injection is an
 `{ title: { $ne: null } }` that your code writes, which is a valid filter, reaches the model the
 same as one a client sent. What a client may send is a decision of each endpoint, which its input
 declares.
+
+A value that is missing is the other half of this. The driver sends an `undefined` value as
+`null`, which matches the documents without the field, so a request without a token would match
+the users that have none:
+
+```ts
+import type { AnyModel } from 'mongozod'
+
+declare const UsersModel: AnyModel
+
+// Throws a ZodError when the body has no token: the driver would send { resetToken: null }.
+await UsersModel.findOne({ email: request.body.email, resetToken: request.body.token })
+```
+
+The types of the model reject an `undefined` value, and the model throws a `ZodError` at runtime
+for the ones that arrive typed `any`, at any level of the filter. Leave the key out, or write `null`
+or `{ $exists: false }` when that is what you mean.
 
 The same goes for inserts: a body parsed with the whole schema lets a client choose the `_id`,
 `createdAt` or a field of a plugin, such as `deletedAt`. Parse it with `.pick()` of the fields a
@@ -161,21 +184,31 @@ and answer with a 500. Some issues that MongoZod adds carry the value in `input`
 whole filter with your scope, so don't return `error.issues` as they are. The same goes for driver
 errors, such as the `keyValue` of a duplicate key, which tells a client which email exists.
 
+### Server-side JavaScript
+
+A filter of a model, an `aggregate` pipeline and an update with `updatePipeline: true` reach the
+server as you write them, `$where`, `$function` and `$accumulator` included: they are the driver's.
+Never build one from what a client sends, and disable server-side scripting when the application
+doesn't use them, with `security.javascriptEnabled: false`, as the MongoDB security checklist says
+(see [The server](../getting-started/connection.md#the-server)).
+
 ### The connection
 
-Connect with a database user that has only the roles the application needs, and read the
-connection string from the environment, as the
+Read the connection string from the environment, as the
 [OWASP NoSQL Security Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/NoSQL_Security_Cheat_Sheet.html)
-recommends.
+recommends, and connect with a user that has `readWrite` on its database and nothing more:
+`sync()` with `jsonSchema` needs `dbAdmin`, so it runs from a deploy step with another user. The
+client options that matter, and what the server side needs, are in
+[Connection](../getting-started/connection.md).
 
 ## From Mongoose
 
-| Mongoose               | MongoZod                                                                                                  |
-| ---------------------- | --------------------------------------------------------------------------------------------------------- |
-| `sanitizeFilter: true` | Parse each request value with `mz.filter`, `mz.objectId()` or a Zod schema: model methods don't sanitize. |
-| `strictQuery`          | A path outside the schema doesn't compile, and `mz.filter` rejects undeclared paths at runtime.           |
-| `mongoose.trusted()`   | Not needed: a filter the server builds goes to the model as it is.                                        |
-| `select: false`        | Not there yet: see [Sensitive fields](#sensitive-fields).                                                 |
+| Mongoose               | MongoZod                                                                                                                                                                   |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `sanitizeFilter: true` | Parse each request value with `mz.filter`, `mz.objectId()` or a Zod schema: model methods don't sanitize.                                                                  |
+| `strictQuery`          | A path outside the schema doesn't compile, and `mz.filter` rejects undeclared paths at runtime. An `undefined` value doesn't compile, and the model rejects it at runtime. |
+| `mongoose.trusted()`   | Not needed: a filter the server builds goes to the model as it is.                                                                                                         |
+| `select: false`        | Not there yet: see [Sensitive fields](#sensitive-fields).                                                                                                                  |
 
 ## Reporting a vulnerability
 

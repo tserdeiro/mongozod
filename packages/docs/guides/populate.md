@@ -422,6 +422,8 @@ document.
 - **Through the model of the target**: its plugins and virtuals apply. The `filter` of the
   `populate` goes in an `$and` with the `$in`, so a `filter` on the `_id` narrows the references
   instead of replacing them.
+- **With the `maxTimeMS` and the `signal` of the read**: the limit bounds each query of the
+  populate too, one by one, not the whole read.
 - **With the session and the context of the read**: inside a transaction, the queries see its
   writes. The plugins of each target validate their part of the `context`, and a read that
   populates a model whose plugins ask for a context in the reads takes it, as

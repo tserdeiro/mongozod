@@ -63,8 +63,16 @@ tipo del campo y `E` el de sus elementos, si es un array:
 - **`_id`**: siempre existe; es un `ObjectId` si el schema no lo declara.
 - **`undefined`**: no compila. El driver lo manda como `null`, que coincide con los documentos sin
   el campo o con `null`, y con `ignoreUndefined` la key desaparece y coincide con todos. Para eso
-  se escribe `null` o `$exists: false`. En runtime no se toca. Un filtro armado con tipos que tienen
-  keys opcionales, como la salida de `mz.filter`, sigue compilando.
+  se escribe `null` o `$exists: false`. Un filtro armado con tipos que tienen keys opcionales, como
+  la salida de `mz.filter`, sigue compilando.
+  - **En runtime también se rechaza** (2026-10-13, auditoría contra las guías de OWASP): un
+    `req.body.token` es `any` y compila, y `findOne({ email, resetToken: body.token })` sin token
+    encontraba al usuario sin `resetToken` (verificado con MongoDB 8.2.6). Como un `sort` string, el
+    modelo lanza un `ZodError` cuando un filtro tiene un `undefined` a cualquier nivel, también en
+    `$and`/`$or`, en un operador y en un elemento de `$in`, con el path del valor. Corre sobre el
+    filtro que dejan los plugins, antes del driver, y sobre los filtros de `bulkWrite`. No se usa
+    `ignoreUndefined` del driver: borra la key y el filtro coincide con todos. Los builders de `mz`
+    no lo sufren: descartan las keys `undefined`.
 - **Sin casting**: Mongoose convierte cada valor del filtro según el schema, como `'42'` a `42` o
   un hex a `ObjectId`, y lanza un `CastError` si no puede
   ([Query Casting](https://mongoosejs.com/docs/tutorials/query_casting.html)). mongozod no toca
@@ -192,7 +200,10 @@ runtime o código sin tipos. Cada problema se junta en un solo `ZodError`, con e
 - **Checks en `$inc` y `$mul`**: los del campo, como `.min(0)`, no se aplican, porque valen para el
   valor, que calcula el servidor con el guardado. Mongoose tampoco: sus update validators ignoran
   `$inc`. El `$jsonSchema` no lleva límites, así que la guarda va en el filtro del update, como en
-  el manual de MongoDB (`available: { $gt: 0 }` con `$inc: { available: -1 }`).
+  el manual de MongoDB (`available: { $gt: 0 }` con `$inc: { available: -1 }`). Sí se rechazan
+  `Infinity` y `NaN` (2026-10-13): `typeof` los da por números, el servidor los guarda y ningún
+  `z.number()` los vuelve a aceptar, así que el documento dejaba de pasar su schema. `mz.update` ya
+  los rechazaba, porque usa `z.number()`.
 - **Upserts**: además, se arma el documento que insertaría el servidor, como lo hace MongoDB 8.2, y
   se valida con el schema; sus errores llevan el path del documento, y el de un campo que falta
   agrega que se da en el filtro o con `$setOnInsert`. Los conflictos entre operadores, como el mismo
@@ -210,7 +221,11 @@ runtime o código sin tipos. Cada problema se junta en un solo `ZodError`, con e
     de un filtro o de un path del update es un nombre de campo, como en MongoDB, y no llega a
     `Object.prototype`. Recorrerlo como propiedad dejaba que un upsert con
     `$set: { 'settings.__proto__.isAdmin': true }` cambiara el prototipo de todos los objetos del
-    proceso. Lo mismo vale para la copia sin `undefined` que se escribe en un insert.
+    proceso. Lo mismo vale para la copia sin `undefined` que se escribe en un insert, y para los
+    objetos de operadores que arma `parseUpdate` (2026-10-13): asignaba `parsed[op][path] = valor`,
+    así que un path `__proto__` de un schema raíz `z.looseObject` o con catchall cambiaba el
+    prototipo de ese objeto interno y el `$set` viajaba vacío, sin error ni contaminación global
+    (verificado con MongoDB 8.2.6). Ahora los crea con `setField`, como `written()` y `setPath`.
   - **Valores que el schema cambia**: el servidor copia el valor del filtro tal cual, sin pasar por
     Zod. Si el schema lo guardaría distinto, como un email que un transform pasa a minúsculas o un
     objeto al que le falta un default, el upsert lanza un `ZodError` en ese path: filtrar por el

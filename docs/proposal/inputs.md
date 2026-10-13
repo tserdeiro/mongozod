@@ -178,7 +178,18 @@ manda `{ createdAt, _id }` del último elemento de la página.
      con `takes true, or an object with 1 or true for some of its fields`, en vez del
      `Invalid input` de una unión, y el campo de afuera con el `Unrecognized key` de Zod. El router recibe
      el `populate` del modelo, con una `projection` de `1`. El cliente no manda `filter` ni `sort`:
-     son decisiones del endpoint.
+     son decisiones del endpoint. Una lista blanca sin campos lanza un `Error` al declararse
+     (2026-10-13, auditoría privada A01): con `true` daba `projection: {}`, que MongoDB lee como el
+     documento entero, así que un `.pick()` por rol que quedaba vacío abría toda la referencia;
+     «ningún campo» falla cerrado.
+   - **Campos del primer nivel** (2026-10-13, auditoría privada A02): la lista blanca son las keys
+     del shape, que pasan a la proyección; un campo que es un objeto va entero, aunque la lista lo
+     recorte adentro con otro `.pick()`, y la lectura no se parsea con la lista. Un endpoint que
+     recortaba `profile` a `{ label }` recibía `profile.token`. Se documenta como contrato, con la
+     salida: la proyección por paths del `populate` del modelo, fijada en el servidor. Un recorte
+     profundo, con paths con punto a partir de los `z.object` anidados, cambia los tipos de salida
+     del builder y pide decidir arrays, records y catchalls: es una feature, y queda para la
+     fase 7 del [roadmap](./roadmap.md).
    - **Tipos**: un `populate` escrito en el código da el tipo exacto. El que manda un cliente deja
      el campo como unión con el id, igual que hoy `WithPopulate`, pero calculada sola: desaparecen
      `WithPopulate` y los tipos `BrandRecord`. Como el modelo no sabe si una proyección que llega
@@ -198,9 +209,25 @@ manda `{ createdAt, _id }` del último elemento de la página.
      `z.looseObject()`, dejaba pasar `{ $ne: null }` como valor. Ningún documento puede guardar
      esas claves, así que como valor nunca encontrarían nada. Se rechaza en vez de envolverlo en
      `$eq`, como hace el `sanitizeFilter` de Mongoose, porque esa igualdad pasaría sin encontrar
-     nada y sin avisar. Lo mismo vale para los valores de `mz.after`.
+     nada y sin avisar. Lo mismo vale para los valores de `mz.after`. El chequeo corre sobre lo que
+     manda el cliente y otra vez sobre lo que devuelve el schema (2026-10-13, auditoría privada
+     A03): un campo `z.string().transform(JSON.parse)` convertía el string `'{"$ne":null}'` en el
+     objeto de operadores después del chequeo, y MongoDB lo ejecutaba (verificado con MongoDB
+     8.2.6). Es el mismo orden que `mz.update`, que chequea las keys de la salida.
+   - **Sin expresiones regulares como valor** (2026-10-13, auditoría privada A05): un `RegExp`, o un
+     `BSONRegExp`, no tiene keys `$` pero MongoDB lo compara como patrón, no como igualdad:
+     `{ data: /./ }` encontraba todos los strings de un campo `z.unknown()` que declaraba solo
+     `$eq` (verificado con MongoDB 8.2.6). JSON no manda uno, pero superjson sí, y un transform
+     puede armarlo. Se rechaza en los dos chequeos de `filterValue`, con un mensaje que manda al
+     `$regex` declarado. En el modelo sigue valiendo: un `RegExp` en un filtro del servidor es el
+     del driver.
    - **Objeto de operadores**: tiene al menos uno, porque `{}` es en Mongo una igualdad con un
      objeto vacío.
+   - **Flags de `$options`** (2026-10-13, auditoría contra las guías de OWASP): solo `i`, `m`, `x`,
+     `s` y `u`, los que MongoDB acepta; con otro, como `g`, el servidor rechaza el filtro con el
+     código 51108, un 500 por un error del cliente. El patrón no se valida antes: MongoDB usa
+     PCRE2, que acepta `(?i)` y JavaScript no, así que un `new RegExp()` de prueba rechazaría
+     patrones válidos; un patrón inválido es el código 51091 del servidor, y la guía lo documenta.
    - **`$options`**: solo va con `$regex`. Sin él, MongoDB rechaza el filtro con el código 2
      (`$options needs a $regex`), así que `mz.filter` lo rechaza antes, con un `ZodError`.
 5. **`$elemMatch` toma lo declarado para el elemento.** En un array de objetos,
@@ -247,6 +274,18 @@ manda `{ createdAt, _id }` del último elemento de la página.
      MongoDB lo acepta y no hace nada.
    - **Dos validaciones**: `mz.update` valida y parsea los valores, y el modelo los vuelve a validar
      al escribir. Con la forma documentada de las fechas, un `Date` vuelve a pasar igual.
+   - **Keys que ningún path alcanza** (2026-10-13, auditoría contra las guías de OWASP): el valor
+     de un `$set` corre la misma regla que `written()` del modelo, ninguna key con `.` o que
+     empiece con `$` a ningún nivel. Antes, en un campo `z.record()` o `z.unknown()`, el builder
+     aceptaba `{ $where: 'x' }` o `{ 'a.b': 1 }` y el modelo lo rechazaba al escribir: un 500, el que
+     la guía de seguridad pide para un `ZodError` de escritura, por un error del cliente. En
+     `mz.filter` no hace falta: una key `$` anidada en un valor de igualdad es un literal para
+     MongoDB (verificado con MongoDB 8.2.6, `{ meta: { a: { $ne: 1 } } }` no encuentra nada). El
+     recorrido entra solo en arrays y objetos planos, como `written()`, y se detiene en la primera
+     key, con un solo issue (revisión privada R01 y R02): entrar en un `Binary` de `mz.binary()`
+     recorría sus bytes, 200 ms por MiB antes de MongoDB, y 130.000 keys `$` daban 130.000 issues,
+     que desbordaban el `push(...issues)` con que Zod los propaga: un `RangeError` en vez de un
+     `ZodError`.
 9. **`mz.sort` y `mz.projection` se declaran con una máscara, como `.pick()`:**
    `mz.sort(noteSchema, { createdAt: true, title: true })`. Con un array, el editor no sugiere los
    paths y un error pierde su mensaje, el mismo límite de TypeScript que tuvo `indexes`.

@@ -122,7 +122,7 @@ postsFilter.parse({ status: 'published', createdAt: { $gte: '2026-10-01T00:00:00
 | `$in`, `$nin`                | any field                                                                | an array of those                                                  |
 | `$gt`, `$gte`, `$lt`, `$lte` | values but booleans and objects, such as numbers, strings, dates and ids | a value of the field or, on an array, one element                  |
 | `$exists`                    | any field                                                                | a boolean                                                          |
-| `$regex`                     | strings                                                                  | a string, and `$options` as a string                               |
+| `$regex`                     | strings                                                                  | a string, and `$options` with the flags `i`, `m`, `x`, `s` and `u` |
 | `$all`                       | arrays                                                                   | an array of elements                                               |
 | `$size`                      | arrays                                                                   | a non-negative integer                                             |
 | `$elemMatch`                 | arrays, with declarations for their element                              | a condition on one element, with what is declared for the elements |
@@ -132,9 +132,13 @@ postsFilter.parse({ status: 'published', createdAt: { $gte: '2026-10-01T00:00:00
   `"$size" only applies to arrays, and "<path>" is not one` (also for `$all` and `$elemMatch`), and
   `"$elemMatch" on "<path>" needs operators for its elements, or paths declared under it`.
 - **Errors when parsed**: `takes at least one operator` for `{}`, `"$options" needs "$regex"`,
-  Zod's `Unrecognized key` for what isn't declared, and
+  `"$options" takes the flags i, m, x, s and u`, Zod's `Unrecognized key` for what isn't declared,
+  and
   `a value cannot have keys that start with "$", which MongoDB reads as operators`, also on fields
-  that take any object, such as `z.record()` or `z.unknown()`.
+  that take any object, such as `z.record()` or `z.unknown()`, and also when a transform of the
+  field builds such an object out of what the client sent, and
+  `a value cannot be a regular expression, which MongoDB matches as a pattern: declare "$regex"`,
+  for a `RegExp` that a transport such as superjson sends or a transform builds.
 
 `$and`, `$or` and `$nor` are added with `.extend()`: see
 [`$and`, `$or` and `$nor`](../guides/endpoint-inputs.md#and-or-and-nor).
@@ -161,8 +165,11 @@ postsUpdate.parse({ $set: { title: 'Hello again' }, $inc: { views: 1 } })
   `"<operator>" is not an operator of mz.update: use $set, $unset or $inc`,
   `the _id is immutable`, `"<path>" goes through an array: mz.update takes paths outside arrays` and
   `"<path>" names an element of an array: mz.update takes paths outside arrays`.
-- **Errors when parsed**: `an update takes at least one operator` for `{}`, and Zod's
-  `Unrecognized key` for an operator or a path not declared.
+- **Errors when parsed**: `an update takes at least one operator` for `{}`, Zod's
+  `Unrecognized key` for an operator or a path not declared, and
+  `"<key>" cannot be a key: no path reaches a key with a "." or starting with "$"` for a key of a
+  value of `$set`, at any level, such as one of a `z.record()` or a `z.unknown()`: the model
+  rejects it when it writes, so the builder rejects it first.
 
 At runtime, `$unset` also takes a key that a record or a catchall may lack, such as
 `'labels.home'`, but the types don't take it yet.
@@ -246,8 +253,8 @@ postsAfter.parse(undefined)
 ### mz.populate()
 
 `mz.populate(whitelists)` builds the `populate` a client can send: the references it can expand,
-each with a `z.object` of the fields it can see. It is optional: a missing one is `undefined`,
-which expands nothing. See
+each with a `z.object` of the fields it can see, the ones of its first level: a field that is an
+object comes whole. It is optional: a missing one is `undefined`, which expands nothing. See
 [`mz.populate`](../guides/endpoint-inputs.md#mzpopulate) and [Populate](../guides/populate.md).
 
 ```ts
@@ -262,6 +269,8 @@ postsPopulate.parse({ authorId: { name: 1 } })
 // { authorId: { projection: { name: 1 } } }
 ```
 
+- **Errors when declared**: `"<reference>" declares no fields: pick at least one`, since MongoDB
+  reads an empty projection as the whole document.
 - **Errors when parsed**: `takes true, or an object with 1 or true for some of its fields` for `{}`
   and an exclusion, and Zod's `Unrecognized key` for a field outside the whitelist or a reference
   not declared.

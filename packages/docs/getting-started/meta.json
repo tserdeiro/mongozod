@@ -1,4 +1,4 @@
 {
   "title": "Getting started",
-  "pages": ["why-mongozod", "installation", "quick-start", "ai-agents"]
+  "pages": ["why-mongozod", "installation", "quick-start", "connection", "ai-agents"]
 }

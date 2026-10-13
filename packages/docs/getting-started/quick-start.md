@@ -9,6 +9,7 @@ MongoZod is [installed](./installation.md) and a MongoDB server is running.
 ## Connect
 
 MongoZod uses the official driver's connection: create a `MongoClient` as you would without it.
+[Connection](./connection.md) lists what to set on the client, the user and the server.
 
 ```ts
 import { MongoClient, ObjectId } from 'mongodb'

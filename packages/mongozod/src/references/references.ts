@@ -22,7 +22,7 @@ import type {
   UnionToIntersection
 } from '../utils/type-helpers'
 import type { Virtuals } from './virtuals'
-import type { ClientSession, Db, Document, FindOptions, Flatten, WithId } from 'mongodb'
+import type { Abortable, ClientSession, Db, Document, FindOptions, Flatten, WithId } from 'mongodb'
 
 import { BSON } from 'mongodb'
 import { z } from 'zod'
@@ -878,12 +878,26 @@ export function removePath(document: unknown, path: string): void {
 
 /**
  * What the reads of `populate` share with the read that asks for them: its session, so that they
- * see the writes of its transaction, and its context, which the plugins of each referenced model
- * validate in their part.
+ * see the writes of its transaction, its context, which the plugins of each referenced model
+ * validate in their part, and its `maxTimeMS` and `signal`, so that the limit of the read bounds
+ * each of its queries too.
  */
 export interface PopulateScope {
   context: unknown
+  maxTimeMS: number | undefined
   session: ClientSession | undefined
+  signal: AbortSignal | undefined
+}
+
+/** The options of a query of `populate` that the read it belongs to decides. */
+function scopeOptions({ maxTimeMS, session, signal }: PopulateScope): FindOptions & Abortable {
+  const options: FindOptions & Abortable = {}
+
+  if (maxTimeMS !== undefined) options.maxTimeMS = maxTimeMS
+  if (session) options.session = session
+  if (signal) options.signal = signal
+
+  return options
 }
 
 /** The `find` of the model a reference returns, which `populate` reads with. */
@@ -972,17 +986,16 @@ async function populateForeign(
   key: string,
   target: ForeignReference,
   { filter, limit, populate, projection, sort }: PopulateOptions,
-  { context, session }: PopulateScope
+  scope: PopulateScope
 ): Promise<void> {
   const localField = target.localField ?? '_id'
   const { foreignField } = target
   const kept = keepingField(projection, foreignField)
-  const options: Document = {}
+  const options: Document = scopeOptions(scope)
   const find = finderOf(target.model, key)
 
   if (kept.projection) options.projection = kept.projection
-  if (context !== undefined) options.context = context
-  if (session) options.session = session
+  if (scope.context !== undefined) options.context = scope.context
   if (sort) options.sort = sort
   if (populate) options.populate = populate
 
@@ -1079,7 +1092,7 @@ async function populateStored(
   target: (() => ReferencedModel) | { collection: string; schema: ModelSchema },
   options: PopulateOptions,
   db: () => Db,
-  { context, session }: PopulateScope
+  scope: PopulateScope
 ): Promise<void> {
   const { filter, limit, populate, projection, sort } = options
   const segments = key.split('.')
@@ -1095,10 +1108,9 @@ async function populateStored(
   // is asked for and removed afterwards.
   const { _id: idProjection, ...rest } = projection ?? {}
   const withoutId = idProjection === 0 || idProjection === false
-  const findOptions: FindOptions = {}
+  const findOptions = scopeOptions(scope)
 
   if (projection) findOptions.projection = withoutId ? rest : projection
-  if (session) findOptions.session = session
   if (sort) findOptions.sort = sort
 
   // In `$and`, so that a `filter` on the `_id` narrows the references instead of replacing them.
@@ -1110,7 +1122,7 @@ async function populateStored(
 
     // The target model populates its own references, which validates the nested `populate`.
     if (populate) modelOptions.populate = populate
-    if (context !== undefined) modelOptions.context = context
+    if (scope.context !== undefined) modelOptions.context = scope.context
 
     found = await finderOf(target, key)(query, modelOptions)
   } else {

@@ -68,6 +68,7 @@ packages/docs/
 │   ├── why-mongozod.md          la comparación con Mongoose y con el driver y Zod a mano, con los issues de Mongoose que resuelve
 │   ├── installation.md          los peers, los mínimos, Yarn y el peer `bson`, Bun
 │   ├── quick-start.md           schema, modelo, escribir y leer, y un endpoint con `mz`
+│   ├── connection.md            qué poner en el `MongoClient`, en el usuario (`readWrite`, `dbAdmin` para `sync()`) y en el servidor (`javascriptEnabled`)
 │   └── ai-agents.md             las docs instaladas, el bloque de `AGENTS.md`, `llms.txt` y las skills
 ├── guides/
 │   ├── schemas.md               el `_id` en sus tres formas, defaults, `.overwrite()`, input y output, Zod Mini, lo que se rechaza

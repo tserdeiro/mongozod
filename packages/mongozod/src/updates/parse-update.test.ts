@@ -160,6 +160,7 @@ describe('operators', () => {
             $currentDate: { createdAt: { $type: 'timestamp' }, title: true },
             $foo: { title: 1 },
             $inc: { title: 1, views: 0.5 },
+            $mul: { 'scores.0': Infinity },
             $push: { scores: 'x', title: 'x' },
             $rename: { title: 'nickname' },
             $unset: { title: '', views: '' }
@@ -172,6 +173,7 @@ describe('operators', () => {
       ['$foo', '"$foo" is not an update operator'],
       ['$inc title', '"title" is not a number'],
       ['$inc views', '"views" is an integer'],
+      ['$mul scores.0', '$mul takes a finite number'],
       ['$push scores', 'Invalid input: expected number, received string'],
       ['$push title', '"title" is not an array'],
       ['$rename title', '"title" is required, so it cannot be renamed'],
@@ -617,6 +619,21 @@ describe('upserts', () => {
           { upsert: true }
         )
       ).toMatchObject({ $set: { 'data.__proto__.polluted': true } })
+      expect(Reflect.get({}, 'polluted')).toBeUndefined()
+    } finally {
+      Reflect.deleteProperty(Object.prototype, 'polluted')
+    }
+  })
+
+  test('keep a __proto__ path of an update as a field, which MongoDB stores', async () => {
+    const looseSchema = z.looseObject({ title: z.string() })
+    const polluted = JSON.parse('{"$set": {"__proto__": {"polluted": true}}}')
+
+    try {
+      const parsed = await parseUpdate(looseSchema, { title: 'Ads' }, polluted)
+
+      expect(Object.hasOwn(parsed.$set, '__proto__')).toBe(true)
+      expect(Object.getPrototypeOf(parsed.$set)).toBe(Object.prototype)
       expect(Reflect.get({}, 'polluted')).toBeUndefined()
     } finally {
       Reflect.deleteProperty(Object.prototype, 'polluted')

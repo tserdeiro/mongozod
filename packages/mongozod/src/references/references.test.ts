@@ -472,6 +472,27 @@ describe('batches', () => {
       await session.endSession()
     }
   })
+  test('share the maxTimeMS of the read, so its limit bounds each query', async () => {
+    const limits: Array<number | undefined> = []
+    const listener = (event: CommandStartedEvent) => {
+      if (event.commandName === 'find') limits.push(event.command.maxTimeMS)
+    }
+
+    client.on('commandStarted', listener)
+
+    try {
+      await TransactionsModel.findOne(
+        { _id: 't1' },
+        { maxTimeMS: 1000, populate: { createdBy: true, organization: true } }
+      )
+
+      // The read, then the query of each reference.
+      expect(limits).toEqual([1000, 1000, 1000])
+    } finally {
+      client.off('commandStarted', listener)
+    }
+  })
+
   test('share the context of the read, which the plugins of each model validate', async () => {
     const tenants: string[] = []
     const tenant = definePlugin({

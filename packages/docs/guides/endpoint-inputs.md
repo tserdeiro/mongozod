@@ -224,7 +224,9 @@ postsFilter.parse({
 - **Equality**: a field that declares `$eq` also takes the value alone, as in MongoDB. On an array,
   an equality takes an element or the whole array, and the ranges compare its elements.
 - **An object of operators** has one at least: `{}` would be an equality with an empty object.
-- **`$options`** goes only with `$regex`: MongoDB rejects it alone.
+- **`$options`** goes only with `$regex`: MongoDB rejects it alone. It takes the flags MongoDB
+  takes, `i`, `m`, `x`, `s` and `u`. The pattern itself is checked by the server, which rejects an
+  invalid one with the code 51091: treat that `MongoServerError` as the client's.
 - **`$regex`** takes any pattern the client sends, and one that isn't anchored to the start reads
   the whole collection or index. For a search box, prefer `$text` or Atlas Search (see
   [Security](./security.md#cost)).
@@ -424,8 +426,17 @@ authorPopulate.parse({ author: { name: 1 } })
 
 The client sends `true` for the whole whitelist, never the whole document, or `1` or `true` for some
 of its fields. `{}`, an exclusion, a field outside the whitelist or a reference not declared fail.
+A whitelist without fields, such as one picked by role that ends up empty, throws when the builder
+is declared: MongoDB reads an empty projection as the whole document, so "no field" fails closed.
 The router gets the `populate` option of the model, with a `projection`. The client never sends a
 `filter` or a `sort`: those belong to the endpoint.
+
+The whitelist is the fields of the first level of its schema, which become the projection: a field
+that is an object comes whole, whatever the whitelist declares inside it, and the documents read are
+not parsed with the whitelist. `userSchema.pick({ profile: true })` gives the whole `profile`, also
+with a `profile` picked down to `{ label }`. To hide a part of an object, set the `projection` of
+the model's `populate` by paths on the server, such as `{ 'profile.label': 1 }`, instead of taking
+the populate from the client.
 
 In the result, the populated field is typed as the id or the referenced document, with each of its
 fields optional, since the model doesn't know at compile time what the client asks for.

@@ -33,6 +33,7 @@ import { z } from 'zod'
 import * as core from 'zod/v4/core'
 
 import { checkFieldNames } from './model/check-field-names'
+import { checkFilter } from './model/check-filter'
 import { checkRoot } from './model/check-root'
 import { checkStoredTypes } from './model/check-stored-types'
 import { indexesOf } from './model/indexes'
@@ -304,7 +305,9 @@ export function mongozod(
 
     const plan = planRead({ ...context, db: () => db }, driverOptions.projection, populate, {
       context: operationContext,
-      session: driverOptions.session
+      maxTimeMS: driverOptions.maxTimeMS,
+      session: driverOptions.session,
+      signal: driverOptions.signal
     })
 
     if (plan.projection) driverOptions.projection = plan.projection
@@ -411,7 +414,12 @@ export function mongozod(
     args: Document,
     run: (args: Document) => Promise<R>
   ): Promise<R> {
-    return runOperation({ model, plugins }, operation, args, run)
+    return runOperation({ model, plugins }, operation, args, (coreArgs) => {
+      // The filter the plugins leave, before the driver sends it.
+      if (coreArgs.filter !== undefined) checkFilter(coreArgs.filter)
+
+      return run(coreArgs)
+    })
   }
 
   function openAggregate(args: Document): BatchSource<unknown> {
@@ -427,6 +435,8 @@ export function mongozod(
   }
 
   function openFind(args: Document): BatchSource<Document> {
+    checkFilter(args.filter)
+
     const db = getDb()
     const { driverOptions, plan } = readOptions(args.options, args.context, db)
     const cursor = getCollection(db).find<Document>(args.filter, driverOptions)
@@ -573,6 +583,10 @@ export function mongozod(
     const { stamps } = write
 
     return parseEach(operations, async (operation): Promise<AnyBulkWriteOperation> => {
+      for (const kind of ['deleteMany', 'deleteOne', 'replaceOne', 'updateMany', 'updateOne']) {
+        if (kind in operation) checkFilter(operation[kind].filter)
+      }
+
       if ('insertOne' in operation) {
         const document = stampDocument(operation.insertOne.document, stamps, now)
 

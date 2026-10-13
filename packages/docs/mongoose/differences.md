@@ -145,6 +145,9 @@ await PostsModel.find({ status: { $in: ['draft', 'published'] } })
   [Security](../guides/security.md)).
 - **Keys** that are not paths of the schema do not compile, where Mongoose's `strictQuery` keeps or
   drops them ([Mongoose docs](https://mongoosejs.com/docs/tutorials/query_casting.html#the-strictquery-option)).
+  An `undefined` value does not compile either, and the model throws a `ZodError` for one that
+  arrives typed `any`: the driver would send it as `null`, which matches the documents without the
+  field.
 - **Pipelines**: Mongoose does not cast them
   ([Mongoose docs](https://mongoosejs.com/docs/queries.html#versus-aggregation)), so a string for an
   `ObjectId` in a `$match` finds nothing
