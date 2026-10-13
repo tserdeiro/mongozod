@@ -206,6 +206,13 @@ manda `{ createdAt, _id }` del último elemento de la página.
      A03): un campo `z.string().transform(JSON.parse)` convertía el string `'{"$ne":null}'` en el
      objeto de operadores después del chequeo, y MongoDB lo ejecutaba (verificado con MongoDB
      8.2.6). Es el mismo orden que `mz.update`, que chequea las keys de la salida.
+   - **Sin expresiones regulares como valor** (2026-10-13, auditoría privada A05): un `RegExp`, o un
+     `BSONRegExp`, no tiene keys `$` pero MongoDB lo compara como patrón, no como igualdad:
+     `{ data: /./ }` encontraba todos los strings de un campo `z.unknown()` que declaraba solo
+     `$eq` (verificado con MongoDB 8.2.6). JSON no manda uno, pero superjson sí, y un transform
+     puede armarlo. Se rechaza en los dos chequeos de `filterValue`, con un mensaje que manda al
+     `$regex` declarado. En el modelo sigue valiendo: un `RegExp` en un filtro del servidor es el
+     del driver.
    - **Objeto de operadores**: tiene al menos uno, porque `{}` es en Mongo una igualdad con un
      objeto vacío.
    - **Flags de `$options`** (2026-10-13, auditoría contra las guías de OWASP): solo `i`, `m`, `x`,

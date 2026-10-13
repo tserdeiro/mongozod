@@ -1,4 +1,4 @@
-import { MongoClient } from 'mongodb'
+import { BSONRegExp, MongoClient } from 'mongodb'
 import {
   afterAll,
   beforeAll,
@@ -210,6 +210,30 @@ test('a value with keys that start with $ fails, even where the field takes any 
   expect(issues(parsedFilter, { payload: { $in: ['{"$ne":null}'] } })).toEqual([
     `payload.$in.0: ${message}`
   ])
+})
+
+test('a regular expression fails as a value, which MongoDB would match as a pattern', async () => {
+  const message =
+    'a value cannot be a regular expression, which MongoDB matches as a pattern: declare "$regex"'
+  const eventsFilter = filter(
+    z.object({
+      data: z.unknown(),
+      pattern: z.string().transform((source) => new RegExp(source))
+    }),
+    { data: ['$eq', '$in'], pattern: ['$eq'] }
+  )
+
+  // The driver sends it as a regex, which matches every string.
+  await db.collection('events').insertMany([{ data: 'alpha' }, { data: 'beta' }])
+  expect(await db.collection('events').countDocuments({ data: /./ })).toBe(2)
+
+  // A transport such as superjson sends one, and a transform can build one.
+  expect(issues(eventsFilter, { data: /./ })).toEqual([`data: ${message}`])
+  expect(issues(eventsFilter, { data: { $in: [new BSONRegExp('.')] } })).toEqual([
+    `data.$in.0: ${message}`
+  ])
+  expect(issues(eventsFilter, { pattern: '.' })).toEqual([`pattern: ${message}`])
+  expect(eventsFilter.parse({ data: { source: '.' } })).toEqual({ data: { source: '.' } })
 })
 
 test('takes Zod Mini schemas, and a discriminated union finds each field in its types', () => {

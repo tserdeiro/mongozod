@@ -67,9 +67,10 @@ export async function listPosts(body: unknown, userId: ObjectId) {
   on the server itself.
 - **Values**: each value is parsed with the schema of its field, so an id is an `ObjectId` and a
   date is a `Date`. No value can be an object with a key that starts with `$`, even on a field
-  typed `z.record()` or `z.unknown()`, so a client can't send `{ "$ne": null }` as a value. The
-  check runs on what the client sends and on what the schema returns, so a transform that parses
-  JSON can't build one either.
+  typed `z.record()` or `z.unknown()`, so a client can't send `{ "$ne": null }` as a value. Nor a
+  regular expression, which MongoDB matches as a pattern: a pattern only enters through a declared
+  `$regex`. The checks run on what the client sends and on what the schema returns, so a transform
+  that parses JSON or builds a `RegExp` can't produce one either.
 - **Updates**: `mz.update` accepts the paths each operator declares. It can't declare the `_id`,
   and on a model with [timestamps](./timestamps.md) the model rejects `createdAt` and `updatedAt`.
   No value of `$set` can have a key with a `.` or starting with `$`, at any level, even on a field

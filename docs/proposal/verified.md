@@ -870,3 +870,6 @@
   - `filterValue` chequeaba las keys `$` solo en la entrada: un `z.string().transform(JSON.parse)`
     devolvía `{ $ne: null }` como valor de igualdad, en `mz.filter` y en `mz.after`. Ahora chequea
     también la salida del schema.
+  - Un `RegExp` o un `BSONRegExp` pasaba el chequeo de keys `$` de `filterValue`, y el driver lo
+    mandaba como patrón donde el endpoint declaraba `$eq`. Ahora se rechaza, antes y después del
+    schema.

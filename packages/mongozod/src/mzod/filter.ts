@@ -9,7 +9,7 @@ import { z } from 'zod'
 import { schemaAt } from '../schema/schema-at'
 import { elementsOf } from '../schema/schema-kinds'
 
-import { filterValue } from './internal/filter-value'
+import { filterValue, isRegExp, REGEX_MESSAGE } from './internal/filter-value'
 import { nonEmptyObject } from './internal/non-empty-object'
 import { valueSchema } from './internal/value-schema'
 import { withoutUndefined } from './internal/without-undefined'
@@ -330,8 +330,13 @@ function conditionSchema(
 
   if (!operators.includes('$eq')) return object
 
-  // The object of operators goes first: an object value would strip its `$` keys otherwise.
-  return z.union([object, equal])
+  // The object of operators goes first: an object value would strip its `$` keys otherwise. A
+  // regular expression is an object to Zod, which that option would take as `{}` and report as
+  // one without operators: it is rejected before the union, so that the message says what it is.
+  return z
+    .unknown()
+    .refine((value) => !isRegExp(value), REGEX_MESSAGE)
+    .pipe(z.union([object, equal]))
 }
 
 /** The declarations under a path, relative to it. */
@@ -356,9 +361,10 @@ function shapeOf(schema: core.$ZodType, declarations: Declarations) {
 
 /**
  * The filter a client can send: MongoDB syntax with the operators each field declares. Anything
- * else fails, such as `$where`, `$expr`, a field or an operator not declared, or a value its field
- * does not take. Each value is parsed with the schema of its field, without its default, so an ISO
- * date becomes a `Date`; `undefined` keys are dropped.
+ * else fails, such as `$where`, `$expr`, a field or an operator not declared, a value its field
+ * does not take, an object with a key starting with `$` or a regular expression as a value. Each
+ * value is parsed with the schema of its field, without its default, so an ISO date becomes a
+ * `Date`; `undefined` keys are dropped.
  *
  * It returns a strict `z.object`, so the project decides with Zod what happens when the client
  * sends nothing: `.default({})` for a list, `.required({ _id: true })` for a filter by id, or
