@@ -18,6 +18,7 @@ import {
 } from '../schema/schema-kinds'
 import { withoutChecks } from '../schema/without-checks'
 import { isPlainObject } from '../utils/is-plain-object'
+import { setField } from '../utils/set-field'
 import { valueKey } from '../utils/value-key'
 
 import { dollarKeyProblem, resolveUpdatePath } from './update-path'
@@ -323,7 +324,8 @@ export async function parseUpdate(
     for (const [path, value] of Object.entries(fields)) {
       if (value === undefined) continue
 
-      given[operator][path] = value
+      // As an own field: assigning a `__proto__` path would change the prototype instead.
+      setField(given[operator], path, value)
       checks.push(
         parseField(schema, operator, path, value, context).then((result) => ({
           ...result,
@@ -335,7 +337,7 @@ export async function parseUpdate(
 
   for (const check of await Promise.all(checks)) {
     if ('issues' in check) issues.push(...check.issues)
-    else if (check.at) parsed[check.at[0]][check.at[1]] = check.value
+    else if (check.at) setField(parsed[check.at[0]], check.at[1], check.value)
   }
 
   const nullId = options.upsert ? nullIdIssue(filter) : undefined

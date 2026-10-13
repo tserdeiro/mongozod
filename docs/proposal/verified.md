@@ -854,3 +854,5 @@
     con punto, que `written()` rechazaba después al escribir. Ahora el builder corre la misma regla.
   - `$options` de `mz.filter` tomaba cualquier string, y `g` o `zz` llegaban al servidor, que los
     rechaza con el código 51108. Ahora solo toma `i`, `m`, `x`, `s` y `u`.
+  - `parseUpdate` asignaba los paths de cada operador con `=`: un path `__proto__` en un schema
+    raíz `z.looseObject` se perdía en silencio, con `modifiedCount: 0`. Ahora es un campo propio.

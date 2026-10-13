@@ -623,6 +623,21 @@ describe('upserts', () => {
     }
   })
 
+  test('keep a __proto__ path of an update as a field, which MongoDB stores', async () => {
+    const looseSchema = z.looseObject({ title: z.string() })
+    const polluted = JSON.parse('{"$set": {"__proto__": {"polluted": true}}}')
+
+    try {
+      const parsed = await parseUpdate(looseSchema, { title: 'Ads' }, polluted)
+
+      expect(Object.hasOwn(parsed.$set, '__proto__')).toBe(true)
+      expect(Object.getPrototypeOf(parsed.$set)).toBe(Object.prototype)
+      expect(Reflect.get({}, 'polluted')).toBeUndefined()
+    } finally {
+      Reflect.deleteProperty(Object.prototype, 'polluted')
+    }
+  })
+
   test('copy the filter as the server does: a regex matches, and undefined is null', async () => {
     // The regex is not copied, so only the missing title fails.
     expect(await upsertIssues({ title: /^Ads/ })).toEqual([

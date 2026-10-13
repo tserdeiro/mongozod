@@ -218,7 +218,11 @@ runtime o código sin tipos. Cada problema se junta en un solo `ZodError`, con e
     de un filtro o de un path del update es un nombre de campo, como en MongoDB, y no llega a
     `Object.prototype`. Recorrerlo como propiedad dejaba que un upsert con
     `$set: { 'settings.__proto__.isAdmin': true }` cambiara el prototipo de todos los objetos del
-    proceso. Lo mismo vale para la copia sin `undefined` que se escribe en un insert.
+    proceso. Lo mismo vale para la copia sin `undefined` que se escribe en un insert, y para los
+    objetos de operadores que arma `parseUpdate` (2026-10-13): asignaba `parsed[op][path] = valor`,
+    así que un path `__proto__` de un schema raíz `z.looseObject` o con catchall cambiaba el
+    prototipo de ese objeto interno y el `$set` viajaba vacío, sin error ni contaminación global
+    (verificado con MongoDB 8.2.6). Ahora los crea con `setField`, como `written()` y `setPath`.
   - **Valores que el schema cambia**: el servidor copia el valor del filtro tal cual, sin pasar por
     Zod. Si el schema lo guardaría distinto, como un email que un transform pasa a minúsculas o un
     objeto al que le falta un default, el upsert lanza un `ZodError` en ese path: filtrar por el
