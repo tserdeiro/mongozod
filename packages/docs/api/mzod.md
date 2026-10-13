@@ -122,7 +122,7 @@ postsFilter.parse({ status: 'published', createdAt: { $gte: '2026-10-01T00:00:00
 | `$in`, `$nin`                | any field                                                                | an array of those                                                  |
 | `$gt`, `$gte`, `$lt`, `$lte` | values but booleans and objects, such as numbers, strings, dates and ids | a value of the field or, on an array, one element                  |
 | `$exists`                    | any field                                                                | a boolean                                                          |
-| `$regex`                     | strings                                                                  | a string, and `$options` as a string                               |
+| `$regex`                     | strings                                                                  | a string, and `$options` with the flags `i`, `m`, `x`, `s` and `u` |
 | `$all`                       | arrays                                                                   | an array of elements                                               |
 | `$size`                      | arrays                                                                   | a non-negative integer                                             |
 | `$elemMatch`                 | arrays, with declarations for their element                              | a condition on one element, with what is declared for the elements |
@@ -132,7 +132,8 @@ postsFilter.parse({ status: 'published', createdAt: { $gte: '2026-10-01T00:00:00
   `"$size" only applies to arrays, and "<path>" is not one` (also for `$all` and `$elemMatch`), and
   `"$elemMatch" on "<path>" needs operators for its elements, or paths declared under it`.
 - **Errors when parsed**: `takes at least one operator` for `{}`, `"$options" needs "$regex"`,
-  Zod's `Unrecognized key` for what isn't declared, and
+  `"$options" takes the flags i, m, x, s and u`, Zod's `Unrecognized key` for what isn't declared,
+  and
   `a value cannot have keys that start with "$", which MongoDB reads as operators`, also on fields
   that take any object, such as `z.record()` or `z.unknown()`.
 

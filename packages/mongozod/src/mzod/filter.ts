@@ -257,7 +257,10 @@ function operatorsSchema(
         break
       case '$regex':
         shape.$regex = z.string()
-        shape.$options = z.string()
+        // The flags MongoDB takes: any other fails on the server with the code 51108.
+        shape.$options = z
+          .string()
+          .regex(/^[imsxu]*$/, '"$options" takes the flags i, m, x, s and u')
         break
       case '$all':
         shape[operator] = z.array(comparedElement ?? compared)

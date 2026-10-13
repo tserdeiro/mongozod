@@ -224,7 +224,9 @@ postsFilter.parse({
 - **Equality**: a field that declares `$eq` also takes the value alone, as in MongoDB. On an array,
   an equality takes an element or the whole array, and the ranges compare its elements.
 - **An object of operators** has one at least: `{}` would be an equality with an empty object.
-- **`$options`** goes only with `$regex`: MongoDB rejects it alone.
+- **`$options`** goes only with `$regex`: MongoDB rejects it alone. It takes the flags MongoDB
+  takes, `i`, `m`, `x`, `s` and `u`. The pattern itself is checked by the server, which rejects an
+  invalid one with the code 51091: treat that `MongoServerError` as the client's.
 - **`$regex`** takes any pattern the client sends, and one that isn't anchored to the start reads
   the whole collection or index. For a search box, prefer `$text` or Atlas Search (see
   [Security](./security.md#cost)).

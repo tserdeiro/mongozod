@@ -852,3 +852,5 @@
     un `undefined` a cualquier nivel del filtro, también en `bulkWrite`.
   - `mz.update` aceptaba en un `$set` de un `z.record()` o un `z.unknown()` un valor con keys `$` o
     con punto, que `written()` rechazaba después al escribir. Ahora el builder corre la misma regla.
+  - `$options` de `mz.filter` tomaba cualquier string, y `g` o `zz` llegaban al servidor, que los
+    rechaza con el código 51108. Ahora solo toma `i`, `m`, `x`, `s` y `u`.

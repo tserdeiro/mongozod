@@ -119,6 +119,18 @@ describe('a filter from a client', () => {
     expect(issues(notesFilter, { title: { $options: 1 } })).toHaveLength(1)
   })
 
+  test('$options takes the flags MongoDB takes, which rejects the others', async () => {
+    await expect(
+      db.collection('notes').findOne({ title: { $options: 'g', $regex: 'a' } })
+    ).rejects.toMatchObject({ code: 51108 })
+    expect(notesFilter.parse({ title: { $options: 'imxsu', $regex: 'a' } })).toEqual({
+      title: { $options: 'imxsu', $regex: 'a' }
+    })
+    expect(issues(notesFilter, { title: { $options: 'g', $regex: 'a' } })).toEqual([
+      'title.$options: "$options" takes the flags i, m, x, s and u'
+    ])
+  })
+
   test('on arrays, an element or the array, $all, $size and $elemMatch', () => {
     expect(notesFilter.parse({ tags: 'a' })).toEqual({ tags: 'a' })
     expect(notesFilter.parse({ tags: ['a', 'b'] })).toEqual({ tags: ['a', 'b'] })

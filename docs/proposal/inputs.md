@@ -201,6 +201,11 @@ manda `{ createdAt, _id }` del último elemento de la página.
      nada y sin avisar. Lo mismo vale para los valores de `mz.after`.
    - **Objeto de operadores**: tiene al menos uno, porque `{}` es en Mongo una igualdad con un
      objeto vacío.
+   - **Flags de `$options`** (2026-10-13, auditoría contra las guías de OWASP): solo `i`, `m`, `x`,
+     `s` y `u`, los que MongoDB acepta; con otro, como `g`, el servidor rechaza el filtro con el
+     código 51108, un 500 por un error del cliente. El patrón no se valida antes: MongoDB usa
+     PCRE2, que acepta `(?i)` y JavaScript no, así que un `new RegExp()` de prueba rechazaría
+     patrones válidos; un patrón inválido es el código 51091 del servidor, y la guía lo documenta.
    - **`$options`**: solo va con `$regex`. Sin él, MongoDB rechaza el filtro con el código 2
      (`$options needs a $regex`), así que `mz.filter` lo rechaza antes, con un `ZodError`.
 5. **`$elemMatch` toma lo declarado para el elemento.** En un array de objetos,
