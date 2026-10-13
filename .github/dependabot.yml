@@ -1,0 +1,18 @@
+# Keeps the commit SHAs of the actions current. The npm dependencies get Dependabot's alerts and
+# security updates: its version updates list pnpm up to 10, and the repository uses pnpm 12.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    # The same day of the pnpm release age.
+    cooldown:
+      default-days: 1
+    commit-message:
+      prefix: ci
+      include: scope
+    groups:
+      actions:
+        patterns:
+          - '*'

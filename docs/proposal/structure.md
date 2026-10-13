@@ -102,6 +102,9 @@
 - **Environment `npm`**: el job `publish` corre en el environment `npm` de GitHub, que solo acepta
   `main`, y el trusted publisher de npm lo nombra. Sin él, cualquier workflow de cualquier rama
   podía pedir el token OIDC, porque npm comprueba el nombre del archivo pero no la rama.
+- **Dependabot** sube cada semana los SHAs de las actions, en un solo PR, con un día de espera
+  como pnpm. Las dependencias de npm tienen sus alertas y sus security updates, pero no sus version
+  updates: su referencia lista pnpm hasta la 10, y el repo usa la 12.
 - **Flujo de trabajo**: el repo es público para poder proteger `main` con un ruleset, que exige un
   pull request con el CI y Conventions en verde, solo con squash, y bloquea el force push y el
   borrado. El admin puede saltear los checks solo dentro de un pull request: el PR de versión lo
