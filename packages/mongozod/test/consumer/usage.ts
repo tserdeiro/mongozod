@@ -135,7 +135,7 @@ mongozod({
 
 // A validations file: it keeps its own z and adds mz, which never imports the driver.
 const listNotesSchema = z.object({
-  after: mz.after(noteSchema, { createdAt: -1, _id: -1 }).default({}),
+  after: mz.after(noteSchema, { createdAt: -1, _id: -1 }),
   filter: mz
     .filter(noteSchema, { '_id': ['$eq', '$in'], 'author.name': ['$eq'], 'tags': ['$all', '$eq'] })
     .default({}),
@@ -151,11 +151,9 @@ const updateNoteSchema = z.object({
 
 const findTransactionSchema = z.object({
   filter: mz.filter(z.object({ _id: z.string() }), { _id: ['$eq'] }).required({ _id: true }),
-  populate: mz
-    .populate({
-      organization: z.object({ _id: z.string(), name: z.string() }).pick({ name: true })
-    })
-    .optional()
+  populate: mz.populate({
+    organization: z.object({ _id: z.string(), name: z.string() }).pick({ name: true })
+  })
 })
 
 /** A service that forwards a filter to the model keeps its checks. */

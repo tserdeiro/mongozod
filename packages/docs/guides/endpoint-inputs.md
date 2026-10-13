@@ -145,8 +145,9 @@ the model.
 - **Checked declarations**: a path that doesn't exist, or an operator that doesn't apply to its
   field, doesn't compile. Most of these mistakes also throw an `Error` that names the builder when
   the schema is built.
-- **No defaults of their own**, but for `mz.projection`, whose missing value is the mask: you
-  decide with Zod's methods what happens when the client sends nothing (see
+- **Nothing to remember but for filters**: a missing `after` is the first page, a missing
+  projection is the mask, and a missing sort or populate is `undefined`. What a missing filter
+  means is up to each endpoint, which decides it with Zod's methods (see
   [Defaults and required fields](#defaults-and-required-fields)).
 - **Client-safe**: `mongozod/mzod` never imports the driver, so the same input schemas run in web and
   React Native clients, such as to type a form.
@@ -436,17 +437,24 @@ fields optional, since the model doesn't know at compile time what the client as
 
 ## Defaults and required fields
 
-The builders return schemas without defaults, but for `mz.projection`. Zod's methods decide what an
-endpoint does when the client sends nothing:
+Each builder but `mz.filter` and `mz.update` knows what a missing input means:
 
-- **A list** takes `.default({})` on `mz.filter` and `mz.after`, so the router joins filters with
-  `$and` and needs no `?? {}`.
+| Builder         | When the client sends nothing                             |
+| --------------- | --------------------------------------------------------- |
+| `mz.after`      | `{}`, the first page, which the router joins in an `$and` |
+| `mz.projection` | The mask                                                  |
+| `mz.sort`       | `undefined`, the natural order, unless you give a default |
+| `mz.populate`   | `undefined`, which expands nothing                        |
+
+A missing filter means everything in a list and has to fail in a filter by id, so the endpoint
+decides it with Zod's methods:
+
+- **A list** takes `.default({})` on `mz.filter`, so the router joins filters with `$and` and
+  needs no `?? {}`.
 - **A filter by id** takes `.required({ _id: true })`. Without it, `{}` is a valid filter, and
   `findOne`, `updateOne` or `deleteOne` would act on whatever document comes first.
 - **At least one of several fields** takes a `.refine()`.
-- **`sort` and `populate`** take `.optional()` or a default, such as
-  `.default({ createdAt: -1 })`.
-- **`projection`** needs nothing: a missing one is the mask.
+- **A default sort** takes `.default()`, such as `mz.sort(…).default({ createdAt: -1 })`.
 
 ```ts
 const findPostInput = z.object({
@@ -534,17 +542,13 @@ function textSearch(term?: string) {
   return { $text: { $search: term } }
 }
 
-const authorInput = mz
-  .populate({
-    author: userSchema.pick({ _id: true, name: true })
-  })
-  .optional()
+const authorInput = mz.populate({
+  author: userSchema.pick({ _id: true, name: true })
+})
 
 export const listPostsSchema = z.object({
 
-  after: mz
-    .after(postSchema, { createdAt: -1, _id: -1 })
-    .default({}),
+  after: mz.after(postSchema, { createdAt: -1, _id: -1 }),
 
   filter: mz
     .filter(postSchema, {

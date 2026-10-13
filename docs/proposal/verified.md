@@ -837,3 +837,8 @@
     daba al modelo ninguna proyección, y el modelo leía el documento entero. Ahora el builder trae
     su `.prefault({})`: una proyección que no llega es la máscara, y la clave es opcional en el
     input (Zod 4.6.5: `.prefault()` parsea su valor y marca la clave opcional en un `z.object`).
+  - `mz.after` pedía `.default({})` en cada lista, y sin él la primera página fallaba; ahora lo trae.
+    Tiene que ser `.default()` y no `.prefault()`: su objeto pide todas las claves del orden, así
+    que parsear `{}` falla, y `.default()` lo devuelve sin parsear (Zod 4.6.5). `mz.sort` y
+    `mz.populate` traen su `.optional()`, y un `.default({ createdAt: -1 })` encima sigue andando,
+    con una salida sin `undefined`.

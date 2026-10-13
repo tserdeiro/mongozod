@@ -50,9 +50,7 @@ const PostsModel = mongozod({
 
 const listPostsInput = z.object({
 
-  after: mz
-    .after(postSchema, { createdAt: -1, _id: -1 })
-    .default({}),
+  after: mz.after(postSchema, { createdAt: -1, _id: -1 }),
 
   limit: z.number()
     .int()
@@ -149,9 +147,7 @@ const newestFirst = { createdAt: -1, _id: -1 } as const
 
 const feedInput = z.object({
 
-  after: mz
-    .after(postSchema, newestFirst)
-    .default({}),
+  after: mz.after(postSchema, newestFirst),
 
   limit: z.number()
     .int()
@@ -179,9 +175,7 @@ Declare an index with the keys of the sort, such as `index({ createdAt: -1, _id:
 ```ts
 const publishedInput = z.object({
 
-  after: mz
-    .after(postSchema, newestFirst)
-    .default({}),
+  after: mz.after(postSchema, newestFirst),
 
   filter: mz
     .filter(postSchema, {
@@ -207,8 +201,7 @@ export async function listPublished(body: unknown) {
 }
 ```
 
-The `.default({})` of each input makes the first page an empty filter, so the router needs no
-fallback. See [Endpoint inputs](./endpoint-inputs.md#a-list-and-a-findone) for a complete list
+A client that sends no `after` gets `{}`, the first page, so the router needs no fallback. See [Endpoint inputs](./endpoint-inputs.md#a-list-and-a-findone) for a complete list
 endpoint.
 
 The key of the input is yours. With tRPC, call it `cursor`: its

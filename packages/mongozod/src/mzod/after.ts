@@ -76,18 +76,18 @@ export interface AfterFilter<S, O> {
  * The sort has to end with `_id`, which breaks ties, and its fields have to be required: MongoDB
  * sorts a missing or `null` value before any other, so a range on the next page would never reach
  * those documents. An array does not fit either: MongoDB sorts it by one of its elements, and a
- * range matches it when any element passes. The router sorts the same way, and the project decides
- * with Zod what the first page gets, such as `.default({})`.
+ * range matches it when any element passes. The router sorts the same way. A client that sends
+ * nothing gets `{}`, the first page, which the router joins in an `$and` as it is.
  *
  * @example
- *   after: mz.after(brandSchema, { createdAt: -1, _id: -1 }).default({})
+ *   after: mz.after(brandSchema, { createdAt: -1, _id: -1 })
  *
  * @see https://mongozod.dev/docs/api/mzod#mzafter
  */
 export function after<S extends core.$ZodType, const O extends AfterSortCheck<S, O>>(
   schema: S,
   sort: O & SuggestedAfterSort<S>
-): z.ZodType<AfterFilter<S, O>, AfterInput<S, O>>
+): z.ZodDefault<z.ZodType<AfterFilter<S, O>, AfterInput<S, O>>>
 
 export function after(schema: core.$ZodType, sort: Readonly<Record<string, number>>): z.ZodType {
   const keys = Object.keys(sort)
@@ -123,13 +123,17 @@ export function after(schema: core.$ZodType, sort: Readonly<Record<string, numbe
     shape[key] = filterValue(valueSchema(targets))
   }
 
-  return z.strictObject(shape).transform((last) => ({
-    // A document comes after the last one when it ties on the keys before one and passes it there.
-    $or: keys.map((key, index) =>
-      Object.fromEntries([
-        ...keys.slice(0, index).map((previous) => [previous, last[previous]]),
-        [key, { [sort[key] === 1 ? '$gt' : '$lt']: last[key] }]
-      ])
-    )
-  }))
+  // Nothing is the first page: `.default()` returns `{}` as it is, which the shape would reject.
+  return z
+    .strictObject(shape)
+    .transform((last): { $or?: Array<Record<string, unknown>> } => ({
+      // A document comes after the last one when it ties on the keys before one and passes it there.
+      $or: keys.map((key, index) =>
+        Object.fromEntries([
+          ...keys.slice(0, index).map((previous) => [previous, last[previous]]),
+          [key, { [sort[key] === 1 ? '$gt' : '$lt']: last[key] }]
+        ])
+      )
+    }))
+    .default({})
 }

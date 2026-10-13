@@ -10,8 +10,8 @@ import { withoutUndefined } from './internal/without-undefined'
 /**
  * The sort a client can send: MongoDB syntax over the declared paths, with `1` or `-1`. It keeps
  * the order of the keys as the client sends them, which decides what sorts first; `undefined`
- * keys are dropped. The project decides with Zod what happens when the client sends nothing, such
- * as `.default({ createdAt: -1 })`.
+ * keys are dropped. It is optional: a client that sends nothing gives `undefined`, the natural
+ * order, unless the project gives a default with Zod, such as `.default({ createdAt: -1 })`.
  *
  * @example
  *   sort: mz.sort(noteSchema, { createdAt: true, title: true, updatedAt: true }).default({
@@ -23,7 +23,7 @@ import { withoutUndefined } from './internal/without-undefined'
 export function sort<S extends core.$ZodType, const K extends MaskCheck<S, K, 'filter'>>(
   schema: S,
   mask: K & SuggestedMask<S, 'filter'>
-): z.ZodType<Partial<Record<keyof K & string, -1 | 1>>>
+): z.ZodOptional<z.ZodType<Partial<Record<keyof K & string, -1 | 1>>>>
 
 export function sort(schema: core.$ZodType, mask: Readonly<Record<string, true>>): z.ZodType {
   const paths = Object.keys(mask)
@@ -42,4 +42,5 @@ export function sort(schema: core.$ZodType, mask: Readonly<Record<string, true>>
   return z
     .partialRecord(z.enum([first, ...rest]), z.optional(z.literal([1, -1])))
     .overwrite(withoutUndefined)
+    .optional()
 }
