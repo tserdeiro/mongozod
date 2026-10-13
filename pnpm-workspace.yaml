@@ -14,3 +14,14 @@ allowBuilds:
   # Not needed: Fumadocs MDX runs esbuild from its platform package, an optional dependency, and
   # pnpm fails an install in CI on a build script nobody approved or denied.
   esbuild: false
+
+# Install versions published at least a day ago, and fail on the ones that arrive late.
+minimumReleaseAge: 1440
+
+# Reject a version published with less trust than the earlier ones, such as without provenance.
+trustPolicy: no-downgrade
+# Published without provenance after a newer major that had it, by their own maintainers: npm's
+# semver backport of 2023-07 and Node.js's undici-types of 2024-11.
+trustPolicyExclude:
+  - 'semver@6.3.1'
+  - 'undici-types@6.21.0'
