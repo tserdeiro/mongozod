@@ -352,7 +352,8 @@ and a string such as `'-createdAt'`, fail.
 ## `mz.projection`
 
 `mz.projection(schema, mask)` takes the paths the client can ask for, with `1` or `true` to include
-and `0` or `false` to exclude, without mixing both, except for `_id`:
+and `0` or `false` to exclude, without mixing both, except for `_id`. The mask is the most a client
+gets: the router always receives an inclusion of declared paths.
 
 ```ts
 const postsProjection = mz.projection(postSchema, {
@@ -364,9 +365,23 @@ const postsProjection = mz.projection(postSchema, {
   tags: true
 })
 
-postsProjection.parse({ title: 1, summary: 1 })
+postsProjection.parse({ title: 1, summary: true })
 // { title: 1, summary: 1 }
+postsProjection.parse({ tags: 0 })
+// { title: 1, summary: 1 }
+postsProjection.parse({})
+// { title: 1, summary: 1, tags: 1 }
 ```
+
+MongoDB reads an exclusion such as `{ tags: 0 }`, and `{}`, as the whole document, with the fields
+the mask leaves out. So an exclusion means the declared paths but those, and nothing means all of
+them. Excluding every declared path leaves the `_id`, which MongoDB returns unless the client sends
+`_id: 0`. A mask can't declare a path and a path inside it, such as `author` and `author.name`,
+because MongoDB rejects both in one projection.
+
+Declare it with `.prefault({})` so a client that sends no projection also gets the mask. Zod's
+`.prefault()` parses its value, and `.default()` doesn't. With `.optional()`, a missing projection
+reaches the model as none, which reads the whole document.
 
 The model doesn't know at compile time whether a projection that arrives at runtime includes or
 excludes, so the read types each projected field as optional. To let a client ask for a
@@ -416,8 +431,9 @@ client sends nothing:
 - **A filter by id** takes `.required({ _id: true })`. Without it, `{}` is a valid filter, and
   `findOne`, `updateOne` or `deleteOne` would act on whatever document comes first.
 - **At least one of several fields** takes a `.refine()`.
-- **`sort`, `projection` and `populate`** take `.optional()` or a default, such as
+- **`sort` and `populate`** take `.optional()` or a default, such as
   `.default({ createdAt: -1 })`.
+- **`projection`** takes `.prefault({})`, so a missing one also stays within the mask.
 
 ```ts
 const findPostInput = z.object({
