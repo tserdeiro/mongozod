@@ -77,6 +77,7 @@ packages/docs/
 │   ├── typescript.md            filtros, updates y proyecciones estrictos, paths con punto, los tipos exportados
 │   ├── bson-types.md            los tipos de campo de `mz` y `.meta({ bsonType })`
 │   ├── endpoint-inputs.md       `mz.filter`, `mz.update`, `mz.sort`, `mz.projection` y `mz.populate`
+│   ├── security.md              lo que protegen los constructores y lo que queda en la aplicación
 │   ├── pagination.md            `mz.after`, `skip` y `limit`
 │   ├── populate.md              `references` y `populate`
 │   ├── virtuals.md
