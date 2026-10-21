@@ -310,6 +310,10 @@ await notesService.list({ titel: 'Hello' })
   and takes no options.
 - **Optional arguments**: mark them in the arrow too, with `?` or a default, such as
   `options = {}`. An argument that the type does not have, at the end and optional, is fine.
+- **A default for an option**, such as a sort, goes in the body:
+  `const { sort = { createdAt: -1 }, ...rest } = options`. In the parameters, TypeScript types the
+  default apart from the method type, and the sort, a union of the two, does not compile, even with
+  `as const`.
 - **Methods of their own**, which pass no filter or update to the model, such as a `debit`, need no
   method type. In a service that has them, give `satisfies` to each method that does, as
   `listNotes` above has it: a `satisfies` on the object rejects the keys its type does not name.

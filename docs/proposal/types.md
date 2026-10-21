@@ -302,7 +302,10 @@ adaptarla, y la lectura tipa cada referencia que permite como su id, el document
 devuelve `ReadOf<M>` (la 11): un genérico de opciones no sirve, porque `find` y `findOne` infieren
 su `sort`, su `projection` y su `populate` por separado y el resultado no sigue al del service. Deja
 afuera la `projection`, que sin ser literal tipa cada campo opcional. Cuesta como el `Pick` de la
-salida de los inputs que reemplaza.
+salida de los inputs que reemplaza. Un default de sus opciones, como el `sort`, va en el cuerpo
+(la A de la [revisión de la 0.4.0](../audits/adsgpt-migration.md)): desestructurado en el parámetro de
+una flecha, TypeScript lo tipa aparte del tipo de método, y el `sort`, la unión de los dos, no
+compila, tampoco con `as const` (verificado con TypeScript 7 y 5.5).
 
 ## Costo de los tipos
 
