@@ -489,7 +489,19 @@ manda `{ createdAt, _id }` del último elemento de la página.
   `mz.projection`, lo que cierra el hueco de wortise/adsgpt#231.
 - La página con `skip` del scroll infinito pasa a ser `mz.after`.
 - `populateSchema` y `WithPopulate` pasan a ser `mz.populate` y los tipos calculados.
-- `parser.search` no se reemplaza: cada proyecto convierte su `term` en filtro, por ejemplo con
-  `$text`, que necesita un índice de texto.
+- `parser.search` pasa a ser `mz.term`, para buscar mientras se escribe sin MongoDB Search (la 1 de
+  la [migración de adsgpt](../audits/adsgpt-migration.md)). Antes se había decidido no tener
+  búsqueda propia, y cada proyecto había copiado un helper que no escapaba el término: un `[` era un
+  500 y un patrón como `(a+)+$`, un ReDoS. Lo nativo va primero en la receta Search: `$text`, con un
+  índice de texto, matchea palabras completas sin mayúsculas ni acentos (verificado: `desay` no
+  encuentra `Desayuno`), y `$search`, de MongoDB Search, busca partes de palabras, pero en un
+  servidor propio está en preview desde la 8.2. `mz.term(schema, mask)` toma una máscara de paths
+  que guardan strings, como `mz.sort`; devuelve un schema de Zod cuya entrada es el texto y cuya
+  salida es el filtro, `{}` sin término, y el largo lo limita el proyecto con
+  `z.string().max(…).optional().pipe(…)`. Cada palabra tiene que estar en uno de los paths, sin
+  mayúsculas (`$options: 'i'`) y sin acentos: el término se normaliza y cada letra latina toma sus
+  variantes de Latin-1 y Latin Extended, armadas desde Unicode. El nombre se acordó con el
+  maintainer: `mz.search` chocaba con `$search`, `mz.regex` se leía como un input de regex y
+  `mz.contains` no es un término de MongoDB ni de Zod.
 - El `MongoQuerySchema` de la audiencia de wortise pasa a ser un `mz.filter` con `$and` y `$or`
   compuestos con Zod.

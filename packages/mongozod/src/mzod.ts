@@ -5,8 +5,8 @@
  * - **Field types** for a document's schema: `objectId()`, `decimal128()`, `binary()`, `uuid()`,
  *   `date()`, `set()` and GeoJSON, which take what a JSON client sends and return the BSON value.
  * - **Builders of endpoint inputs**, from a document's schema: `filter`, `update`, `sort`,
- *   `projection`, `after` and `populate`, MongoDB syntax restricted to what each endpoint
- *   declares.
+ *   `projection`, `after` and `populate`, MongoDB syntax restricted to what each endpoint declares,
+ *   and `term`, the text of a search box.
  *
  * It never imports the driver, so the schemas that use it also run in web and native clients. It
  * imports `bson`, a peer dependency, which a bundler leaves out unless a field needs it.
@@ -32,6 +32,7 @@ export { filter } from './mzod/filter'
 export { populate } from './mzod/populate'
 export { projection } from './mzod/projection'
 export { sort } from './mzod/sort'
+export { term } from './mzod/term'
 export { update } from './mzod/update'
 export { binary, decimal128, objectId, uuid } from './mzod/fields/bson'
 export { date } from './mzod/fields/date'

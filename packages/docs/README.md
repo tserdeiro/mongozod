@@ -56,6 +56,7 @@ version.
 - [Transforms](./recipes/transforms.md): Hash a password before it is stored, compute a field from others, and check the database inside a transaction.
 - [Schema migrations](./recipes/schema-migrations.md): Add a field or a virtual to a collection that already has documents, and list the documents that don't fit first.
 - [HTTP APIs](./recipes/http-apis.md): Take a filter in a GET request, read an id from the route, turn errors into responses and log them readably.
+- [Search](./recipes/search.md): Search a term in several fields, with MongoDB's text search, MongoDB Search, or mz.term for a search box without either.
 - [Streams](./recipes/streams.md): Read many documents batch by batch with for await and Node.js streams, and follow changes with change streams.
 - [Dates and money](./recipes/dates-and-money.md): Store a date without a time as a string, store money as Decimal128, and compare decimals in filters.
 - [Schema patterns](./recipes/schema-patterns.md): Model a tree with a recursive schema, and write to a key of a record that is only known at runtime.

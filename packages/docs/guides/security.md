@@ -150,8 +150,9 @@ The builders don't cap how much a request asks for. Limit the size of the reques
 - **`$and` and `$or`**: a recursive filter nests without a limit. Declare one level with
   `.max()` on its arrays (see [`$and`, `$or` and `$nor`](./endpoint-inputs.md#and-or-and-nor)).
 - **`$regex`**: a client sends any pattern, and one that isn't anchored to the start reads the
-  whole collection or index. For a search box, prefer `$text` or Atlas Search, or build the regex
-  on the server from an escaped term with a maximum length.
+  whole collection or index. For a search box, prefer `$text` or MongoDB Search, or
+  [`mz.term`](../api/mzod.md#mzterm), which builds the regex from an escaped term; give the term a
+  maximum length (see [Search](../recipes/search.md)).
 - **Pages**: cap `limit` with `.max()`, and the page number of skip pagination too, since a large
   `skip` still reads every document before it. [`mz.after`](./pagination.md) doesn't skip.
 - **Time**: the driver's `maxTimeMS` option, which a model method takes, stops a query that runs
