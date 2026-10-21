@@ -276,6 +276,12 @@ genéricos escritos a mano (verificado con TypeScript 7 y 5.5 y el LanguageServi
 objeto, una función suelta y las propiedades flecha de una clase; una `function` declarada, un método
 de clase o un método con otra forma escriben los genéricos, que chequean lo mismo. Un `Filter<M>` no
 genérico, como el del driver, se descartó con el maintainer: no puede chequear cada key.
+Un service con métodos propios, que no le pasan un filtro ni un update al modelo, da `satisfies` a
+cada método que sí lo hace (la D de la [revisión de la 0.4.0](../audits/adsgpt-migration.md)): un
+`satisfies` sobre el objeto rechaza las propiedades que su tipo no nombra. Se descartaron, con el
+maintainer, una index signature en el tipo, que se agrega solo para dejarlos pasar, y nombrarlos con
+su tipo, que repite la firma que TypeScript ya infiere. Tampoco se separa un repositorio del service:
+el modelo ya es el repositorio, y una capa que solo reenvía haría parecer pesada a la librería.
 Las opciones del driver que se les dan, como `FindOneAndDeleteOptions`, y las de `ReplaceMethod` por
 defecto, toman el `sort` del modelo en lugar del del driver, que acepta strings y arrays que el
 modelo rechaza: sin eso, un método que reenvía sus opciones no compilaba (lo encontró la prueba como

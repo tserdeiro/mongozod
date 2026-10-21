@@ -310,6 +310,9 @@ await notesService.list({ titel: 'Hello' })
   and takes no options.
 - **Optional arguments**: mark them in the arrow too, with `?` or a default, such as
   `options = {}`. An argument that the type does not have, at the end and optional, is fine.
+- **Methods of their own**, which pass no filter or update to the model, such as a `debit`, need no
+  method type. In a service that has them, give `satisfies` to each method that does, as
+  `listNotes` above has it: a `satisfies` on the object rejects the keys its type does not name.
 - **`type NotesModel = typeof NotesModel`** next to the model saves the `typeof`.
 - **Another shape**, such as a required argument before the filter, a `function` declaration or a
   method of a class: write the type parameters by hand, as in
