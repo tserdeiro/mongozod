@@ -489,6 +489,14 @@ manda `{ createdAt, _id }` del último elemento de la página.
   `mz.projection`, lo que cierra el hueco de wortise/adsgpt#231.
 - La página con `skip` del scroll infinito pasa a ser `mz.after`.
 - `populateSchema` y `WithPopulate` pasan a ser `mz.populate` y los tipos calculados.
+- `parser.update` no se reemplaza en el servidor (la 26 de la
+  [migración de adsgpt](../audits/adsgpt-migration.md), acordado con el maintainer): un update que
+  arma el servidor elige `$set` o `$unset`, como en el driver, y una key `undefined` se descarta
+  (guía Validation, «Updates»). MongoDB no recomienda un patrón para armarlos: documenta los
+  operadores y, para condiciones sobre lo guardado, los updates con pipeline y `$$REMOVE`, cuyos
+  valores mongozod no valida. Convertir `null` en `$unset` era una convención de `MongoModel`, no de
+  MongoDB, y un helper tendría que decidir qué significa `null` en un campo `.nullish()`. No se
+  agregó una sección a la doc.
 - `parser.search` pasa a ser `mz.term`, para buscar mientras se escribe sin MongoDB Search (la 1 de
   la [migración de adsgpt](../audits/adsgpt-migration.md)). Antes se había decidido no tener
   búsqueda propia, y cada proyecto había copiado un helper que no escapaba el término: un `[` era un

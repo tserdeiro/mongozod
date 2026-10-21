@@ -55,7 +55,7 @@ Los probes quedaron fuera del repo.
 | 23     | `softDelete` también filtra los updates               | Por diseño, sin guía de migración               | Sin cambios: es del patrón propio, no de Mongoose              | —      |
 | 24     | Los campos de `timestamps` sin `.default()`           | Por diseño; el `.default()` ya funciona         | Docs: cuándo poner `.default()`                                | 21     |
 | 25     | `arrayFilters` obliga a otro método                   | Hueco, y el método aparte pierde chequeos       | Exportar `UpdateOptionsOf`                                     | 10     |
-| 26     | Sin equivalente de `parser.update`                    | Hueco: la propuesta no trata el servidor        | Docs: los updates que arma el servidor                         | 16     |
+| 26     | Sin equivalente de `parser.update`                    | Hueco: la propuesta no trata el servidor        | Sin helper ni sección: `$set` o `$unset`, como el driver       | 16     |
 | 27     | Detalles: sort en una constante, resultados, conexión | Ensanchamiento de TS; docs                      | Mensaje del sort; docs de resultados y conexión                | 13, 23 |
 
 Los números de PR son los del [stack](#stack-de-prs).
@@ -446,9 +446,9 @@ MongoDB acepta operadores vacíos. Ni Zod ni MongoDB tienen un equivalente: un u
 El punto difícil es un campo `.nullish()`: `null` puede ser un valor para guardar o un borrado. El
 formulario de marca de native manda `logo: null`, que antes era `$unset` y hoy guarda `null`.
 
-**Decisión**: solo docs. Una sección «Updates the server builds» en Validation con el patrón de
-`$set` y `$unset`, que se apoya en que mongozod descarta las keys `undefined`. Es la API de MongoDB
-y no obliga a decidir qué significa `null` en un campo `.nullish()`.
+**Decisión**: ni helper ni sección nueva. Un update del servidor elige `$set` o `$unset`, como en
+el driver, y la guía Validation ya dice que una key `undefined` se descarta. MongoDB no recomienda
+un patrón para armarlos, y `null` → `$unset` era una convención de `MongoModel`.
 
 **Descartado** (los dos prototipados):
 
@@ -609,7 +609,7 @@ documento de la propuesta, la fila de este documento y su changeset cuando cambi
 | 13  | `feat(mongozod): name the widened literals of updates and sorts`           | 12 y 27, hecho    |
 | 14  | `feat(mongozod): take a field without operators in mz.filter as a value`   | 18, hecho         |
 | 15  | `feat(mongozod): add mz.term for a search box`                             | 1, hecho          |
-| 16  | `docs(docs): updates the server builds`                                    | 26                |
+| 16  | `docs(proposal): record why server updates have no helper`                 | 26, hecho         |
 | 17  | `docs(docs): delete a document for real with softDelete`                   | 6                 |
 | 18  | `feat(mongozod): create the indexes on the first operation, opt-in`        | 2                 |
 | 19  | `docs(docs): projections and inputs that convert`                          | 3, 19 y 27 (keys) |
@@ -649,3 +649,13 @@ operaciones que `softDelete`. Conviene buscar en el código:
   `deletedAt`.
 - **Los `populate` hacia un modelo con soft delete**, que devuelven `null` para un borrado, y los
   `aggregate` y `$lookup`, que siguen viéndolos.
+
+## Próximos pasos
+
+- **Una API de los constructores más cercana a Zod** (pedido del maintainer al revisar `mz.term`):
+  algo como `mz.term(noteSchema.pick({ … })).max(100).optional()`. Hoy los constructores toman el
+  schema y una máscara de paths, `(schema, { … })`, porque `.pick()` no toma paths con punto y sus
+  sugerencias son las de Zod, del primer nivel; y `.max()` es de `ZodString`, que un constructor que
+  devuelve un filtro solo tendría con una subclase propia de Zod. Se explora junto con
+  `mz.from(schema)` de la fase 7 del [roadmap](../proposal/roadmap.md), sin perder los paths con
+  punto ni las sugerencias.
