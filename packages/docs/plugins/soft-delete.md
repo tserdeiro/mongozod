@@ -104,16 +104,17 @@ them.
 
 ## Quick reference
 
-| Task                            | Call                                                                                   |
-| ------------------------------- | -------------------------------------------------------------------------------------- |
-| Read the live documents         | `find({ authorId })`                                                                   |
-| Read the trash                  | `find({ authorId, deletedAt: { $exists: true } })`                                     |
-| Read every document             | `find({ $or: [{ deletedAt: { $exists: true } }, { deletedAt: { $exists: false } }] })` |
-| Delete                          | `deleteOne({ _id })`, which sets `deletedAt`                                           |
-| Restore                         | `updateOne({ _id, deletedAt: { $exists: true } }, { $unset: { deletedAt: '' } })`      |
-| Delete a live document for real | `deleteOne({ _id, deletedAt: { $exists: false } })`                                    |
-| Empty the trash                 | `deleteMany({ deletedAt: { $lt: cutoff } })`                                           |
-| Aggregate the live documents    | `aggregate([{ $match: { deletedAt: { $exists: false } } }, …])`                        |
+| Task                            | Call                                                                                             |
+| ------------------------------- | ------------------------------------------------------------------------------------------------ |
+| Read the live documents         | `find({ authorId })`                                                                             |
+| Read the trash                  | `find({ authorId, deletedAt: { $exists: true } })`                                               |
+| Read every document             | `find({ $or: [{ deletedAt: { $exists: true } }, { deletedAt: { $exists: false } }] })`           |
+| Delete                          | `deleteOne({ _id })`, which sets `deletedAt`                                                     |
+| Restore                         | `updateOne({ _id, deletedAt: { $exists: true } }, { $unset: { deletedAt: '' } })`                |
+| Delete a live document for real | `deleteOne({ _id, deletedAt: { $exists: false } })`                                              |
+| Delete a document for real      | `deleteOne({ _id, $or: [{ deletedAt: { $exists: true } }, { deletedAt: { $exists: false } }] })` |
+| Empty the trash                 | `deleteMany({ deletedAt: { $lt: cutoff } })`                                                     |
+| Aggregate the live documents    | `aggregate([{ $match: { deletedAt: { $exists: false } } }, …])`                                  |
 
 ## Read the deleted documents too
 
