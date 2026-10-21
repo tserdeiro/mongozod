@@ -258,7 +258,7 @@ const NotesModel = mongozod({
 
 type NotesModel = typeof NotesModel
 
-const after = { returnDocument: 'after' } as const
+const upsert = { upsert: true, returnDocument: 'after' } as const
 
 export const notesService = {
 
@@ -266,14 +266,19 @@ export const notesService = {
 
   updateMany: (filter, update, options?) => NotesModel.updateMany(filter, update, options),
 
-  updateOne: (filter, update) => NotesModel.findOneAndUpdate(filter, update, after)
+  updateOne: (filter, update, options?) =>
+    NotesModel.findOneAndUpdate(filter, update, { ...options, returnDocument: 'after' }),
+
+  upsertOne: (filter, update) => NotesModel.findOneAndUpdate(filter, update, upsert)
 } satisfies {
 
   list: FilterMethod<NotesModel>
 
   updateMany: UpdateMethod<NotesModel>
 
-  updateOne: UpdateMethod<NotesModel, typeof after>
+  updateOne: UpdateMethod<NotesModel>
+
+  upsertOne: UpdateMethod<NotesModel, typeof upsert>
 }
 
 export const listNotes = ((filter, options = {}) =>
@@ -297,10 +302,12 @@ await notesService.list({ titel: 'Hello' })
   `FilterMethod<M, O>` takes the options of a `find` unless you give others, such as those of
   `countDocuments`.
 - **The options of an update**: `UpdateMethod<M>` takes the caller's and passes them on,
-  `arrayFilters` included. `UpdateMethod<M, typeof after>` takes none and passes its own, such as
-  `{ returnDocument: 'after' }` to return the document. Don't merge the two, such as with
-  `Object.assign(after, options)`: the update the caller writes and the one the model checks become
-  different types, and comparing them costs about 150,000 type instantiations once per program.
+  `arrayFilters` included, and the method can add its own, such as `returnDocument: 'after'`. That
+  makes the update the caller writes and the one the model checks different types, and comparing
+  them costs about 60,000 type instantiations once per program. An option that the check of the
+  update reads, `upsert: true`, `arrayFilters`, `timestamps: false` or `updatePipeline: true`,
+  cannot be added this way: a method of its own passes it, with `UpdateMethod<M, typeof upsert>`,
+  and takes no options.
 - **Optional arguments**: mark them in the arrow too, with `?` or a default, such as
   `options = {}`. An argument that the type does not have, at the end and optional, is fine.
 - **`type NotesModel = typeof NotesModel`** next to the model saves the `typeof`.

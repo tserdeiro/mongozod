@@ -713,8 +713,9 @@ paths of the document, not a string or an array.
 ### UpdateMethod
 
 `UpdateMethod<M>` types a method that takes a filter, an update and the options of the update, with
-their `arrayFilters` checked against its identifiers. `UpdateMethod<M, O>` types one that takes no
-options and passes its own, `O`, such as `{ returnDocument: 'after' }`.
+their `arrayFilters` checked against its identifiers, and can add options of its own, such as
+`{ ...options, returnDocument: 'after' }`. `UpdateMethod<M, O>` types one that takes no options and
+passes its own, `O`, such as `{ upsert: true }`, which the check of the update reads.
 
 ### ReplaceMethod
 

@@ -38,20 +38,22 @@ export type FilterMethod<M, O = FindOptionsOf<M>> = <const F extends FilterOf<M,
 /**
  * The type of a method of a service that takes a filter and an update, given with `satisfies`, as
  * `FilterMethod`. Without `O`, it also takes the caller's options and passes them on,
- * `arrayFilters` included. With `O`, the options the method passes to the model itself, such as a
- * constant `{ returnDocument: 'after' }`, it takes none. Merging the two, such as with
- * `Object.assign`, makes the update the caller writes and the one the model checks different types,
- * and comparing them costs about 150,000 instantiations once per program.
+ * `arrayFilters` included, and can add its own, such as `returnDocument: 'after'`: the update the
+ * caller writes and the one the model checks become different types, and comparing them costs about
+ * 60,000 instantiations once per program. With `O`, the options the method passes to the model
+ * itself, it takes none: the way for an option that the check of the update reads, such as
+ * `upsert: true`.
  *
  * @example
- *   const after = { returnDocument: 'after' } as const
+ *   const upsert = { upsert: true, returnDocument: 'after' } as const
  *
  *   export const notesService = {
- *     updateMany: (filter, update, options?) => NotesModel.updateMany(filter, update, options),
- *     updateOne: (filter, update) => NotesModel.findOneAndUpdate(filter, update, after)
+ *     updateOne: (filter, update, options?) =>
+ *       NotesModel.findOneAndUpdate(filter, update, { ...options, returnDocument: 'after' }),
+ *     upsertOne: (filter, update) => NotesModel.findOneAndUpdate(filter, update, upsert)
  *   } satisfies {
- *     updateMany: UpdateMethod<typeof NotesModel>
- *     updateOne: UpdateMethod<typeof NotesModel, typeof after>
+ *     updateOne: UpdateMethod<typeof NotesModel>
+ *     upsertOne: UpdateMethod<typeof NotesModel, typeof upsert>
  *   }
  *
  * @see https://mongozod.dev/docs/api/mongozod#updatemethod
