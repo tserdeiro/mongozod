@@ -6,7 +6,8 @@ import type {
   ReadOf,
   SortOf,
   UpdateOf,
-  UpdateOptionsArg
+  UpdateOptionsArg,
+  UpdateOptionsOf
 } from './model'
 
 import { MongoClient } from 'mongodb'
@@ -227,6 +228,59 @@ test('BulkWriteOf passes operations built elsewhere to the model, each checked',
     // @ts-expect-error updatedAt is set by timestamps
     void writePosts([{ updateOne: { filter: {}, update: { $set: { updatedAt: new Date() } } } }])
   }).toBeTypeOf('function')
+})
+
+const PluginsModel = mongozod({
+  collection: 'plugins',
+  db,
+  schema: z.object({
+    connections: z.object({ _id: z.string(), status: z.enum(['active', 'paused']) }).array(),
+    name: z.string()
+  })
+})
+
+/** A service that passes the options of an update on, `arrayFilters` included. */
+function updatePlugin<
+  const F extends FilterOf<typeof PluginsModel, F>,
+  const U extends UpdateOf<typeof PluginsModel, U, F, O>,
+  const O extends UpdateOptionsOf<typeof PluginsModel, U, O>
+>(filter: F, update: U, options?: O) {
+  return PluginsModel.updateOne(filter, update, options)
+}
+
+/** The same, returning the document after the update. */
+function updatePluginAfter<
+  const F extends FilterOf<typeof PluginsModel, F>,
+  const U extends UpdateOf<typeof PluginsModel, U, F, O>,
+  const O extends UpdateOptionsOf<typeof PluginsModel, U, O>
+>(filter: F, update: U, options?: O) {
+  return PluginsModel.findOneAndUpdate(
+    filter,
+    update,
+    Object.assign({ returnDocument: 'after' as const }, options)
+  )
+}
+
+test('UpdateOptionsOf passes the options of an update on, with their arrayFilters checked', () => {
+  const setStatus = { $set: { 'connections.$[connection].status': 'paused' } } as const
+
+  expect(() => {
+    void updatePlugin({ name: 'ads' }, { $set: { name: 'Ads' } })
+    void updatePlugin({ name: 'ads' }, setStatus, { arrayFilters: [{ 'connection._id': 'c1' }] })
+    void updatePlugin({ name: 'ads' }, { $set: { name: 'Ads' } }, { upsert: true })
+    // @ts-expect-error "connections.$[connection].status" uses an identifier: pass arrayFilters
+    void updatePlugin({ name: 'ads' }, setStatus)
+    // @ts-expect-error "conn" is not an identifier of the update
+    void updatePlugin({ name: 'ads' }, setStatus, { arrayFilters: [{ 'conn._id': 'c1' }] })
+    // @ts-expect-error a status is 'active' or 'paused'
+    void updatePlugin({}, setStatus, { arrayFilters: [{ 'connection.status': 'gone' }] })
+    // @ts-expect-error the document comes back, not the metadata
+    void updatePluginAfter({}, { $set: { name: 'Ads' } }, { includeResultMetadata: true })
+  }).toBeTypeOf('function')
+
+  type After = Awaited<ReturnType<typeof updatePluginAfter>>
+
+  expectTypeOf<After>().toEqualTypeOf<ReadOf<typeof PluginsModel> | null>()
 })
 
 test('InsertOf is what an insert takes, without the fields timestamps and plugins fill', () => {

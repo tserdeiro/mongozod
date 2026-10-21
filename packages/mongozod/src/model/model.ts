@@ -413,6 +413,31 @@ export type FindOptionsOf<M> = M extends { readonly schema: infer S extends Mode
   : never
 
 /**
+ * The options of an update that a function passes to the model with its update, such as a service:
+ * their `arrayFilters` are checked against the identifiers of the update `U`, and their `sort`,
+ * `projection` and `populate` against the schema, as the model does. They cannot ask for
+ * `includeResultMetadata`, so a `findOneAndUpdate` that takes them returns the document.
+ *
+ * @example
+ *   function updatePlugin<
+ *     const F extends FilterOf<typeof PluginsModel, F>,
+ *     const U extends UpdateOf<typeof PluginsModel, U, F, O>,
+ *     const O extends UpdateOptionsOf<typeof PluginsModel, U, O>
+ *   >(filter: F, update: U, options?: O) {
+ *     return PluginsModel.updateOne(filter, update, options)
+ *   }
+ *
+ * @see https://mongozod.dev/docs/api/mongozod#updateoptionsof
+ */
+export type UpdateOptionsOf<M, U, O> = UpdateOptionsCheck<
+  SchemaOf<M>,
+  U,
+  O,
+  VirtualsOf<M>,
+  ReferencesOf<M>
+> & { includeResultMetadata?: false }
+
+/**
  * The options argument of the model's reads, with the context its plugins ask for.
  *
  * @see https://mongozod.dev/docs/api/mongozod#readoptionsarg
