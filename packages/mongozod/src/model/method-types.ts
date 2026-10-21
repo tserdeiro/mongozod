@@ -5,16 +5,19 @@ import type {
   FindOptionsOf,
   InsertOf,
   PipelineOf,
+  ReplaceOptionsOf,
+  SortedOptionsOf,
   UpdateOf,
   UpdateOptionsOf
 } from './model'
-import type { AggregateOptions, BulkWriteOptions, DistinctOptions, ReplaceOptions } from 'mongodb'
+import type { AggregateOptions, BulkWriteOptions, DistinctOptions } from 'mongodb'
 
 /**
  * The type of a method of a service that takes a filter, such as one that lists, counts or deletes,
  * and its options `O`: the options of a `find` by default. Given with `satisfies`, it gives an
  * arrow function the type parameters that check the filter, which the method passes to the model;
- * the result is the method's own. A method with another shape writes its type parameters by hand.
+ * the result is the method's own. Driver options with a `sort`, such as `FindOneAndDeleteOptions`,
+ * take the model's. A method with another shape writes its type parameters by hand.
  *
  * @example
  *   export const notesService = {
@@ -29,7 +32,7 @@ import type { AggregateOptions, BulkWriteOptions, DistinctOptions, ReplaceOption
  */
 export type FilterMethod<M, O = FindOptionsOf<M>> = <const F extends FilterOf<M, F>>(
   filter: F,
-  options?: O
+  options?: SortedOptionsOf<M, O>
 ) => unknown
 
 /**
@@ -70,14 +73,15 @@ export type UpdateMethod<M, O = never> = [O] extends [never]
 
 /**
  * The type of a method of a service that takes a filter and a document that replaces the one it
- * matches, given with `satisfies`, as `FilterMethod`.
+ * matches, given with `satisfies`, as `FilterMethod`, and its options `O`: the model's by default,
+ * whose `sort` takes the paths of the document.
  *
  * @see https://mongozod.dev/docs/api/mongozod#replacemethod
  */
-export type ReplaceMethod<M, O = ReplaceOptions> = <const F extends FilterOf<M, F>>(
+export type ReplaceMethod<M, O = ReplaceOptionsOf<M>> = <const F extends FilterOf<M, F>>(
   filter: F,
   replacement: InsertOf<M>,
-  options?: O
+  options?: SortedOptionsOf<M, O>
 ) => unknown
 
 /**

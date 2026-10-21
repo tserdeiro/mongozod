@@ -7,7 +7,7 @@ import type {
   UpdateMethod
 } from './method-types'
 import type { ReadOf } from './model'
-import type { CountDocumentsOptions } from 'mongodb'
+import type { CountDocumentsOptions, FindOneAndDeleteOptions } from 'mongodb'
 
 import { MongoClient } from 'mongodb'
 import { expect, expectTypeOf, test } from 'vitest'
@@ -49,7 +49,9 @@ const postsService = {
   count: (filter, options?) => PostsModel.countDocuments(filter, options),
   distinct: (key, filter?) => PostsModel.distinct(key, filter),
   list: (filter, options = {}) => PostsModel.find(filter, options),
-  replaceOne: (filter, replacement) => PostsModel.replaceOne(filter, replacement),
+  remove: (filter, options?) => PostsModel.findOneAndDelete(filter, options),
+  replaceOne: (filter, replacement, options?) =>
+    PostsModel.replaceOne(filter, replacement, options),
   updateMany: (filter, update, options?) => PostsModel.updateMany(filter, update, options),
   updateOne: (filter, update) => PostsModel.findOneAndUpdate(filter, update, after),
   write: (operations) => PostsModel.bulkWrite(operations)
@@ -58,6 +60,7 @@ const postsService = {
   count: FilterMethod<Posts, CountDocumentsOptions>
   distinct: DistinctMethod<Posts>
   list: FilterMethod<Posts>
+  remove: FilterMethod<Posts, FindOneAndDeleteOptions>
   replaceOne: ReplaceMethod<Posts>
   updateMany: UpdateMethod<Posts>
   updateOne: UpdateMethod<Posts, typeof after>
@@ -82,8 +85,10 @@ test('a method typed with satisfies checks what it passes to the model', () => {
     void postsService.updateMany({}, setChecked, { arrayFilters: [{ 'link.url': 'https://a.b' }] })
     void postsService.replaceOne(
       { title: 'One' },
-      { author: 'ada', links: [], status: 'draft', title: 'Two' }
+      { author: 'ada', links: [], status: 'draft', title: 'Two' },
+      { sort: { createdAt: -1 }, upsert: true }
     )
+    void postsService.remove({ status: 'draft' }, { sort: { createdAt: 1 } })
     void postsService.write([{ deleteMany: { filter: { status: 'draft' } } }])
     void postsService.aggregate([{ $match: { status: 'published' } }])
     void postsService.distinct('status', { title: 'One' })
@@ -97,6 +102,8 @@ test('a method typed with satisfies checks what it passes to the model', () => {
     void postsService.updateMany({}, setChecked)
     // @ts-expect-error the method passes its own options
     void postsService.updateOne({}, { $set: { title: 'Two' } }, { upsert: true })
+    // @ts-expect-error "titel" is not a path of the document
+    void postsService.remove({}, { sort: { titel: 1 } })
     // @ts-expect-error title is required
     void postsService.replaceOne({}, { author: 'ada', links: [], status: 'draft' })
     // @ts-expect-error "titel" is not a path of the document

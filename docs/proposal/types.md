@@ -272,6 +272,10 @@ genéricos escritos a mano (verificado con TypeScript 7 y 5.5 y el LanguageServi
 objeto, una función suelta y las propiedades flecha de una clase; una `function` declarada, un método
 de clase o un método con otra forma escriben los genéricos, que chequean lo mismo. Un `Filter<M>` no
 genérico, como el del driver, se descartó con el maintainer: no puede chequear cada key.
+Las opciones del driver que se les dan, como `FindOneAndDeleteOptions`, y las de `ReplaceMethod` por
+defecto, toman el `sort` del modelo en lugar del del driver, que acepta strings y arrays que el
+modelo rechaza: sin eso, un método que reenvía sus opciones no compilaba (lo encontró la prueba como
+consumidor de la 0.3.3).
 
 Para las operaciones de un `bulkWrite` que un service recibe ya armadas, mongozod exporta
 `BulkWriteOf<M, Ops, O>` (la 16 de la [migración de adsgpt](../audits/adsgpt-migration.md)), el
