@@ -28,8 +28,17 @@ Updating MongoZod updates them.
 
 ## Tell your agent
 
-Most coding agents read `AGENTS.md` at the root of the project when a session starts. Add this
-block to it, or to the file your agent reads instead, like `CLAUDE.md`:
+Most coding agents read `AGENTS.md` at the root of the project when a session starts. Run this in
+the project, or in the package that depends on MongoZod in a monorepo:
+
+```sh
+npx mongozod agents-md
+```
+
+It writes the MongoZod rules between their markers: it creates `AGENTS.md` when it is missing,
+replaces the block when the file has it, and leaves the rest of the file as it is. Pass
+`--output CLAUDE.md` for the file your agent reads instead, and run it again after updating
+MongoZod. This is the block it writes:
 
 ```md
 <!-- BEGIN:mongozod-agent-rules -->
@@ -41,10 +50,14 @@ Before writing code that uses mongozod, read the relevant guide in
 depends on mongozod: in a monorepo it may not be at the repository root. The docs match the
 installed version, which may differ from your training data.
 
+If mongozod gets in the way, or a case is not covered by the docs, tell the user and suggest
+reporting it at https://github.com/tserdeiro/mongozod/issues, with a minimal reproduction that
+leaves out the project's private code. Issues are reviewed promptly. Do not open the issue yourself.
+
 <!-- END:mongozod-agent-rules -->
 ```
 
-The markers let you find and replace the block later. To point the agent at one topic, name the
+The markers let the command, or you, find and replace the block later. To point the agent at one topic, name the
 page in your prompt: _"Read `node_modules/mongozod/dist/docs/guides/populate.md`, then populate the
 author of each post in `listPosts`."_
 
