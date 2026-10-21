@@ -174,17 +174,19 @@ filters of `bulkWrite`, and the `$match` stages at the start of an `aggregate` p
 ### `undefined` and `null`
 
 A key whose value may be `undefined` does not compile: the driver sends it as `null`, which matches
-the documents without the field. The model also rejects it at runtime with a `ZodError`, for a value
-that arrives typed `any`, such as one of a request body. Leave the key out, or write `null` or
-`{ $exists: false }` when that is what you mean:
+the documents without the field, and with `ignoreUndefined` it drops the key, which matches every
+document. The error says `"status" may be undefined`. The model also rejects it at runtime with a
+`ZodError`, for a value that arrives typed `any`, such as one of a request body. Leave the key out,
+or write `null` or `{ $exists: false }` when that is what you mean. Compare with `undefined`, so
+that `false`, `0` and `''` stay in the filter:
 
 ```ts
 async function listPosts(status?: 'draft' | 'published') {
 
-  // @ts-expect-error: the driver would send an undefined status as null
+  // @ts-expect-error: "status" may be undefined
   await PostsModel.find({ status })
 
-  return PostsModel.find({ ...(status && { status }) })
+  return PostsModel.find({ ...(status !== undefined && { status }) })
 }
 ```
 

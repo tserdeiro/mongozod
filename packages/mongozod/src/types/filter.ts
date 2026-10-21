@@ -1,5 +1,5 @@
 import type { Def, FieldAt, NotAPath, Wrapper } from '../schema/schema-at'
-import type { UndefinedIfOptional } from '../utils/type-helpers'
+import type { IsOptionalKey, UndefinedIfOptional } from '../utils/type-helpers'
 import type { Leaf, Loose } from './loose'
 import type { PathSuggestions } from './path-suggestions'
 import type { Binary, BSONRegExp, BSONType, Document } from 'bson'
@@ -188,10 +188,22 @@ export type FilterCheck<S, F> = {
         : K extends keyof RootOperators<S>
           ? RootOperators<S>[K]
           : K extends string
-            ? KeyCheck<S, K, F[K]>
+            ? undefined extends F[K]
+              ? IsOptionalKey<F, K> extends true
+                ? KeyCheck<S, K, F[K]>
+                : UndefinedProblem<K>
+              : KeyCheck<S, K, F[K]>
             : never)
     | UndefinedIfOptional<F, K>
 }
+
+/**
+ * A key whose value may be `undefined`, such as `{ status }` for an optional `status`: the driver
+ * would send it as `null`, or drop it with `ignoreUndefined`. An optional key, as `mz.filter`
+ * returns them, is left out instead.
+ */
+type UndefinedProblem<K extends string> =
+  `"${K}" may be undefined, which would match the documents without it: leave the key out, or write null or { $exists: false }`
 
 /** The keys the editor suggests in a filter. The checks come from `FilterCheck`. */
 export type SuggestedFilter<S> = {

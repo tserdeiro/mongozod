@@ -12,7 +12,7 @@ function undefinedIssues(value: unknown, path: PropertyKey[], issues: core.$ZodI
       code: 'custom',
       input: value,
       message:
-        'a filter cannot have an undefined value: the driver would send null, which matches the documents without the field',
+        'a filter cannot have an undefined value, which would match the documents without the field, or every document with ignoreUndefined: leave the key out, or write null or { $exists: false }',
       path
     })
   } else if (Array.isArray(value)) {
@@ -26,8 +26,9 @@ function undefinedIssues(value: unknown, path: PropertyKey[], issues: core.$ZodI
 /**
  * Throws a `ZodError` when a filter has an `undefined` value, at any level, such as `{ token:
  * body.token }` for a body without one: the driver sends it as `null`, which matches the documents
- * without the field. The types of the model reject it, and a request typed `any` compiles, so this
- * is the runtime half of that check, like the one of a `sort` string.
+ * without the field, or drops it with `ignoreUndefined`, which matches every document. The types of
+ * the model reject it, and a request typed `any` compiles, so this is the runtime half of that
+ * check, like the one of a `sort` string.
  */
 export function checkFilter(filter: Document): void {
   const issues: core.$ZodIssue[] = []

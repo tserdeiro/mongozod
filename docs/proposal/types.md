@@ -67,7 +67,10 @@ tipo del campo y `E` el de sus elementos, si es un array:
 - **`undefined`**: no compila. El driver lo manda como `null`, que coincide con los documentos sin
   el campo o con `null`, y con `ignoreUndefined` la key desaparece y coincide con todos. Para eso
   se escribe `null` o `$exists: false`. Un filtro armado con tipos que tienen keys opcionales, como
-  la salida de `mz.filter`, sigue compilando.
+  la salida de `mz.filter`, sigue compilando. El error de los tipos y el del runtime dicen qué hacer:
+  `"status" may be undefined, … leave the key out, or write null or { $exists: false }`. Ignorar la
+  key se evaluó en la [migración de adsgpt](../audits/adsgpt-migration.md) (la 7) y se descartó: un
+  `deleteMany({ organization })` sin organización borraría las de todas.
   - **En runtime también se rechaza** (2026-10-13, auditoría contra las guías de OWASP): un
     `req.body.token` es `any` y compila, y `findOne({ email, resetToken: body.token })` sin token
     encontraba al usuario sin `resetToken` (verificado con MongoDB 8.2.6). Como un `sort` string, el

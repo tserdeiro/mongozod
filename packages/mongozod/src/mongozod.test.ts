@@ -489,7 +489,7 @@ describe('runtime validation of updates', () => {
     // A request body is typed any, so an undefined value compiles: the types reject a typed one.
     const body: { summary?: string } = {}
     const message =
-      'a filter cannot have an undefined value: the driver would send null, which matches the documents without the field'
+      'a filter cannot have an undefined value, which would match the documents without the field, or every document with ignoreUndefined: leave the key out, or write null or { $exists: false }'
 
     // The driver matches the document without the field.
     expect(await NotesModel.collection.findOne({ summary: body.summary })).toMatchObject({
