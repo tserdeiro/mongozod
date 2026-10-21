@@ -341,6 +341,10 @@ export const client = new MongoClient('mongodb://localhost:27017')
 export const db = client.db()
 ```
 
+Without Mongoose, nothing creates the indexes when the app starts: run `sync()` in a deploy step
+(see [When to run it](../guides/sync.md#when-to-run-it)), or add the
+[`autoIndex`](../plugins/auto-index.md) plugin to the models.
+
 Then you can drop `__v` from the schemas (see
 [`__v`](./differences.md#__v-and-optimistic-concurrency)), and turn on `jsonSchema` in the models,
 so that the server checks every write too (see [Sync](../guides/sync.md)). While Mongoose still
@@ -391,8 +395,9 @@ They match the installed version: follow them over what you remember of mongozod
 4. Keep the security of each call site, with guides/security.md. mongozod doesn't sanitize or
    cast filters at runtime, and a request body is typed `any`, so tsc doesn't catch it:
    - Parse the input of each endpoint once, before the model: .pick() of the model's schema for
-     values, the mz builders (mz.filter, mz.update, mz.projection…) for MongoDB syntax from the
-     client, and mz.objectId() for an id. Check whether the project used sanitizeFilter,
+     values, the mz builders (mz.filter, mz.update, mz.sort, mz.projection, mz.populate, mz.after,
+     mz.term…) for MongoDB syntax from the client, with mz.from(schema) to name the schema once,
+     and mz.objectId() for an id. Check whether the project used sanitizeFilter,
      strictQuery or mongoose.trusted().
    - Never pass req.body or req.query whole as a filter, an update or a document to insert.
    - Keep every owner or tenant condition, joined with the client's filter with $and, never with

@@ -247,7 +247,7 @@ From the [schema options](https://mongoosejs.com/docs/guide.html#options):
 | `versionKey`, `__v`                       | Declared as a field while Mongoose writes (see [`__v`](./differences.md#__v-and-optimistic-concurrency))             |
 | `optimisticConcurrency`                   | Not yet, it is planned. Filter by the version by hand (see [`__v`](./differences.md#__v-and-optimistic-concurrency)) |
 | `minimize`                                | No equivalent: empty objects are stored as they are                                                                  |
-| `autoIndex`, `autoCreate`                 | [`sync()`](../guides/sync.md), which you call                                                                        |
+| `autoIndex`, `autoCreate`                 | [`sync()`](../guides/sync.md), which you call, or the opt-in [`autoIndex()`](../plugins/auto-index.md) plugin        |
 | `discriminatorKey`                        | The key of the `z.discriminatedUnion` (see [Discriminators](#discriminators))                                        |
 | `toJSON`, `toObject`                      | Not needed: reads are plain objects (see [Back to JSON](../guides/bson-types.md#back-to-json))                       |
 | `capped`, `timeseries`, `collation`       | Create the collection with the driver, before `sync()` (see [Models](../guides/models.md#collection))                |
@@ -512,6 +512,7 @@ From [Plugins](https://mongoosejs.com/docs/plugins.html):
 | `schema.plugin(plugin, options)`    | `plugins: [plugin(options)]`, in the order they apply                            |
 | `mongoose.plugin()`, global plugins | No equivalent: pass the same plugins to each model                               |
 | A soft delete plugin                | [`softDelete()`](../plugins/soft-delete.md), from `mongozod/plugins/soft-delete` |
+| The `autoIndex` option              | [`autoIndex()`](../plugins/auto-index.md), from `mongozod/plugins/auto-index`    |
 | `mongoose-lean-virtuals`            | Not needed: reads are plain objects with their virtuals                          |
 
 ## Indexes
@@ -522,7 +523,7 @@ From [Indexes](https://mongoosejs.com/docs/guide.html#indexes) and the
 | Mongoose                                               | MongoZod                                                                                  |
 | ------------------------------------------------------ | ----------------------------------------------------------------------------------------- |
 | `schema.index(fields, options)`                        | `indexes: (index) => [index(fields, options)]`, with the paths checked against the schema |
-| `autoIndex`, `Model.init()`, `Model.createIndexes()`   | `await Model.sync()`, from a deploy script                                                |
+| `autoIndex`, `Model.init()`, `Model.createIndexes()`   | `await Model.sync()`, from a deploy script, or `plugins: [autoIndex()]`                   |
 | `Model.syncIndexes()`, which drops the undeclared ones | `sync()`, which never drops one and returns them in `extraIndexes`                        |
 | `Model.diffIndexes()`                                  | The `extraIndexes` of `sync()`                                                            |
 | `autoCreate`                                           | MongoDB creates the collection on the first write, or `sync()` with `jsonSchema`          |

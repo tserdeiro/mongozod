@@ -70,8 +70,9 @@ export const NotesModel = mongozod({
 - **`timestamps`**: completa `createdAt` y `updatedAt`. Ver [Timestamps](#timestamps).
 - **`virtuals`**: campos calculados a partir de otros, que no se guardan. Ver [Virtuals](#virtuals).
 
-El modelo expone `.schema`, `.collection` (el `Collection` tipado del driver), `.db`, `.name` y
-`.virtuals`. Además tiene las operaciones, `sync()` y los métodos de sus plugins.
+El modelo expone `.schema`, `.collection` (el `Collection` tipado del driver), `.db`, `.name`,
+`.indexes`, `.references` y `.virtuals`. Además tiene las operaciones, `sync()` y los métodos de
+sus plugins.
 
 ## Timestamps
 
@@ -89,10 +90,12 @@ objeto por campo. Está apagada por defecto.
 - **En el schema**: los campos se declaran en el schema, que sigue siendo la única fuente de verdad,
   y siguen a la opción, renombrados o apagados. Tienen que estar en todos los tipos de documento y
   tomar y devolver una `Date`. Si no, `mongozod()` no compila, y en runtime lanza un `Error`.
-- **Sin `.default()`**: el schema declara
-  lo que se guarda, y mientras `timestamps` está activo el tipo del insert y del reemplazo los deja
-  opcionales, porque el núcleo los completa antes de validar. Así funciona la opción de Mongoose,
-  que agrega los campos sola. Un `.default()` sigue funcionando. El tipo infiere de las opciones si
+- **Un `.default()` es opcional**: el schema declara lo que se guarda, y mientras `timestamps` está
+  activo el tipo del insert y del reemplazo los deja opcionales, porque el núcleo los completa antes
+  de validar. Así funciona la opción de Mongoose, que agrega los campos sola. Un `.default()` sigue
+  funcionando, y sirve cuando el schema también se parsea fuera del modelo, como en fixtures: la
+  fecha del modelo gana, porque la pone antes de validar
+  ([migración de adsgpt](../audits/adsgpt-migration.md), la 24). El tipo infiere de las opciones si
   la operación pasa `timestamps: false`, en vez de usar un overload: así sigue rechazando una opción
   mal escrita. La forma documentada es
   [`mz.date()`](./inputs.md#decisiones-de-los-inputs), de `mongozod/mzod`, que acepta una
@@ -108,7 +111,10 @@ objeto por campo. Está apagada por defecto.
 
 - **Inserts y reemplazos**: como Mongoose, `createdAt` es el que viene o «ahora»; adsgpt guarda en
   `brands` la fecha de la fuente. En un insert, `updatedAt` es el que viene o el valor de
-  `createdAt`, así un documento nuevo tiene las dos iguales y nada se descarta en silencio. En un
+  `createdAt`, así un documento nuevo tiene las dos iguales y nada se descarta en silencio: un
+  documento editado alguna vez tiene un `updatedAt` posterior a su `createdAt`. Escribirlo solo en
+  los updates se descartó en la [migración de adsgpt](../audits/adsgpt-migration.md) (la 5): se
+  aparta de Mongoose, y un upsert que inserta lo escribiría igual. En un
   reemplazo es el que viene o «ahora», como en Mongoose: con el valor de `createdAt`, el reemplazo
   que conserva el `createdAt` del documento dejaba `updatedAt` en la fecha de creación. «Ahora» es
   un `new Date()` por operación: todos los documentos de un `insertMany` tienen la misma fecha. Un

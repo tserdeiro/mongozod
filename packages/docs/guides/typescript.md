@@ -418,6 +418,8 @@ function createPost(post: InsertOf<typeof PostsModel>) {
 
 `FilterOf`, `SortOf` and `UpdateOf` are constraints of a generic, so that the function keeps the
 checks and the suggestions of the model. Declare the generic with `const`, as the model does:
+without it, the `arrayFilters` of the options stop being a tuple and `upsert: true` widens to
+`boolean`, so their checks are lost.
 
 ```ts
 function countPosts<const F extends FilterOf<typeof PostsModel, F>>(filter: F) {
@@ -492,8 +494,9 @@ A change that raises the cost on purpose raises the budget in the same commit.
   compile. Declare it with `as const`, or type its values as `0 | 1`.
 - **A computed key in an object literal**: ``{ [`reactions.${emoji}`]: 1 }`` is typed with a
   `string` key and does not compile. Type the object as ``Record<`reactions.${string}`, number>``.
-- **A filter value that may be `undefined`**: it does not compile, because the driver sends it as
-  `null`. Leave the key out when there is no value.
+- **A filter value that may be `undefined`**: it does not compile, because it matches the
+  documents without the field, or every document with `ignoreUndefined`. Leave the key out, or
+  write `null` or `{ $exists: false }` when that is what you mean.
 - **An id as a string**: a filter on an `ObjectId` field does not take its hex string, and the model
   does not cast it. Parse it with `mz.objectId()`, or with `mz.filter` for client input.
 - **A `sort` or `projection` in a string**, as Mongoose takes them

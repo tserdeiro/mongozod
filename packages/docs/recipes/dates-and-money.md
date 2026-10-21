@@ -82,7 +82,8 @@ try {
 ```
 
 Send amounts as strings. [BSON types](../guides/bson-types.md#decimal128) lists what the field
-takes.
+takes. When a client sends an amount in units that is stored in micros, convert it in the input with
+a `z.codec`, as in [Inputs that convert](../guides/endpoint-inputs.md#inputs-that-convert).
 
 `$inc` and `$mul` parse their amount without the checks of the field, so a balance with a
 `.refine()` that keeps it from being negative still takes an `$inc` of `'-10'`. Put that condition

@@ -197,7 +197,8 @@ await PostsModel.sync()
 ## With other plugins
 
 A plugin that asks for a context in the updates has to ask for it in the deletes too, since the
-update that marks a delete takes the options of the delete: see [Plugins](../guides/plugins.md#context).
+update that marks a delete takes the options of the delete: see
+[Plugins](../guides/plugins.md#context).
 
 ## Reference
 

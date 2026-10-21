@@ -43,10 +43,15 @@ const listPostsInput = z.object({
     })
     .default({}),
 
-  projection: mz.projection(postSchema, {
-    status: true,
-    title: true
-  })
+  options: z
+    .object({
+
+      projection: mz.projection(postSchema, {
+        status: true,
+        title: true
+      })
+    })
+    .prefault({})
 })
 
 export async function listPosts(body: unknown, userId: ObjectId) {
@@ -54,7 +59,7 @@ export async function listPosts(body: unknown, userId: ObjectId) {
 
   return PostsModel.find(
     { $and: [input.filter, { authorId: userId }] },
-    { limit: 20, projection: input.projection }
+    { ...input.options, limit: 20 }
   )
 }
 ```
@@ -120,16 +125,16 @@ The model can't do it alone. The schema describes values, and an injection is an
 same as one a client sent. What a client may send is a decision of each endpoint, which its input
 declares.
 
-A value that is missing is the other half of this. The driver sends an `undefined` value as
-`null`, which matches the documents without the field, so a request without a token would match
-the users that have none:
+A value that is missing is the other half of this. An `undefined` value matches the documents
+without the field, or every document with `ignoreUndefined`, so a request without a token would
+match the users that have none:
 
 ```ts
 import type { AnyModel } from 'mongozod'
 
 declare const UsersModel: AnyModel
 
-// Throws a ZodError when the body has no token: the driver would send { resetToken: null }.
+// Throws a ZodError when the body has no token, which would match the users without one.
 await UsersModel.findOne({ email: request.body.email, resetToken: request.body.token })
 ```
 

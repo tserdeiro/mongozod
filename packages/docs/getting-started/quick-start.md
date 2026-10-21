@@ -79,8 +79,9 @@ export const PostsModel = mongozod({
 await PostsModel.sync()
 ```
 
-`sync()` never runs on its own: call it when the app starts or in a deploy step. See
-[Sync](../guides/sync.md).
+`sync()` never runs on its own: call it when the app starts or in a deploy step, or opt in to the
+[`autoIndex`](../plugins/auto-index.md) plugin, which creates the indexes on the first operation.
+See [Sync](../guides/sync.md).
 
 ## Write
 
@@ -159,27 +160,32 @@ export const listPostsInput = z.object({
     })
     .default({}),
 
-  sort: mz
-    .sort(postSchema, {
-      createdAt: true,
-      title: true
-    })
-    .default({ createdAt: -1 }),
+  options: z
+    .object({
 
-  limit: z.number()
-    .int()
-    .min(1)
-    .max(100)
-    .default(20)
+      sort: mz
+        .sort(postSchema, {
+          createdAt: true,
+          title: true
+        })
+        .default({ createdAt: -1 }),
+
+      limit: z.number()
+        .int()
+        .min(1)
+        .max(100)
+        .default(20)
+    })
+    .prefault({})
 })
 
 // The body of a request, such as
 // { "filter": { "tags": { "$in": ["mongodb"] }, "createdAt": { "$gte": "2026-01-01T00:00:00Z" } } }
 export async function listPosts(body: unknown) {
 
-  const { filter, sort, limit } = listPostsInput.parse(body)
+  const { filter, options } = listPostsInput.parse(body)
 
-  return PostsModel.find(filter, { sort, limit })
+  return PostsModel.find(filter, options)
 }
 ```
 

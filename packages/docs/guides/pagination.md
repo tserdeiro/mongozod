@@ -52,18 +52,23 @@ const listPostsInput = z.object({
 
   after: mz.after(postSchema, { createdAt: -1, _id: -1 }),
 
-  limit: z.number()
-    .int()
-    .min(1)
-    .max(100)
-    .default(20)
+  options: z
+    .object({
+
+      limit: z.number()
+        .int()
+        .min(1)
+        .max(100)
+        .default(20)
+    })
+    .prefault({})
 })
 
 export async function listPosts(body: unknown) {
 
-  const { after, limit } = listPostsInput.parse(body)
+  const { after, options } = listPostsInput.parse(body)
 
-  return PostsModel.find(after, { sort: { createdAt: -1, _id: -1 }, limit })
+  return PostsModel.find(after, { ...options, sort: { createdAt: -1, _id: -1 } })
 }
 ```
 
@@ -149,18 +154,23 @@ const feedInput = z.object({
 
   after: mz.after(postSchema, newestFirst),
 
-  limit: z.number()
-    .int()
-    .min(1)
-    .max(100)
-    .default(20)
+  options: z
+    .object({
+
+      limit: z.number()
+        .int()
+        .min(1)
+        .max(100)
+        .default(20)
+    })
+    .prefault({})
 })
 
 export async function feed(body: unknown) {
 
-  const { after, limit } = feedInput.parse(body)
+  const { after, options } = feedInput.parse(body)
 
-  return PostsModel.find(after, { sort: newestFirst, limit })
+  return PostsModel.find(after, { ...options, sort: newestFirst })
 }
 ```
 
@@ -183,26 +193,31 @@ const publishedInput = z.object({
     })
     .default({}),
 
-  limit: z.number()
-    .int()
-    .min(1)
-    .max(100)
-    .default(20)
+  options: z
+    .object({
+
+      limit: z.number()
+        .int()
+        .min(1)
+        .max(100)
+        .default(20)
+    })
+    .prefault({})
 })
 
 export async function listPublished(body: unknown) {
 
-  const { after, filter, limit } = publishedInput.parse(body)
+  const { after, filter, options } = publishedInput.parse(body)
 
   return PostsModel.find(
     { $and: [filter, after, { status: 'published' }] },
-    { sort: newestFirst, limit }
+    { ...options, sort: newestFirst }
   )
 }
 ```
 
-A client that sends no `after` gets `{}`, the first page, so the router needs no fallback. See [Endpoint inputs](./endpoint-inputs.md#a-list-and-a-findone) for a complete list
-endpoint.
+A client that sends no `after` gets `{}`, the first page, so the router needs no fallback. See
+[Endpoint inputs](./endpoint-inputs.md#a-list-and-a-findone) for a complete list endpoint.
 
 The key of the input is yours. With tRPC, call it `cursor`: its
 [`useInfiniteQuery`](https://trpc.io/docs/client/react/useInfiniteQuery) needs a procedure that

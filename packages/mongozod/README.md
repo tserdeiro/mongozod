@@ -189,7 +189,7 @@ guides, the recipes and the API reference, and
 to move a project over.
 
 The docs also ship in the package, in `node_modules/mongozod/dist/docs/`, at the installed version.
-To point your coding agent at them, add the mongozod rules to your `AGENTS.md`:
+To point your coding agent at them, add the MongoZod rules to your `AGENTS.md`:
 
 ```sh
 npx mongozod agents-md
@@ -197,7 +197,7 @@ npx mongozod agents-md
 
 It writes a short block between `<!-- BEGIN:mongozod-agent-rules -->` and
 `<!-- END:mongozod-agent-rules -->`, and leaves the rest of the file as it is. Pass
-`--output CLAUDE.md` for another file, and run it again after updating mongozod.
+`--output CLAUDE.md` for another file, and run it again after updating MongoZod.
 
 ## Security
 

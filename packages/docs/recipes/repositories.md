@@ -178,12 +178,17 @@ const PostsModel = mongozod({
 
 const listPostsInput = z.object({
 
-  populate: mz.populate({
+  options: z
+    .object({
 
-    authorId: userSchema.pick({ _id: true, name: true })
-  }),
+      populate: mz.populate({
 
-  sort: mz.sort(postSchema, { createdAt: true, title: true })
+        authorId: userSchema.pick({ _id: true, name: true })
+      }),
+
+      sort: mz.sort(postSchema, { createdAt: true, title: true })
+    })
+    .prefault({})
 })
 
 export const postsService = {
@@ -204,9 +209,11 @@ export const postsService = {
   }
 }
 
-const input = listPostsInput.parse({ populate: { authorId: true }, sort: { title: 1 } })
+const input = listPostsInput.parse({
+  options: { populate: { authorId: true }, sort: { title: 1 } }
+})
 
-const posts = await postsService.list({}, { ...input, limit: 20 })
+const posts = await postsService.list({}, { ...input.options, limit: 20 })
 // posts[0].authorId: ObjectId | { _id?: ObjectId; name?: string } | null
 ```
 
@@ -298,8 +305,8 @@ await notesService.list({ titel: 'Hello' })
   `options = {}`. An argument that the type does not have, at the end and optional, is fine.
 - **`type NotesModel = typeof NotesModel`** next to the model saves the `typeof`.
 - **Another shape**, such as a required argument before the filter, a `function` declaration or a
-  method of a class: write the type parameters by hand, as in [A service per model](#a-service-per-model).
-  Both check the same.
+  method of a class: write the type parameters by hand, as in
+  [A service per model](#a-service-per-model). Both check the same.
 
 ## Generic over the result, not over the model
 

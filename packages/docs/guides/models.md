@@ -53,17 +53,17 @@ const published = await PostsModel.find({ status: 'published' })
 `schema`, `collection` and `db` are required. The others are optional, and each has its own
 guide:
 
-| Option       | Takes                                                                                                               | Guide                         |
-| ------------ | ------------------------------------------------------------------------------------------------------------------- | ----------------------------- |
-| `schema`     | A `z.object`, or a `z.discriminatedUnion` of objects, of Zod or Zod Mini                                            | [Schemas](./schemas.md)       |
-| `collection` | The name of the collection                                                                                          | This page                     |
-| `db`         | The driver's `Db`, or a function that returns one                                                                   | This page                     |
-| `indexes`    | A callback that declares the indexes with `index(key, options)`, which `sync()` creates                             | [Sync](./sync.md)             |
-| `jsonSchema` | `true`, or `{ validationLevel, validationAction }`: a `$jsonSchema` that `sync()` applies                           | [Sync](./sync.md)             |
-| `plugins`    | The plugins of the model, in the order they apply                                                                   | [Plugins](./plugins.md)       |
-| `references` | The fields that store the `_id` of another document, which `populate` replaces with that document                   | [Populate](./populate.md)     |
-| `timestamps` | `true`, or `{ createdAt, updatedAt }` to rename or turn off each: `createdAt` on insert, `updatedAt` on every write | [Timestamps](./timestamps.md) |
-| `virtuals`   | Fields that reads compute from others, each a Zod schema that picks its fields and transforms them                  | [Virtuals](./virtuals.md)     |
+| Option       | Takes                                                                                                                                         | Guide                         |
+| ------------ | --------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------- |
+| `schema`     | A `z.object`, or a `z.discriminatedUnion` of objects, of Zod or Zod Mini                                                                      | [Schemas](./schemas.md)       |
+| `collection` | The name of the collection                                                                                                                    | This page                     |
+| `db`         | The driver's `Db`, or a function that returns one                                                                                             | This page                     |
+| `indexes`    | A callback that declares the indexes with `index(key, options)`, which `sync()` or the opt-in [`autoIndex`](../plugins/auto-index.md) creates | [Sync](./sync.md)             |
+| `jsonSchema` | `true`, or `{ validationLevel, validationAction }`: a `$jsonSchema` that `sync()` applies                                                     | [Sync](./sync.md)             |
+| `plugins`    | The plugins of the model, in the order they apply                                                                                             | [Plugins](./plugins.md)       |
+| `references` | The fields that store the `_id` of another document, which `populate` replaces with that document                                             | [Populate](./populate.md)     |
+| `timestamps` | `true`, or `{ createdAt, updatedAt }` to rename or turn off each: `createdAt` on insert, `updatedAt` on every write                           | [Timestamps](./timestamps.md) |
+| `virtuals`   | Fields that reads compute from others, each a Zod schema that picks its fields and transforms them                                            | [Virtuals](./virtuals.md)     |
 
 A collection that stores several types of document has a `z.discriminatedUnion` as its schema (see
 [Document types](./document-types.md)).
@@ -162,15 +162,16 @@ await tenants.run(acmeDb, () =>
 
 Besides its operations (see [Operations](./operations.md)), a model exposes:
 
-| Member       | What it is                                                                          |
-| ------------ | ----------------------------------------------------------------------------------- |
-| `schema`     | The schema of each document.                                                        |
-| `name`       | The name of the collection.                                                         |
-| `db`         | The driver's `Db`: the one the function returns now, when `db` is a function.       |
-| `collection` | The driver's `Collection`, typed with the output of the schema, of that same `Db`.  |
-| `virtuals`   | The virtuals of the model.                                                          |
-| `references` | The references of the model.                                                        |
-| `sync()`     | Creates the declared indexes and applies the `$jsonSchema` (see [Sync](./sync.md)). |
+| Member       | What it is                                                                                         |
+| ------------ | -------------------------------------------------------------------------------------------------- |
+| `schema`     | The schema of each document.                                                                       |
+| `name`       | The name of the collection.                                                                        |
+| `db`         | The driver's `Db`: the one the function returns now, when `db` is a function.                      |
+| `collection` | The driver's `Collection`, typed with the output of the schema, of that same `Db`.                 |
+| `virtuals`   | The virtuals of the model.                                                                         |
+| `references` | The references of the model.                                                                       |
+| `indexes`    | The indexes the model declares, which `sync()` and [`autoIndex`](../plugins/auto-index.md) create. |
+| `sync()`     | Creates the declared indexes and applies the `$jsonSchema` (see [Sync](./sync.md)).                |
 
 The methods of its plugins are members of the model too, such as the ones of
 [soft delete](../plugins/soft-delete.md).
@@ -209,5 +210,6 @@ the model. Most of them do not compile either. The guide of each option lists it
 - **Creating a cursor outside the request**: a helper that calls `find` before entering the
   `AsyncLocalStorage` doesn't see the tenant, so it reads another database, or throws. Call `find`
   inside the request.
-- **Expecting the indexes to appear**: a model never creates them on its own. Call `sync()` when
-  you deploy (see [Sync](./sync.md)).
+- **Expecting the indexes to appear**: a model doesn't create them unless it opts in with the
+  [`autoIndex`](../plugins/auto-index.md) plugin, which creates them on its first operation. Call
+  `sync()` when you deploy (see [When to run it](./sync.md#when-to-run-it)).

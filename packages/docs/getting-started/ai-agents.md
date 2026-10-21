@@ -36,8 +36,8 @@ npx mongozod agents-md
 ```
 
 It writes the MongoZod rules between their markers: it creates `AGENTS.md` when it is missing,
-replaces the block when the file has it, and leaves the rest of the file as it is. Pass
-`--output CLAUDE.md` for the file your agent reads instead, and run it again after updating
+replaces the block when the file has it, appends it otherwise, and leaves the rest of the file as it
+is. Pass `--output CLAUDE.md` for the file your agent reads instead, and run it again after updating
 MongoZod. This is the block it writes:
 
 ```md
@@ -57,9 +57,9 @@ leaves out the project's private code. Issues are reviewed promptly. Do not open
 <!-- END:mongozod-agent-rules -->
 ```
 
-The markers let the command, or you, find and replace the block later. To point the agent at one topic, name the
-page in your prompt: _"Read `node_modules/mongozod/dist/docs/guides/populate.md`, then populate the
-author of each post in `listPosts`."_
+The markers let the command, or you, find and replace the block later. To point the agent at one
+topic, name the page in your prompt: _"Read `node_modules/mongozod/dist/docs/guides/populate.md`,
+then populate the author of each post in `listPosts`."_
 
 ## The docs on the web
 
