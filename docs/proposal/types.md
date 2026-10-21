@@ -316,6 +316,14 @@ mensajes de mongozod ni lo que sugiere el editor:
 - **El proyecto típico tiene un service**: un `findOne` con `FindOptionsOf`, un `updateMany` que pasa
   las opciones del caller y un `updateOne` que devuelve el documento, con los tipos de método. Suma
   unas 14.600 instanciaciones con TypeScript 7 y 18.900 con 5.5, y el límite sube a 86.000 y 98.000.
+- **Opciones que pueden ser `undefined`**: el argumento opcional de las opciones del modelo es
+  `[options?: O | undefined]`. Con `exactOptionalPropertyTypes`, un elemento opcional de una tupla no
+  toma un `undefined` explícito, así que el `options?` que un service reenvía no infería las opciones
+  del modelo, y TypeScript comparaba los chequeos estructuralmente: +60.000 instanciaciones por un
+  `updateMany` y +86.000 por un `bulkWrite`, una vez por programa (lo encontró la prueba como
+  consumidor de la 0.3.3). El proyecto típico se compila con `exactOptionalPropertyTypes`, como se
+  testean los tipos, y su service suma un `bulkWrite` que reenvía `options?`: 82.900 con TypeScript 7
+  y 96.500 con 5.5, y el límite sube a 87.000 y 101.000.
 
 - **Sin intersectar dos arrays**: una sugerencia no se intersecta con la lista que declara el mismo
   argumento. Con `readonly ['$eq'] & ReadonlyArray<…>`, TypeScript compara cada método de los dos

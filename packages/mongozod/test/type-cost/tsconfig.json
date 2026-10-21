@@ -2,6 +2,9 @@
   // A typical project that uses mongozod from dist/, whose type cost `check-type-cost` measures.
   "compilerOptions": {
     "strict": true,
+    // The types are tested with it on, and it is the costlier case: a service that passes on options
+    // that may be undefined costs more with it when the model's types do not take that undefined.
+    "exactOptionalPropertyTypes": true,
     "target": "ES2022",
     // The driver's declarations use `Symbol.asyncDispose` and Node.js modules.
     "lib": ["ES2022", "ESNext.Disposable"],
