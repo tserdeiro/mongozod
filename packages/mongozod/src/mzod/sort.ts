@@ -23,7 +23,12 @@ import { withoutUndefined } from './internal/without-undefined'
 export function sort<S extends core.$ZodType, const K extends MaskCheck<S, K, 'filter'>>(
   schema: S,
   mask: K & SuggestedMask<S, 'filter'>
-): z.ZodOptional<z.ZodType<Partial<Record<keyof K & string, -1 | 1>>>>
+): z.ZodOptional<
+  z.ZodType<
+    Partial<Record<keyof K & string, -1 | 1>>,
+    Partial<Record<keyof K & string, -1 | 1 | undefined>>
+  >
+>
 
 export function sort(schema: core.$ZodType, mask: Readonly<Record<string, true>>): z.ZodType {
   const paths = Object.keys(mask)

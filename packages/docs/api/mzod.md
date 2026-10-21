@@ -193,6 +193,8 @@ postsSort.parse({ title: 1, createdAt: -1 })
 // { title: 1, createdAt: -1 }
 ```
 
+- **Types**: its input and its output are the declared paths with `1` or `-1`, so a typed client,
+  such as one of tRPC, knows what each list sorts by.
 - **Errors when declared**: `"<path>" is not a path of the document`, and
   `declare at least one path` for an empty mask.
 
