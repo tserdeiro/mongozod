@@ -124,7 +124,8 @@ The rest of this page uses these models.
 - **A function that returns a model**, such as `() => UsersModel`. The function lets two models
   reference each other, as users and posts do above, and a model reference itself, such as the
   `parentId` of a comment that replies to another. `populate` reads through that model, so its
-  plugins and its [virtuals](./virtuals.md) apply.
+  plugins and its [virtuals](./virtuals.md) apply. It imports the module of the other model, so
+  keep the modules of models free of other imports, such as services, to avoid import cycles.
 - **`{ collection, schema }`**, for a collection without a model, such as one that another library
   writes. `populate` reads it with the driver: no plugins, no virtuals and no nested `populate`.
 

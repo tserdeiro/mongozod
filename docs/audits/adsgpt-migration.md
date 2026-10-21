@@ -603,31 +603,31 @@ sirve a cualquiera va en la página de su tema:
 Cada PR sale del anterior y trae el código, los tests, la doc de usuario, la decisión en el
 documento de la propuesta, la fila de este documento y su changeset cuando cambia el paquete.
 
-| PR  | Título                                                                     | Fricciones        |
-| --- | -------------------------------------------------------------------------- | ----------------- |
-| 1   | `docs(audits): record the frictions of the adsgpt migration`               | Este documento    |
-| 2   | `fix(mongozod): type reads whose populate or projection may be undefined`  | 10                |
-| 3   | `fix(mongozod): default the timestamps fields an object leaves out`        | 22                |
-| 4   | `fix(mongozod): resolve the paths of records keyed by a TypeScript enum`   | 21                |
-| 5   | `fix(mongozod): take any value in updates of z.unknown() fields`           | 17                |
-| 6   | `fix(mongozod): type the input of mz.sort`                                 | Hallazgo, hecho   |
-| 7   | `fix(mongozod): say how to fix an undefined value in a filter`             | 7 y 20, hecho     |
-| 8   | `feat(mongozod): export FindOptionsOf`                                     | 8, 11 y 15, hecho |
-| 9   | `feat(mongozod): export BulkWriteOf`                                       | 16, hecho         |
-| 10  | `feat(mongozod): export UpdateOptionsOf`                                   | 25, hecho         |
-| 11  | `feat(mongozod): export method types for services`                         | 14, hecho         |
-| 12  | `perf(mongozod): lower the cost of services that forward updates`          | 14, hecho         |
-| 13  | `feat(mongozod): name the widened literals of updates and sorts`           | 12 y 27, hecho    |
-| 14  | `feat(mongozod): take a field without operators in mz.filter as a value`   | 18, hecho         |
-| 15  | `feat(mongozod): add mz.term for a search box`                             | 1, hecho          |
-| 16  | `docs(proposal): record why server updates have no helper`                 | 26, hecho         |
-| 17  | `docs(docs): delete a document for real with softDelete`                   | 6, hecho          |
-| 18  | `feat(mongozod): create the indexes on the first operation, opt-in`        | 2, hecho          |
-| 19  | `docs(docs): projections and inputs that convert`                          | 3, 19 y 27, hecho |
-| 20  | `docs(docs): take the options of a list as the driver's`                   | 4, hecho          |
-| 21  | `docs(docs): timestamps outside the model and edits`                       | 5 y 24, hecho     |
-| 22  | `docs(docs): bson in React Native`                                         | 9, hecho          |
-| 23  | `docs(docs): ignoreUndefined, the connection and references across models` | 13, 20 y 27       |
+| PR  | Título                                                                     | Fricciones         |
+| --- | -------------------------------------------------------------------------- | ------------------ |
+| 1   | `docs(audits): record the frictions of the adsgpt migration`               | Este documento     |
+| 2   | `fix(mongozod): type reads whose populate or projection may be undefined`  | 10                 |
+| 3   | `fix(mongozod): default the timestamps fields an object leaves out`        | 22                 |
+| 4   | `fix(mongozod): resolve the paths of records keyed by a TypeScript enum`   | 21                 |
+| 5   | `fix(mongozod): take any value in updates of z.unknown() fields`           | 17                 |
+| 6   | `fix(mongozod): type the input of mz.sort`                                 | Hallazgo, hecho    |
+| 7   | `fix(mongozod): say how to fix an undefined value in a filter`             | 7 y 20, hecho      |
+| 8   | `feat(mongozod): export FindOptionsOf`                                     | 8, 11 y 15, hecho  |
+| 9   | `feat(mongozod): export BulkWriteOf`                                       | 16, hecho          |
+| 10  | `feat(mongozod): export UpdateOptionsOf`                                   | 25, hecho          |
+| 11  | `feat(mongozod): export method types for services`                         | 14, hecho          |
+| 12  | `perf(mongozod): lower the cost of services that forward updates`          | 14, hecho          |
+| 13  | `feat(mongozod): name the widened literals of updates and sorts`           | 12 y 27, hecho     |
+| 14  | `feat(mongozod): take a field without operators in mz.filter as a value`   | 18, hecho          |
+| 15  | `feat(mongozod): add mz.term for a search box`                             | 1, hecho           |
+| 16  | `docs(proposal): record why server updates have no helper`                 | 26, hecho          |
+| 17  | `docs(docs): delete a document for real with softDelete`                   | 6, hecho           |
+| 18  | `feat(mongozod): create the indexes on the first operation, opt-in`        | 2, hecho           |
+| 19  | `docs(docs): projections and inputs that convert`                          | 3, 19 y 27, hecho  |
+| 20  | `docs(docs): take the options of a list as the driver's`                   | 4, hecho           |
+| 21  | `docs(docs): timestamps outside the model and edits`                       | 5 y 24, hecho      |
+| 22  | `docs(docs): bson in React Native`                                         | 9, hecho           |
+| 23  | `docs(docs): ignoreUndefined, the connection and references across models` | 13, 20 y 27, hecho |
 
 Los arreglos van primero porque son chicos e independientes, y los tipos nuevos de los services
 antes que las docs que los usan. La 23 no lleva PR (ver [su análisis](#23-softdelete-en-los-updates-y-los-conteos)).
