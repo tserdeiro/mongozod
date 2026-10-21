@@ -280,6 +280,27 @@ postsPopulate.parse({ authorId: { name: 1 } })
   and an exclusion, and Zod's `Unrecognized key` for a field outside the whitelist or a reference
   not declared.
 
+### mz.term()
+
+`mz.term(schema, mask)` builds the search term a client can send, as in a search box: the router
+gets a filter in which each word of the term appears in one of the paths the mask declares, as part
+of a word, without telling case or accents apart. It builds a `$regex` per word and path from the
+escaped text, and gives `{}` for an empty or missing term. See [Search](../recipes/search.md).
+
+```ts
+const postsTerm = z.string()
+  .max(100)
+  .optional()
+  .pipe(mz.term(postSchema, { title: true, tags: true }))
+
+postsTerm.parse('cafe')
+// { $and: [{ $or: [{ title: { $regex: 'c…[aàáâãä…]f[eèéêë…]', $options: 'i' } }, { tags: … }] }] }
+```
+
+- **Paths**: the ones that hold strings or arrays of strings. The editor suggests only those.
+- **Errors when declared**: `"<path>" is not a path of the document`, `declare at least one path`,
+  and in the types `"<path>" does not hold strings, which a term searches`.
+
 ## Field types
 
 Field types go in the schema of a document. Each takes what a JSON client sends, returns the value

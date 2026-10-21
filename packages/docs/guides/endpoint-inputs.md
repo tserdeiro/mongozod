@@ -230,8 +230,9 @@ postsFilter.parse({
   takes, `i`, `m`, `x`, `s` and `u`. The pattern itself is checked by the server, which rejects an
   invalid one with the code 51091: treat that `MongoServerError` as the client's.
 - **`$regex`** takes any pattern the client sends, and one that isn't anchored to the start reads
-  the whole collection or index. For a search box, prefer `$text` or Atlas Search (see
-  [Security](./security.md#cost)).
+  the whole collection or index. For a search box, use `$text`, MongoDB Search or
+  [`mz.term`](../api/mzod.md#mzterm), which builds the `$regex` from escaped text (see
+  [Search](../recipes/search.md)).
 - **Dotted paths** into subdocuments, such as `'address.city'`, work as in a model's filter.
 
 ```ts
