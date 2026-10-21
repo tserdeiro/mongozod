@@ -112,7 +112,12 @@ manda `{ createdAt, _id }` del último elemento de la página.
      cuesta bundle, pero alarga lo que más se usa y `query` no le queda a `update`.
    - **Un lugar**: primero los tipos de campo vivían en `mongozod/codecs/*` y `mongozod/geojson`,
      un corte por implementación, «convierte o no convierte», que un usuario no tiene por qué
-     conocer.
+     conocer. La [migración de adsgpt](../audits/adsgpt-migration.md) (la 9) mostró que Metro, el
+     bundler de React Native, no hace tree shaking y suma `bson` (unos 22 KB en gzip) aunque el
+     cliente no use un tipo BSON; el tree shaking experimental de Expo pide flags, corre solo en
+     producción y no recorta un `import * as mz`. Se mantuvo un solo lugar, acordado con el
+     maintainer: un entry aparte rompía cada `mz.objectId()`. La doc corrige las frases que decían
+     que un bundler deja `bson` afuera y explica el polyfill de `crypto.getRandomValues`.
    - **`after`**: primero se llamó `mz.cursor`, pero en el driver un cursor es el iterador de
      resultados, y el nombre venía de la key que espera el `useInfiniteQuery` de tRPC, no de
      MongoDB. `after` sigue al `searchAfter` de Atlas Search y a las consultas por rango del manual:
