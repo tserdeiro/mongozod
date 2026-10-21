@@ -707,6 +707,9 @@ const recentPosts = {
 await recentPosts.list({ status: 'published' }, { limit: 20 })
 ```
 
+Driver options with a `sort`, such as `FindOneAndDeleteOptions`, take the model's: an object of the
+paths of the document, not a string or an array.
+
 ### UpdateMethod
 
 `UpdateMethod<M>` types a method that takes a filter, an update and the options of the update, with
@@ -716,7 +719,8 @@ options and passes its own, `O`, such as `{ returnDocument: 'after' }`.
 ### ReplaceMethod
 
 `ReplaceMethod<M, O>` types a method that takes a filter and a replacement, typed as
-[`InsertOf`](#insertof).
+[`InsertOf`](#insertof), and the options of a `replaceOne` unless you give others, with the model's
+`sort`.
 
 ### BulkWriteMethod
 

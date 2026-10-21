@@ -428,6 +428,35 @@ export type FindOptionsOf<M> = M extends { readonly schema: infer S extends Mode
   : never
 
 /**
+ * Driver options that a method of a service passes to the model, such as `FindOneAndDeleteOptions`,
+ * with the model's `sort` in place of the driver's, which takes strings and arrays the model
+ * rejects.
+ */
+export type SortedOptionsOf<M, O> = 'sort' extends keyof O
+  ? string extends O['sort']
+    ? Omit<O, 'sort'> & {
+        sort?: { [K in PathSuggestions<SchemaOf<M>, 'filter'> | '_id']?: SortDirection } | undefined
+      }
+    : O
+  : O
+
+/**
+ * The options of a `replaceOne` of a model, the default of `ReplaceMethod`: the driver's, with a
+ * `sort` of the paths of the document, plus the options and the context its plugins ask for.
+ */
+export type ReplaceOptionsOf<M> = M extends { readonly schema: infer S extends ModelSchema }
+  ? NonNullable<
+      OptionsArg<
+        PluginsOf<M>,
+        'update',
+        Omit<ReplaceOptions, 'sort'> & {
+          sort?: { [K in PathSuggestions<S, 'filter'> | '_id']?: SortDirection } | undefined
+        }
+      >[0]
+    >
+  : never
+
+/**
  * The options of an update that a function passes to the model with its update, such as a service:
  * their `arrayFilters` are checked against the identifiers of the update `U`, and their `sort`,
  * `projection` and `populate` against the schema, as the model does. They cannot ask for
