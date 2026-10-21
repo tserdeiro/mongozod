@@ -54,7 +54,9 @@ The schema stays the single source of truth, so it declares the fields `timestam
 - **Taking and returning a `Date`**. The usual field is [`mz.date()`](./bson-types.md#dates),
   which also takes the ISO string that a JSON client sends; `z.date()` works too.
 - **Without a `.default()`**: while `timestamps` is on, inserts and replacements take them as
-  optional, because MongoZod fills them before validating. A `.default()` still works.
+  optional, because MongoZod fills them before validating. A `.default()` still works, and helps
+  when the schema is also parsed outside the model, such as in test fixtures: the model's date
+  wins over it.
 
 A schema without one of the fields, or with one that does not take a `Date`, does not compile, and
 `mongozod()` throws an `Error`, such as `timestamps needs the field "updatedAt" in the schema`.
@@ -102,7 +104,8 @@ await PostViewsModel.insertOne({ postId: post._id })
 - **`createdAt`** is the one the document gives, or the time of the operation. An import keeps the
   dates of its source.
 - **`updatedAt`** is the one the document gives, or, in an insert, the value of `createdAt`, so a
-  new document has both equal. In a replacement, it is the time of the replacement.
+  new document has both equal, as in Mongoose, and one edited at least once has a later
+  `updatedAt`. In a replacement, it is the time of the replacement.
 - **One time per operation**: every document of an `insertMany` gets the same date.
 
 As in [Mongoose](https://mongoosejs.com/docs/timestamps.html), a replacement without a `createdAt`

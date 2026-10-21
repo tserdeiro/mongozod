@@ -280,7 +280,9 @@ Escribirlo solo en los updates, como los `MongoModel`, se evaluó con el maintai
 - **Se apartaría de Mongoose, de Rails** («whenever the record is created or updated») **y del
   `auto_now` de Django**, que actúa en cada `save()`, incluido el primero.
 
-**Decisión**: se mantiene, con una receta en Timestamps para «editado alguna vez», con dos formas:
+**Decisión**: se mantiene, con una frase en Timestamps: un documento editado alguna vez tiene un
+`updatedAt` posterior a su `createdAt`. Se descartó, por ceremonia, una receta con las dos formas
+que siguen, que quedan acá como referencia:
 
 - **Si alcanza filtrar después de un índice**: `$expr: { $gt: ['$updatedAt', '$createdAt'] }`
   junto a una igualdad indexada. Comparar dos campos con `$expr` no usa índices, pero con el índice
@@ -623,7 +625,7 @@ documento de la propuesta, la fila de este documento y su changeset cuando cambi
 | 18  | `feat(mongozod): create the indexes on the first operation, opt-in`        | 2, hecho          |
 | 19  | `docs(docs): projections and inputs that convert`                          | 3, 19 y 27, hecho |
 | 20  | `docs(docs): take the options of a list as the driver's`                   | 4, hecho          |
-| 21  | `docs(docs): timestamps outside the model and edits`                       | 5 y 24            |
+| 21  | `docs(docs): timestamps outside the model and edits`                       | 5 y 24, hecho     |
 | 22  | `docs(docs): bson in React Native`                                         | 9                 |
 | 23  | `docs(docs): ignoreUndefined, the connection and references across models` | 13, 20 y 27       |
 
