@@ -81,6 +81,11 @@ The [tooling](docs/proposal/structure.md#herramientas) runs from the root with p
 - Commits and pull request titles follow `type(scope): subject`, in English, with one change per
   commit.
 - Use `!` for breaking changes (e.g. `feat(auth)!:`)
+- A stack of pull requests means [`gh stack`](https://github.com/github/gh-stack)
+  (`gh extension install github/gh-stack`): `gh stack init` or `add` builds it, `gh stack submit`
+  pushes the branches and links the pull requests, `gh stack rebase` keeps it up to date and
+  `gh stack merge` merges it in one operation. Never delete the branch of a pull request that
+  another one of the stack is based on: GitHub closes that one.
 - Never attribute co-authorship to an AI agent in commits, pull requests, comments or any other
   artifact.
 
