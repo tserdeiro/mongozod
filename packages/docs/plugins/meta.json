@@ -1,4 +1,1 @@
-{
-  "title": "Plugins",
-  "pages": ["soft-delete", "writing-plugins"]
-}
+{ "title": "Plugins", "pages": ["soft-delete", "auto-index", "writing-plugins"] }

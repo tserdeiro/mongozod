@@ -152,6 +152,7 @@ const changes = PostsModel.collection.watch()
 | ------------ | --------------------------------------------------------------------------------------------------------------------------------------- |
 | `schema`     | The schema of each document.                                                                                                            |
 | `name`       | The name of the collection.                                                                                                             |
+| `indexes`    | The indexes the model declares, as the driver's `IndexDescription`s, which `sync()` and [`autoIndex`](../plugins/auto-index.md) create. |
 | `db`         | The driver's `Db`: the one the `db` option returns now, when it is a function.                                                          |
 | `collection` | The driver's `Collection` of that database, typed with the output of the schema. It skips the validation, the plugins and `timestamps`. |
 | `virtuals`   | The `virtuals` option, or `{}`.                                                                                                         |
@@ -813,6 +814,7 @@ driver.
 
 ### AnyModel
 
-`AnyModel` is a model as plugins see it: `db`, `name`, `schema` and the operations, which take and
-return `Document`s and go through every plugin again. A plugin method declares `this` as a type
+`AnyModel` is a model as plugins see it: `db`, `name`, `schema`, `indexes`, a `collection` with its
+`createIndexes`, and the operations, which take and return `Document`s and go through every plugin
+again. A plugin method declares `this` as a type
 parameter that extends it.

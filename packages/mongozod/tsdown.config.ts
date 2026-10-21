@@ -8,7 +8,7 @@ import { defineConfig } from 'tsdown'
 const docs = dirname(fileURLToPath(import.meta.resolve('@repo/docs/package.json')))
 
 export default defineConfig({
-  entry: ['src/index.ts', 'src/mzod.ts', 'src/plugins/soft-delete.ts'],
+  entry: ['src/index.ts', 'src/mzod.ts', 'src/plugins/auto-index.ts', 'src/plugins/soft-delete.ts'],
   dts: true,
   // One file per module, so a bundler drops the modules an app does not use, such as the `bson`
   // fields of `mongozod/mzod` when a client only builds inputs.

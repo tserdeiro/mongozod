@@ -25,6 +25,7 @@
   "exports": {
     ".": "./dist/index.mjs",
     "./mzod": "./dist/mzod.mjs",
+    "./plugins/auto-index": "./dist/plugins/auto-index.mjs",
     "./plugins/soft-delete": "./dist/plugins/soft-delete.mjs",
     "./package.json": "./package.json"
   },
