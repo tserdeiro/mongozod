@@ -214,7 +214,7 @@ const input = listPostsInput.parse({
 })
 
 const posts = await postsService.list({}, { ...input.options, limit: 20 })
-// posts[0].authorId: ObjectId | { _id?: ObjectId; name?: string } | null
+// posts[0].authorId: ObjectId | { _id?: ObjectId; name?: string; email?: string } | null
 ```
 
 `FindOptionsOf` is not generic: the read types each reference it allows as its id, the projected

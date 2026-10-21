@@ -328,7 +328,8 @@ await PostsModel.find({}, { sort: '-publishedAt' })
 
 A sort kept in a variable needs `as const`, like a projection: TypeScript widens its `-1` to
 `number`, and the error says `"publishedAt" is a number: a sort takes 1 or -1, so declare it with as
-const`.
+const`. TypeScript 5 shows that message only in the options of a read: in `.sort()` of a cursor and
+in `SortOf` it reports that the type is not assignable.
 
 ## Dotted paths
 
