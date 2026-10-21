@@ -1,10 +1,19 @@
 import type { PathMode } from './schema-at'
 import type * as core from 'zod/v4/core'
 
+import { MongoClient } from 'mongodb'
 import { describe, expect, expectTypeOf, test } from 'vitest'
 import { z } from 'zod'
 
+import { mongozod } from '../mongozod'
+
 import { type SchemaAt, schemaAt } from './schema-at'
+
+/** A TypeScript enum, whose members a string literal is not assignable to. */
+enum Channel {
+  App = 'app',
+  Chat = 'chat'
+}
 
 const nodeSchema = z.object({
   value: z.string(),
@@ -24,6 +33,7 @@ const schema = z.object({
   createdAt: z.union([z.date(), z.iso.datetime().transform((value) => new Date(value))]),
   custom: z.custom<{ a: number }>(),
   data: z.unknown(),
+  channels: z.partialRecord(z.enum(Channel), z.number()).optional(),
   extra: z.looseObject({ kind: z.string() }),
   metadata: z.record(z.string(), z.number()).optional(),
   pair: z.tuple([z.string(), z.object({ count: z.number() })]),
@@ -92,6 +102,40 @@ describe('SchemaAt and schemaAt', () => {
     expect(schemaAt(schema, 'settings.layout.columns', 'update')).not.toHaveLength(0)
     expect(schemaAt(schema, 'extra.anything', 'filter')).toHaveLength(1)
     expect(schemaAt(schema, 'data.a.b', 'update')).toHaveLength(1)
+  })
+
+  test('take the keys of a record keyed by a TypeScript enum, and no other key', () => {
+    expectTypeOf<At<'channels.chat', 'update'>>().toEqualTypeOf<number>()
+    expectTypeOf<At<'channels.app', 'filter'>>().toEqualTypeOf<number>()
+    expectTypeOf<SchemaAt<Schema, 'channels.web', 'update'>>().toBeNever()
+
+    expect(schemaAt(schema, 'channels.chat', 'update')).toHaveLength(1)
+    expect(schemaAt(schema, 'channels.web', 'update')).toEqual([])
+  })
+
+  test('let a model filter, update, project and sort those keys', () => {
+    const UsagesModel = mongozod({
+      collection: 'usages',
+      db: new MongoClient('mongodb://localhost').db(),
+      schema: z.object({ channels: z.partialRecord(z.enum(Channel), z.number().int()) })
+    })
+
+    /** Compiles only: the keys of the enum are paths, typed with the values of the record. */
+    function count(channel: Channel) {
+      const byChannel: Partial<Record<`channels.${Channel}`, number>> = {
+        [`channels.${channel}`]: 1
+      }
+
+      return [
+        UsagesModel.updateOne({ 'channels.chat': { $gt: 0 } }, { $inc: byChannel }),
+        UsagesModel.find({}, { projection: { 'channels.app': 1 }, sort: { 'channels.chat': -1 } }),
+        UsagesModel.distinct('channels.chat'),
+        // @ts-expect-error "channels.web" is not a path of the document
+        UsagesModel.updateOne({}, { $inc: { 'channels.web': 1 } })
+      ]
+    }
+
+    expect(count).toBeTypeOf('function')
   })
 
   test('take an index of a tuple in range, or of its rest, in filters and updates', () => {

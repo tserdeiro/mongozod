@@ -130,7 +130,10 @@ type Step<S, Seg extends string, M extends PathMode> =
               : X extends { type: 'any' | 'unknown' }
                 ? DynamicKey<S, Seg, M>
                 : X extends { keyType: infer K; type: 'record'; valueType: infer V }
-                  ? Seg extends core.output<K>
+                  ? // A string literal is not assignable to a member of a TypeScript enum, but it
+                    // is to the enum in a template.
+                    // oxlint-disable-next-line typescript/no-unnecessary-template-expression -- see above
+                    Seg extends `${core.output<K> & string}`
                     ? DynamicKey<V, Seg, M>
                     : never
                   : X extends { items: infer Items; rest: infer Rest; type: 'tuple' }

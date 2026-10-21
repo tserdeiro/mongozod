@@ -30,7 +30,10 @@
   ensancha a `string` la key computada de un objeto literal
   ([microsoft/TypeScript#13948](https://github.com/microsoft/TypeScript/issues/13948)), así que
   ``{ [`metadata.${key}`]: 1 }`` no compila, y el objeto tiene que tipar el patrón:
-  ``const clicks: Record<`metadata.${string}`, number> = { [`metadata.${key}`]: 1 }``.
+  ``const clicks: Record<`metadata.${string}`, number> = { [`metadata.${key}`]: 1 }``. Un record
+  con keys de un `enum` de TypeScript compara cada segmento con el template del enum,
+  `` `${Channel}` ``, porque un literal como `'chat'` no se le asigna al miembro del enum: hasta la
+  [migración de adsgpt](../audits/adsgpt-migration.md) (la 21), sus keys no eran paths.
 - **Strings de Mongoose**: un `sort`, una `projection` o un `populate` en un string, como
   `sort: '-createdAt'`, no compilan, y el `sort` y la `projection` lanzan un `ZodError` en runtime:
   el driver ordenaba en silencio por un campo con ese nombre. El problema llega como una propiedad
