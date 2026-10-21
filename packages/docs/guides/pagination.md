@@ -211,30 +211,44 @@ takes a `cursor` input.
 ## Numbered pages
 
 For a table where the user jumps to page 7, use `skip` and `limit`. They are options of the driver,
-which the model passes as they are, and a client sends a number, which needs no builder:
+so the input takes them in `options`, next to the `sort` of [`mz.sort`](./endpoint-inputs.md#mzsort),
+and the router passes them to `find` as they are. The client computes the `skip` of a page, such as
+`pageIndex * pageSize`:
 
 ```ts
 const tableInput = z.object({
 
-  page: z.number()
-    .int()
-    .min(1)
-    .max(500)
-    .default(1),
+  options: z
+    .object({
 
-  pageSize: z.number()
-    .int()
-    .min(1)
-    .max(100)
-    .default(20)
+      limit: z.number()
+        .int()
+        .min(1)
+        .max(100)
+        .default(20),
+
+      skip: z.number()
+        .int()
+        .min(0)
+        .max(10_000)
+        .default(0),
+
+      sort: mz
+        .sort(postSchema, {
+          createdAt: true,
+          title: true
+        })
+        .default({ createdAt: -1 })
+    })
+    .prefault({})
 })
 
 export async function postsTable(body: unknown) {
 
-  const { page, pageSize } = tableInput.parse(body)
+  const { options } = tableInput.parse(body)
 
   const [rows, total] = await Promise.all([
-    PostsModel.find({}, { sort: newestFirst, skip: (page - 1) * pageSize, limit: pageSize }),
+    PostsModel.find({}, options),
     PostsModel.countDocuments({})
   ])
 
@@ -242,8 +256,8 @@ export async function postsTable(body: unknown) {
 }
 ```
 
-The `.max()` of `page` matters: MongoDB reads every document a `skip` passes over, so a client that
-asks for page 1,000,000 makes the server read the whole collection.
+The `.max()` of `skip` matters: MongoDB reads every document a `skip` passes over, so a client that
+asks for a skip of 1,000,000 makes the server read that many documents.
 
 The cursor of `find` also chains them, as the driver's does:
 `PostsModel.find({}).sort(newestFirst).skip(40).limit(20)`.

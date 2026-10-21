@@ -648,17 +648,10 @@ fits an allow list. When an endpoint needs one, the router writes it.
 ## A list and a findOne
 
 A complete endpoint for the posts of a blog, with keyset pagination, a search term and the author.
-In a project, the inputs go in a file that imports no model, so a client can use them too:
+The input mirrors the call of the model: what picks the documents, `filter`, `after` and `term`,
+which the router joins with `$and`, and `options` that go to the driver as they are. In a project, the inputs go in a file that imports no model, so a client can use them too:
 
 ```ts
-/** Turns the search term into MongoDB's text search, which needs a text index. */
-function textSearch(term?: string) {
-
-  if (!term) return {}
-
-  return { $text: { $search: term } }
-}
-
 const authorInput = mz.populate({
   author: userSchema.pick({ _id: true, name: true })
 })
@@ -675,18 +668,23 @@ export const listPostsSchema = z.object({
     })
     .default({}),
 
-  limit: z.number()
-    .int()
-    .min(1)
-    .max(100)
-    .default(20),
-
-  populate: authorInput,
-
   term: z.string()
     .max(100)
     .optional()
-    .transform(textSearch)
+    .pipe(mz.term(postSchema, { title: true, summary: true })),
+
+  options: z
+    .object({
+
+      limit: z.number()
+        .int()
+        .min(1)
+        .max(100)
+        .default(20),
+
+      populate: authorInput
+    })
+    .prefault({})
 })
 
 export const findOnePostSchema = z.object({
@@ -697,7 +695,12 @@ export const findOnePostSchema = z.object({
     })
     .required({ _id: true }),
 
-  populate: authorInput
+  options: z
+    .object({
+
+      populate: authorInput
+    })
+    .prefault({})
 })
 ```
 
@@ -708,21 +711,19 @@ scope, here the published posts:
 export async function listPosts(input: z.output<typeof listPostsSchema>) {
   return PostsModel.find(
     { $and: [input.filter, input.after, input.term, { status: 'published' }] },
-    { limit: input.limit, populate: input.populate, sort: { createdAt: -1, _id: -1 } }
+    { ...input.options, sort: { createdAt: -1, _id: -1 } }
   )
 }
 
 export async function findOnePost(input: z.output<typeof findOnePostSchema>) {
-  return PostsModel.findOne(
-    { $and: [input.filter, { status: 'published' }] },
-    { populate: input.populate }
-  )
+  return PostsModel.findOne({ $and: [input.filter, { status: 'published' }] }, input.options)
 }
 ```
 
 A client sends, for example,
-`{ "filter": { "tags": { "$in": ["mongodb"] } }, "populate": { "author": { "name": 1 } } }`, and the
-router gets `populate: { author: { projection: { name: 1 } } }`. For the next page, it also sends
+`{ "filter": { "tags": { "$in": ["mongodb"] } }, "options": { "populate": { "author": { "name": 1 } } } }`,
+and the router gets `populate: { author: { projection: { name: 1 } } }`. The sort of a keyset list
+is the router's, the same as the one of `mz.after`. For the next page, it also sends
 the `createdAt` and `_id` of the last post it got. Validate the request body with
 `listPostsSchema.parse(body)`, or let your framework do it, as tRPC does with `.input()`.
 

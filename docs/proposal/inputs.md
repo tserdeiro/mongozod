@@ -497,6 +497,13 @@ manda `{ createdAt, _id }` del último elemento de la página.
   `mz.projection`, lo que cierra el hueco de wortise/adsgpt#231.
 - La página con `skip` del scroll infinito pasa a ser `mz.after`.
 - `populateSchema` y `WithPopulate` pasan a ser `mz.populate` y los tipos calculados.
+- El `paginationSchema` y su middleware, que calculaban `skip` desde la página en los tres
+  proyectos, pasan a ser las opciones del driver en el input (la 4 de la
+  [migración de adsgpt](../audits/adsgpt-migration.md), acordado con el maintainer): el input de una
+  lista refleja `find(filter, options)`, con `limit` y `skip` validados con números de Zod y un
+  `.max()`, y `sort`, `projection` y `populate` de `mz`; el router pasa `input.options` tal cual, y
+  el cliente calcula el `skip`. `filter`, `after` y `term` eligen los documentos y se juntan con
+  `$and`.
 - `parser.update` no se reemplaza en el servidor (la 26 de la
   [migración de adsgpt](../audits/adsgpt-migration.md), acordado con el maintainer): un update que
   arma el servidor elige `$set` o `$unset`, como en el driver, y una key `undefined` se descarta
