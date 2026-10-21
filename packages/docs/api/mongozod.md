@@ -832,5 +832,5 @@ again. A plugin method declares `this` as a type parameter that extends it.
 `npx mongozod agents-md [--output <file>]` writes the MongoZod rules for coding agents to
 `AGENTS.md`, or to the file of `--output` (`-o`), such as `CLAUDE.md`. It creates the file when it
 is missing, replaces the block between its markers when the file has it, appends it otherwise, and
-leaves the rest of the file as it is. See
+leaves the rest of the file as it is. `--help` (`-h`) prints the usage. See
 [AI agents](../getting-started/ai-agents.md#tell-your-agent).
