@@ -329,10 +329,12 @@ segment at a time, as Zod walks a value. So there is no depth limit, and recursi
   `'links.0.url'`. Updates do not go through them: they take an index, `$`, `$[]` or `$[id]`, with
   `$` once per path. Projections go through arrays but take no index.
 - **Records and catchalls**: their keys are paths too, with the type of their values. A key must be
-  a literal, so a key typed `string` does not compile.
+  a literal, so a key typed `string` does not compile. A record keyed by an enum, a `z.enum()` or a
+  TypeScript `enum`, takes only its members.
 - **Computed keys**: TypeScript widens the computed key of an object literal to `string`
   ([microsoft/TypeScript#13948](https://github.com/microsoft/TypeScript/issues/13948)), so
-  ``{ [`reactions.${emoji}`]: 1 }`` does not compile. Type the object with the pattern:
+  ``{ [`reactions.${emoji}`]: 1 }`` does not compile. Type the object with the pattern, such as
+  ``Partial<Record<`channels.${Channel}`, number>>`` for a record keyed by an enum:
 
 ```ts
 async function react(postId: ObjectId, emoji: string) {
