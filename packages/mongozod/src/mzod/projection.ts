@@ -13,7 +13,7 @@ import { withoutUndefined } from './internal/without-undefined'
  * dropped. The mask is the most a client gets: the router always receives an inclusion within it,
  * so an exclusion means the declared paths but those, and `{}` or no projection at all means all of
  * them. MongoDB reads `{ title: 0 }` or `{}` as the whole document, with the fields the mask leaves
- * out. Don't wrap it in `.optional()`, which gives the model no projection. A virtual is
+ * out. Don't give it a `.default({})`, which Zod returns without parsing it. A virtual is
  * declared as a field, with a schema that adds it, such as
  * `accountSchema.extend({ fullName: z.string() })`.
  *

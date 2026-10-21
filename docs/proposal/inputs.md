@@ -150,9 +150,17 @@ manda `{ createdAt, _id }` del último elemento de la página.
    porque `mz.filter` devuelve un `z.strictObject`, y un default lo envolvería.
    `projection` trae su `.prefault({})`, porque una
    proyección que no llega solo puede significar la máscara sin abrir el hueco que cierra (el modelo
-   sin proyección lee el documento entero). `.prefault()` parsea su valor, `.default()` no. Un
-   `.optional()` encima lo saltea: Zod devuelve `undefined` sin correr el builder, así que las docs
-   lo nombran como error común. Reemplaza a la opción `{ required: ['_id'] }` del
+   sin proyección lee el documento entero). `.prefault()` parsea su valor, `.default()` no: un
+   `.default({})` encima devuelve `{}` sin parsearlo, y MongoDB lo lee como el documento entero, así
+   que las docs lo nombran como error común. Un `.optional()` encima ya no lo saltea: desde Zod 4.5
+   (colinhacks/zod#6419), `.optional()` corre el default de adentro y devuelve la máscara; antes,
+   las docs lo nombraban como el error (la 3 de la [migración de adsgpt](../audits/adsgpt-migration.md)).
+   Un endpoint con `mz.projection` tipa opcional cada campo para todos sus clientes, porque su salida
+   tiene un solo tipo: una vista que necesita el documento o un recorte fijo va en otro endpoint, con
+   una proyección escrita en el servidor. Un input que convierte un campo antes de guardarlo usa un
+   `z.codec` en un `.extend()` del schema de `mz.update` (la 19). Una key del input que no es un
+   campo (la 27) se agrega con `.extend()` y la traduce el router; no lleva sección en la doc, para
+   no mostrar ceremonia donde alcanza con Zod y JavaScript. Reemplaza a la opción `{ required: ['_id'] }` del
    prototipo.
    - **`mz.filter` es un `z.strictObject`**: por eso andan `.required()`, `.refine()`,
      `.default()` y `.extend()`. Como descarta las keys en `undefined` con `.overwrite()`, Zod no
