@@ -261,6 +261,16 @@ documento aunque el caller pidiera el `ModifyResult`. Para agregar `returnDocume
 opciones opcionales, `Object.assign({ returnDocument: 'after' as const }, options)` conserva su tipo:
 un spread de un genérico opcional lo borra.
 
+Para no repetir los parámetros de tipo en cada método (la 14), mongozod exporta tipos de método:
+`FilterMethod<M, O>`, `UpdateMethod<M>`, `ReplaceMethod<M, O>`, `BulkWriteMethod<M>`,
+`AggregateMethod<M>` y `DistinctMethod<M>`, uno por cada forma de argumentos que el modelo chequea,
+y `PipelineOf<M, P>` para el pipeline. Se dan con `satisfies`: una función flecha toma sus parámetros
+de tipo por contexto y conserva su resultado, con los mismos chequeos, sugerencias y costo que los
+genéricos escritos a mano (verificado con TypeScript 7 y 5.5 y el LanguageService). Sirven para un
+objeto, una función suelta y las propiedades flecha de una clase; una `function` declarada, un método
+de clase o un método con otra forma escriben los genéricos, que chequean lo mismo. Un `Filter<M>` no
+genérico, como el del driver, se descartó con el maintainer: no puede chequear cada key.
+
 Para las operaciones de un `bulkWrite` que un service recibe ya armadas, mongozod exporta
 `BulkWriteOf<M, Ops, O>` (la 16 de la [migración de adsgpt](../audits/adsgpt-migration.md)), el
 mismo chequeo que usa el modelo, con las opciones del driver por defecto: con los mismos argumentos

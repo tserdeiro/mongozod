@@ -8,6 +8,7 @@ export type {
   Model,
   ModelSchema,
   Output,
+  PipelineOf,
   ReadOf,
   ReadOptionsArg,
   SortOf,
@@ -16,6 +17,14 @@ export type {
   UpdateOptionsArg,
   UpdateOptionsOf
 } from './model/model'
+export type {
+  AggregateMethod,
+  BulkWriteMethod,
+  DistinctMethod,
+  FilterMethod,
+  ReplaceMethod,
+  UpdateMethod
+} from './model/method-types'
 export type { MongozodOptions } from './mongozod'
 export type {
   AnyModel,

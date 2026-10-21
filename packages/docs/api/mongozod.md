@@ -11,14 +11,17 @@ is in [mongozod/mzod](./mzod.md), and the official soft delete plugin in
 The examples on this page use these models:
 
 ```ts
+import type { CountDocumentsOptions } from 'mongodb'
 import type {
   AnyModel,
   BulkWriteOf,
   DocOf,
+  FilterMethod,
   FilterOf,
   FindOptionsOf,
   Input,
   InsertOf,
+  PipelineOf,
   ReadOf,
   ReadOptionsArg,
   SortOf,
@@ -661,6 +664,68 @@ const publishing = definePlugin({
   }
 })
 ```
+
+### PipelineOf
+
+`PipelineOf<M, P>` is an aggregation pipeline on a model, whose `$match` stages at its start are
+checked like a filter.
+
+## Types for services
+
+The type of a method of a service, given with `satisfies`: an arrow function takes the type
+parameters that check what it passes to the model, and its result is its own. See
+[Repositories](../recipes/repositories.md#method-types).
+
+| Type                  | The method takes                                                          |
+| --------------------- | ------------------------------------------------------------------------- |
+| `FilterMethod<M, O>`  | A filter and options `O`, the options of a `find` unless you give others. |
+| `UpdateMethod<M>`     | A filter, an update and its options, checked like `UpdateOptionsOf`.      |
+| `ReplaceMethod<M, O>` | A filter and the document that replaces the one it matches.               |
+| `BulkWriteMethod<M>`  | The operations of a `bulkWrite` and its options.                          |
+| `AggregateMethod<M>`  | An aggregation pipeline and its options.                                  |
+| `DistinctMethod<M>`   | A path for a `distinct` and a filter.                                     |
+
+### FilterMethod
+
+```ts
+const recentPosts = {
+
+  list: (filter, options = {}) => PostsModel.find(filter, options),
+
+  count: (filter, options?) => PostsModel.countDocuments(filter, options)
+} satisfies {
+
+  list: FilterMethod<typeof PostsModel>
+
+  count: FilterMethod<typeof PostsModel, CountDocumentsOptions>
+}
+
+await recentPosts.list({ status: 'published' }, { limit: 20 })
+```
+
+### UpdateMethod
+
+`UpdateMethod<M>` types a method that takes a filter, an update and the options of the update, with
+their `arrayFilters` checked against its identifiers.
+
+### ReplaceMethod
+
+`ReplaceMethod<M, O>` types a method that takes a filter and a replacement, typed as
+[`InsertOf`](#insertof).
+
+### BulkWriteMethod
+
+`BulkWriteMethod<M>` types a method that takes the operations of a `bulkWrite`, each checked like
+[`BulkWriteOf`](#bulkwriteof).
+
+### AggregateMethod
+
+`AggregateMethod<M>` types a method that takes an aggregation pipeline, checked like
+[`PipelineOf`](#pipelineof).
+
+### DistinctMethod
+
+`DistinctMethod<M>` types a method that takes a path and a filter for a `distinct`.
 
 ## Types of the model
 

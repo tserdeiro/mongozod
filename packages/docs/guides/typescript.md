@@ -365,20 +365,22 @@ the editor suggests the members of its type.
 A function that takes or returns what a model reads and writes, such as a service or a repository,
 types it from the model:
 
-| Type                       | What it is                                                                                        |
-| -------------------------- | ------------------------------------------------------------------------------------------------- |
-| `DocOf<M>`                 | A stored document, with its `_id`.                                                                |
-| `ReadOf<M, O>`             | What a read returns, given its `projection`, its `populate` and the `filter` that fixes its type. |
-| `InsertOf<M>`              | What an insert takes, with the fields that `timestamps` and the plugins fill optional.            |
-| `FilterOf<M, F>`           | The constraint of a filter that a function passes to the model.                                   |
-| `SortOf<M, Sort>`          | The constraint of a sort that a function passes to the model.                                     |
-| `BulkWriteOf<M, Ops, O>`   | The constraint of the operations of a `bulkWrite` that a function passes to the model.            |
-| `FindOptionsOf<M>`         | The options of a `find` that a service takes from a router: `sort`, `populate`, `limit` and more. |
-| `UpdateOf<M, U, F, O>`     | The constraint of an update, given its filter and its options.                                    |
-| `UpdateOptionsOf<M, U, O>` | The constraint of the options of an update, with its `arrayFilters` checked.                      |
-| `ReadOptionsArg<M>`        | The options argument of the reads, with the `context` its plugins ask for.                        |
-| `UpdateOptionsArg<M>`      | The options argument of the updates, with the `context` its plugins ask for.                      |
-| `Input<S>`, `Output<S>`    | The input and the output of a schema.                                                             |
+| Type                                                               | What it is                                                                                                               |
+| ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------ |
+| `DocOf<M>`                                                         | A stored document, with its `_id`.                                                                                       |
+| `ReadOf<M, O>`                                                     | What a read returns, given its `projection`, its `populate` and the `filter` that fixes its type.                        |
+| `InsertOf<M>`                                                      | What an insert takes, with the fields that `timestamps` and the plugins fill optional.                                   |
+| `FilterOf<M, F>`                                                   | The constraint of a filter that a function passes to the model.                                                          |
+| `SortOf<M, Sort>`                                                  | The constraint of a sort that a function passes to the model.                                                            |
+| `BulkWriteOf<M, Ops, O>`                                           | The constraint of the operations of a `bulkWrite` that a function passes to the model.                                   |
+| `FindOptionsOf<M>`                                                 | The options of a `find` that a service takes from a router: `sort`, `populate`, `limit` and more.                        |
+| `UpdateOf<M, U, F, O>`                                             | The constraint of an update, given its filter and its options.                                                           |
+| `UpdateOptionsOf<M, U, O>`                                         | The constraint of the options of an update, with its `arrayFilters` checked.                                             |
+| `PipelineOf<M, P>`                                                 | The constraint of a pipeline whose `$match` stages a function passes to the model.                                       |
+| `FilterMethod<M, O>`, `UpdateMethod<M>` and the other method types | The type of a method of a service, given with `satisfies` (see [Repositories](../recipes/repositories.md#method-types)). |
+| `ReadOptionsArg<M>`                                                | The options argument of the reads, with the `context` its plugins ask for.                                               |
+| `UpdateOptionsArg<M>`                                              | The options argument of the updates, with the `context` its plugins ask for.                                             |
+| `Input<S>`, `Output<S>`                                            | The input and the output of a schema.                                                                                    |
 
 `M` is the type of a model, such as `typeof PostsModel`.
 

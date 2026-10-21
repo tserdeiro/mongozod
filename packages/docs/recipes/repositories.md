@@ -215,6 +215,86 @@ document or `null`, whether the caller populates or not. A server caller that ne
 the stored ids from a method of its own, such as `byAuthor` above, instead of narrowing the union.
 It leaves the `projection` out: one that is not a literal types every field as optional.
 
+## Method types
+
+A method that passes a filter or an update to the model needs its type parameters, so that the model
+checks each key the caller writes. The method types declare them once: given with `satisfies`, an
+arrow function takes them, and keeps its own result. It works for an object, a function on its own
+and the arrow properties of a class:
+
+```ts separate
+import type { FilterMethod, UpdateMethod } from 'mongozod'
+
+import { ObjectId } from 'mongodb'
+import { mongozod } from 'mongozod'
+import * as mz from 'mongozod/mzod'
+import * as z from 'zod'
+
+const noteSchema = z.object({
+
+  _id: mz.objectId()
+    .default(() => new ObjectId()),
+
+  title: z.string(),
+
+  status: z.enum(['draft', 'published'])
+})
+
+const NotesModel = mongozod({
+
+  collection: 'notes',
+
+  db,
+
+  schema: noteSchema
+})
+
+type NotesModel = typeof NotesModel
+
+export const notesService = {
+
+  list: (filter, options = {}) => NotesModel.find(filter, options),
+
+  updateOne: (filter, update, options?) =>
+    NotesModel.findOneAndUpdate(
+      filter,
+      update,
+      Object.assign({ returnDocument: 'after' as const }, options)
+    )
+} satisfies {
+
+  list: FilterMethod<NotesModel>
+
+  updateOne: UpdateMethod<NotesModel>
+}
+
+export const listNotes = ((filter, options = {}) =>
+  NotesModel.find(filter, options)) satisfies FilterMethod<NotesModel>
+
+export class NotesService {
+
+  list = ((filter, options = {}) =>
+    NotesModel.find(filter, options)) satisfies FilterMethod<NotesModel>
+}
+
+await notesService.updateOne({ status: 'draft' }, { $set: { status: 'published' } })
+// the note after the update, or null
+
+// @ts-expect-error: "titel" is not a path of the document
+await notesService.list({ titel: 'Hello' })
+```
+
+- **The types**: `FilterMethod`, `UpdateMethod`, `ReplaceMethod`, `BulkWriteMethod`,
+  `AggregateMethod` and `DistinctMethod` (see the [API](../api/mongozod.md#types-for-services)).
+  `FilterMethod<M, O>` takes the options of a `find` unless you give others, such as those of
+  `countDocuments`.
+- **Optional arguments**: mark them in the arrow too, with `?` or a default, such as
+  `options = {}`. An argument that the type does not have, at the end and optional, is fine.
+- **`type NotesModel = typeof NotesModel`** next to the model saves the `typeof`.
+- **Another shape**, such as a required argument before the filter, a `function` declaration or a
+  method of a class: write the type parameters by hand, as in [A service per model](#a-service-per-model).
+  Both check the same.
+
 ## Generic over the result, not over the model
 
 MongoZod has no type for any model with typed reads. Comparing a model with

@@ -379,6 +379,17 @@ export type BulkWriteOf<M, Operations, O = BulkWriteOptions> = ReadonlyArray<Doc
   BulkWriteCheck<SchemaOf<M>, Operations, TimestampsOf<M>, O, PluginFills<PluginsOf<M>>>
 
 /**
+ * An aggregation pipeline on a model, for a function that takes one and passes it to the model:
+ * the `$match` stages at its start are checked like a filter of the model.
+ *
+ * @see https://mongozod.dev/docs/api/mongozod#pipelineof
+ */
+export type PipelineOf<M, P> = PipelineCheck<SchemaOf<M>, P>
+
+/** A path a `distinct` of a model takes, for the method types of a service. */
+export type DistinctKeyOf<M, K extends string> = DistinctKey<SchemaOf<M>, K>
+
+/**
  * The options of a `find` or a `findOne` of a model, for a service that takes them from a router
  * and passes them to the model: the driver's, with a `sort` of the paths of the document and, on a
  * model with references, a `populate` as `mz.populate` outputs it, plus the options and the context
