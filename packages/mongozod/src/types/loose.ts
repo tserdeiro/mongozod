@@ -14,10 +14,13 @@ export type Leaf =
 
 /**
  * A value as the code can write it: its arrays become readonly, so values inferred with `const`,
- * such as readonly tuples, still check.
+ * such as readonly tuples, still check. `unknown`, the input of a `z.unknown()`, stays `unknown`:
+ * mapped, it would be `{}`, which takes neither `null` nor an `unknown` value.
  */
-export type Loose<V> = V extends Leaf
+export type Loose<V> = unknown extends V
   ? V
-  : V extends ReadonlyArray<infer E>
-    ? ReadonlyArray<Loose<E>>
-    : { [K in keyof V]: Loose<V[K]> }
+  : V extends Leaf
+    ? V
+    : V extends ReadonlyArray<infer E>
+      ? ReadonlyArray<Loose<E>>
+      : { [K in keyof V]: Loose<V[K]> }

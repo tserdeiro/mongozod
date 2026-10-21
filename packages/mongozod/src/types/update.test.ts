@@ -393,3 +393,38 @@ test('suggests the positional $ once in a path, as MongoDB takes it', () => {
     | 'items.$[].tags.$[]'
   >()
 })
+
+const messageSchema = z.object({
+  attachments: z.array(z.unknown()).default([]),
+  metadata: z.unknown().optional(),
+  parts: z.record(z.string(), z.unknown()).default({}),
+  text: z.string()
+})
+
+function updateMessage<
+  const F extends ModelFilter<typeof messageSchema, F>,
+  const U extends ModelUpdate<typeof messageSchema, U, F, unknown>
+>(_filter: F, value: U) {
+  return value
+}
+
+function filterMessage<const F extends ModelFilter<typeof messageSchema, F>>(filter: F) {
+  return filter
+}
+
+test('a z.unknown() field takes any value, as its input does, null and unknown included', () => {
+  const fromInput: unknown = { model: 'gpt' }
+  const parts: Record<string, unknown> = { a: null }
+
+  expect(() => {
+    updateMessage({}, { $set: { metadata: fromInput } })
+    updateMessage({}, { $set: { metadata: null } })
+    updateMessage({}, { $set: { 'metadata.model': fromInput } })
+    updateMessage({}, { $set: { parts } })
+    updateMessage({}, { $set: { 'parts.a': null } })
+    updateMessage({}, { $push: { attachments: fromInput } })
+    // @ts-expect-error the driver would send an undefined value of a filter as null
+    filterMessage({ metadata: fromInput })
+    filterMessage({ metadata: null })
+  }).toBeTypeOf('function')
+})
