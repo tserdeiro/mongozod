@@ -6,6 +6,8 @@ import { z } from 'zod'
 
 import { mongozod } from '../mongozod'
 import { date } from '../mzod/fields/date'
+import { populate } from '../mzod/populate'
+import { projection } from '../mzod/projection'
 import { softDelete } from '../plugins/soft-delete'
 
 const db = new MongoClient('mongodb://localhost').db()
@@ -115,6 +117,36 @@ test('ReadOf is the document a read returns, with its projection and its populat
   expectTypeOf<ReadOf<typeof TasksModel>>().toEqualTypeOf<
     NonNullable<Awaited<ReturnType<typeof readTask>>>
   >()
+})
+
+test('ReadOf takes options from an input, whose populate and projection may be undefined', () => {
+  const input = z.object({
+    populate: populate({ author: z.object({ _id: z.string(), name: z.string() }) }),
+    projection: projection(PostsModel.schema, { author: true, title: true })
+  })
+
+  type Options = z.output<typeof input>
+
+  const read = (options: Options) => PostsModel.findOne({}, options)
+  const readPopulated = (options: Pick<Options, 'populate'>) => PostsModel.findOne({}, options)
+  const update = (options: Pick<Options, 'populate'>) =>
+    PostsModel.findOneAndUpdate({}, { $set: { title: 'Final' } }, options)
+
+  expectTypeOf<ReadOf<typeof PostsModel, Options>>().toEqualTypeOf<
+    NonNullable<Awaited<ReturnType<typeof read>>>
+  >()
+  expectTypeOf<ReadOf<typeof PostsModel, Pick<Options, 'populate'>>>().toEqualTypeOf<
+    NonNullable<Awaited<ReturnType<typeof readPopulated>>>
+  >()
+  expectTypeOf<ReadOf<typeof PostsModel, Pick<Options, 'populate'>>>().toEqualTypeOf<
+    NonNullable<Awaited<ReturnType<typeof update>>>
+  >()
+  expectTypeOf<
+    ReadOf<typeof PostsModel, Pick<Options, 'populate'>>['author']
+  >().not.toEqualTypeOf<string>()
+  expectTypeOf<
+    ReadOf<typeof PostsModel, { populate?: undefined; projection?: undefined }>
+  >().toEqualTypeOf<ReadOf<typeof PostsModel>>()
 })
 
 test('InsertOf is what an insert takes, without the fields timestamps and plugins fill', () => {

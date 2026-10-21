@@ -358,7 +358,11 @@ await TransactionsModel.find(
   `{ collection, schema }` lanza un `Error` al definir el modelo.
 - **Para clientes**: un `populate` que llega en runtime, como el de `mz.populate`, deja cada
   referencia como unión con el id, porque puede no haberse pedido. Ver
-  [Inputs de los endpoints](./inputs.md#decisiones-de-los-inputs).
+  [Inputs de los endpoints](./inputs.md#decisiones-de-los-inputs). `ReadOf` y `findOneAndUpdate`
+  toman esas opciones como llegan: un `populate` o una `projection` opcional, o que puede ser
+  `undefined`, dan el mismo tipo que `findOne` con las mismas opciones (antes, `ReadOf` y
+  `findOneAndUpdate` los ignoraban y tipaban el documento sin poblar; ver las
+  [fricciones de la migración de adsgpt](../audits/adsgpt-migration.md), la 10).
 
 ## Virtuals
 
