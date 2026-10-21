@@ -17,6 +17,9 @@
     "url": "git+https://github.com/tserdeiro/mongozod.git",
     "directory": "packages/mongozod"
   },
+  "bin": {
+    "mongozod": "./dist/cli.mjs"
+  },
   "files": [
     "dist"
   ],
