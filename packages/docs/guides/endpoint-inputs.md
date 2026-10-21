@@ -184,8 +184,9 @@ const tagsFilter = z.object({
 })
 ```
 
-`mongozod/mzod` has only named exports, so a bundler keeps the builders and field types a file uses
-and drops the rest. There is no `mz` object to import by name: an object would bring every builder
+`mongozod/mzod` has only named exports, so a bundler that tree-shakes keeps the builders and field
+types a file uses and drops the rest. React Native's Metro keeps everything (see
+[BSON types](./bson-types.md)). There is no `mz` object to import by name: an object would bring every builder
 into the client's bundle. It doesn't re-export Zod either, so each file keeps its own `z`.
 
 `import { filter, sort } from 'mongozod/mzod'` works too, but names such as `filter`, `update` and

@@ -9,7 +9,8 @@
  *   and `term`, the text of a search box.
  *
  * It never imports the driver, so the schemas that use it also run in web and native clients. It
- * imports `bson`, a peer dependency, which a bundler leaves out unless a field needs it.
+ * imports `bson`, a peer dependency, which a bundler that tree-shakes leaves out unless a field
+ * needs it; React Native's Metro keeps it.
  *
  * @module
  *

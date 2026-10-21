@@ -77,8 +77,13 @@ A value that doesn't fit gives one issue, with a message that says what the fiel
 `mongozod/mzod` never imports the driver, so a schema that uses it also runs in web and React Native
 clients, such as one shared between a form and its endpoint. The BSON types come from
 [`bson`](https://www.npmjs.com/package/bson), a peer dependency of MongoZod of the same major as your
-driver (see [Installation](../getting-started/installation.md)). A bundler leaves `bson` out unless a
-field needs it: `mz.date()` and the GeoJSON types import only Zod.
+driver (see [Installation](../getting-started/installation.md)). A bundler that tree-shakes, such as
+Vite, leaves `bson` out unless a field needs it: `mz.date()` and the GeoJSON types import only Zod.
+
+React Native's Metro does not tree-shake, so a client that imports `mongozod/mzod` gets `bson`, about
+22 KB gzipped. `bson` warns when it loads without `crypto.getRandomValues`: a client that generates
+ids installs a polyfill at the top of its entry point, as the
+[bson README](https://github.com/mongodb/js-bson#react-native) says.
 
 A schema shared with a client imports `ObjectId`, `Decimal128` or `UUID` from `bson`, since the
 client cannot import the driver. Server code can import them from `mongodb`, which re-exports

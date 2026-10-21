@@ -626,7 +626,7 @@ documento de la propuesta, la fila de este documento y su changeset cuando cambi
 | 19  | `docs(docs): projections and inputs that convert`                          | 3, 19 y 27, hecho |
 | 20  | `docs(docs): take the options of a list as the driver's`                   | 4, hecho          |
 | 21  | `docs(docs): timestamps outside the model and edits`                       | 5 y 24, hecho     |
-| 22  | `docs(docs): bson in React Native`                                         | 9                 |
+| 22  | `docs(docs): bson in React Native`                                         | 9, hecho          |
 | 23  | `docs(docs): ignoreUndefined, the connection and references across models` | 13, 20 y 27       |
 
 Los arreglos van primero porque son chicos e independientes, y los tipos nuevos de los services

@@ -63,7 +63,8 @@ MongoZod is published as ESM only, with its declarations. Use a `moduleResolutio
 | `mongozod/plugins/auto-index`  | The official [`autoIndex`](../plugins/auto-index.md) plugin.                                                                                                                |
 | `mongozod/plugins/soft-delete` | The official [`softDelete`](../plugins/soft-delete.md) plugin.                                                                                                              |
 
-Import `mongozod/mzod` as a namespace, as you import Zod, so a bundler keeps only what you use:
+Import `mongozod/mzod` as a namespace, as you import Zod, so a bundler that tree-shakes keeps only
+what you use:
 
 ```ts
 import * as mz from 'mongozod/mzod'

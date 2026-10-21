@@ -4,7 +4,7 @@ description: The reference of mongozod/mzod, the builders of endpoint inputs and
 ---
 
 `mongozod/mzod` is the Zod of MongoDB: what Zod doesn't bring for MongoDB, in one namespace. Import
-it as a namespace, like Zod, so a bundler keeps only what you use:
+it as a namespace, like Zod, so a bundler that tree-shakes keeps only what you use:
 
 ```ts
 import { ObjectId, UUID } from 'bson'
