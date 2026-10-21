@@ -83,7 +83,9 @@ objeto por campo. Está apagada por defecto.
   documento. Las demás son eventos del dominio, como `approvedAt` o `syncedAt`, y `deletedAt` es de
   [`softDelete`](./plugins/soft-delete.md).
 - **Configurables**: cada una se puede renombrar o apagar, como
-  `{ createdAt: 'created_at', updatedAt: false }` en una colección cuyos documentos no cambian.
+  `{ createdAt: 'created_at', updatedAt: false }` en una colección cuyos documentos no cambian. Una
+  key que el objeto no menciona conserva su nombre, en el runtime y en los tipos: hasta la
+  [migración de adsgpt](../audits/adsgpt-migration.md) (la 22), los tipos la apagaban.
 - **En el schema**: los campos se declaran en el schema, que sigue siendo la única fuente de verdad,
   y siguen a la opción, renombrados o apagados. Tienen que estar en todos los tipos de documento y
   tomar y devolver una `Date`. Si no, `mongozod()` no compila, y en runtime lanza un `Error`.

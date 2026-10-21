@@ -16,6 +16,11 @@ export type TimestampsOption =
   | boolean
   | { createdAt?: boolean | string; updatedAt?: boolean | string }
 
+/**
+ * The field of a role: its default name for `true`, or for an object that leaves the role out, as
+ * the runtime does. An object without the key, such as `{ updatedAt: false }`, does not match the
+ * weak type `{ createdAt?: … }`, so it gets the default name in the last branch.
+ */
 type FieldName<T, K extends 'createdAt' | 'updatedAt'> = T extends true
   ? K
   : T extends { [P in K]?: infer V }
@@ -24,7 +29,9 @@ type FieldName<T, K extends 'createdAt' | 'updatedAt'> = T extends true
       : V extends string
         ? V
         : K
-    : never
+    : T extends object
+      ? K
+      : never
 
 /** The fields `timestamps` writes, by role: `never` for one that is off. */
 export interface TimestampNames {
