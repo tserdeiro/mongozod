@@ -135,14 +135,15 @@ sabiendo que la norma 7 les permite objetar (decidido el 2026-10-12).
   `<!-- END:mongozod-agent-rules -->`, como el de Next.js, que lleva al agente a las docs
   instaladas. Lo escribe `npx mongozod agents-md` (pedido del maintainer, 2026-10-21: los agentes
   no lo copiaban tal cual): crea `AGENTS.md`, reemplaza el bloque si existe o lo agrega al final,
-  sin tocar el resto, y `--output` elige otro archivo, como `CLAUDE.md`. Es un comando explícito,
-  como el `agents-md` de HeroUI y el codemod de Next.js ≤16.1. Se descartaron escribirlo solo al
-  detectar un agente, como `next dev` y `turbo`, porque mongozod corre como librería, también en
-  producción, y un `postinstall`, que pnpm no corre sin aprobación. El paquete suma un `bin`,
-  `mongozod`, que no es un export. El bloque también le pide al agente que, ante una fricción o un
-  caso sin cubrir, le sugiera al usuario abrir un issue con una reproducción mínima y sin código
-  privado, que se revisa a la brevedad, y que no lo abra él: es una acción pública en nombre del
-  usuario.
+  sin tocar el resto, y `--output` elige otro archivo, como `CLAUDE.md`. `--help` imprime el uso, y
+  una opción desconocida o sin valor, el error de `parseArgs` y el uso, sin stack trace. Es un
+  comando explícito, como el `agents-md` de HeroUI y el codemod de Next.js ≤16.1. Se descartaron
+  escribirlo solo al detectar un agente, como `next dev` y `turbo`, porque mongozod corre como
+  librería, también en producción, y un `postinstall`, que pnpm no corre sin aprobación. El paquete
+  suma un `bin`, `mongozod`, que no es un export. El bloque también le pide al agente que, ante una
+  fricción o un caso sin cubrir, le sugiera al usuario abrir un issue con una reproducción mínima y
+  sin código privado, que se revisa a la brevedad, y que no lo abra él: es una acción pública en
+  nombre del usuario.
 - **El sitio**: cada página también en Markdown, en su URL con `.md` y en la misma URL con
   `Accept: text/markdown`; `/llms.txt` y `/llms-full.txt`, del [estándar](https://llmstxt.org/);
   los botones «Copy Markdown» y «Open in ChatGPT/Claude»; y un `robots.txt` abierto. Fumadocs trae

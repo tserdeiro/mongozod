@@ -11,15 +11,37 @@ CLAUDE.md, between their markers. Run it again after updating MongoZod.`
 
 const VERBS = { added: 'Added', created: 'Created', updated: 'Updated' }
 
-const { positionals, values } = parseArgs({
-  allowPositionals: true,
-  options: { output: { default: 'AGENTS.md', short: 'o', type: 'string' } }
-})
+let args
 
-if (positionals[0] === 'agents-md') {
-  const result = writeAgentRules(values.output)
+try {
+  args = parseArgs({
+    allowPositionals: true,
+    options: {
+      help: { short: 'h', type: 'boolean' },
+      output: { default: 'AGENTS.md', short: 'o', type: 'string' }
+    }
+  })
+} catch (error) {
+  // An unknown option or one without its value prints the usage instead of a stack trace.
+  if (
+    !(
+      error instanceof TypeError &&
+      'code' in error &&
+      String(error.code).startsWith('ERR_PARSE_ARGS_')
+    )
+  ) {
+    throw error
+  }
 
-  process.stdout.write(`${VERBS[result]} the MongoZod rules in ${values.output}\n`)
+  process.stderr.write(`${error.message}\n\n`)
+}
+
+if (args?.values.help) {
+  process.stdout.write(`${USAGE}\n`)
+} else if (args?.positionals[0] === 'agents-md') {
+  const result = writeAgentRules(args.values.output)
+
+  process.stdout.write(`${VERBS[result]} the MongoZod rules in ${args.values.output}\n`)
 } else {
   process.stderr.write(`${USAGE}\n`)
   process.exitCode = 1
