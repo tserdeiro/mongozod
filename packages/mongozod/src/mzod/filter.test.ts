@@ -285,6 +285,33 @@ describe('the project decides with Zod', () => {
     }>()
   })
 
+  test('a field without operators takes its value only, which the router can read', async () => {
+    const NotesModel = mongozod({ collection: 'notes', db, schema: noteSchema })
+    const byId = filter(noteSchema, { _id: [], tags: [] }).required({ _id: true })
+
+    expectTypeOf<z.input<typeof byId>>().toEqualTypeOf<{
+      _id: string
+      tags?: string | string[] | undefined
+    }>()
+    expectTypeOf<z.output<typeof byId>>().toEqualTypeOf<{
+      _id: string
+      tags?: string | string[] | undefined
+    }>()
+    expect(byId.parse({ _id: id, tags: 'groceries' })).toEqual({ _id: id, tags: 'groceries' })
+    expect(issues(byId, { _id: { $eq: id } })).toHaveLength(1)
+    expect(issues(byId, { _id: { $ne: null } })).toHaveLength(1)
+    expect(issues(byId, { _id: /./ })).toHaveLength(1)
+    expect(issues(byId, {})).toHaveLength(1)
+
+    await NotesModel.insertOne({ _id: id, tags: ['groceries'], title: 'A' })
+
+    const { _id } = byId.parse({ _id: id })
+
+    expect(await NotesModel.findOne(byId.parse({ _id, tags: 'groceries' }))).toMatchObject({
+      _id: id
+    })
+  })
+
   test('$and, $or and $nor, nesting the same whitelist', () => {
     const fields = filter(noteSchema, { tags: ['$eq'], title: ['$eq'] })
     const audience = fields.extend({

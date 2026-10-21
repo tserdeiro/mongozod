@@ -127,6 +127,9 @@ postsFilter.parse({ status: 'published', createdAt: { $gte: '2026-10-01T00:00:00
 | `$size`                      | arrays                                                                   | a non-negative integer                                             |
 | `$elemMatch`                 | arrays, with declarations for their element                              | a condition on one element, with what is declared for the elements |
 
+A path that declares no operator, `[]`, takes the value only, or one element on an array: the
+client sends `{ _id: '…' }` and never `{ _id: { $eq: '…' } }`, and its type is the field's.
+
 - **Errors when declared**: `"<path>" is not a path of the document`,
   `"<operator>" is not an operator of mz.filter`,
   `"$size" only applies to arrays, and "<path>" is not one` (also for `$all` and `$elemMatch`), and

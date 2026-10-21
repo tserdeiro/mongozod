@@ -221,7 +221,9 @@ postsFilter.parse({
 - **Where they apply**: the ranges compare numbers, strings, dates and ids, `$regex` applies to
   strings, and `$all`, `$size` and `$elemMatch` to arrays. The editor suggests the paths and, on
   each one, its operators.
-- **Equality**: a field that declares `$eq` also takes the value alone, as in MongoDB. On an array,
+- **Equality**: a field that declares `$eq` also takes the value alone, as in MongoDB. One that
+  declares no operator, `[]`, takes the value only, typed as the field's, so the router and a typed
+  client can read it, such as the id of a filter by id. On an array,
   an equality takes an element or the whole array, and the ranges compare its elements.
 - **An object of operators** has one at least: `{}` would be an equality with an empty object.
 - **`$options`** goes only with `$regex`: MongoDB rejects it alone. It takes the flags MongoDB
@@ -295,7 +297,7 @@ const updatePostInput = z.object({
 
   filter: mz
     .filter(postSchema, {
-      _id: ['$eq']
+      _id: []
     })
     .required({ _id: true }),
 
@@ -462,8 +464,9 @@ decides it with Zod's methods:
 
 - **A list** takes `.default({})` on `mz.filter`, so the router joins filters with `$and` and
   needs no `?? {}`.
-- **A filter by id** takes `.required({ _id: true })`. Without it, `{}` is a valid filter, and
-  `findOne`, `updateOne` or `deleteOne` would act on whatever document comes first.
+- **A filter by id** declares `_id: []`, the value only, and takes `.required({ _id: true })`.
+  Without it, `{}` is a valid filter, and `findOne`, `updateOne` or `deleteOne` would act on
+  whatever document comes first.
 - **At least one of several fields** takes a `.refine()`.
 - **A default sort** takes `.default()`, such as `mz.sort(…).default({ createdAt: -1 })`.
 
@@ -472,7 +475,7 @@ const findPostInput = z.object({
 
   filter: mz
     .filter(postSchema, {
-      _id: ['$eq']
+      _id: []
     })
     .required({ _id: true })
 })
@@ -587,7 +590,7 @@ export const findOnePostSchema = z.object({
 
   filter: mz
     .filter(postSchema, {
-      _id: ['$eq']
+      _id: []
     })
     .required({ _id: true }),
 

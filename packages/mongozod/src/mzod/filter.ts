@@ -160,10 +160,13 @@ type Operators<T, Ops, Sub, D extends Side> = {
   >
 }
 
-/** A condition on one field: a value, when it declares `$eq`, or an object of operators. */
-type Condition<T, Ops, Sub, D extends Side> =
-  | ('$eq' extends Ops ? Equal<ValueOf<T, D>> : never)
-  | Operators<T, Ops, Sub, D>
+/**
+ * A condition on one field: a value, when it declares `$eq` or no operator, or an object of the
+ * operators it declares.
+ */
+type Condition<T, Ops, Sub, D extends Side> = [Ops] extends [never]
+  ? Equal<ValueOf<T, D>>
+  : ('$eq' extends Ops ? Equal<ValueOf<T, D>> : never) | Operators<T, Ops, Sub, D>
 
 /**
  * A filter with the declared fields, on one side. Only `$elemMatch` reads the declarations under a
@@ -309,7 +312,10 @@ function elemMatchSchema(
   return operatorsSchema(element, undefined, path, elementOperators, [])
 }
 
-/** The condition on one path: an object of operators, or also a value when it declares `$eq`. */
+/**
+ * The condition on one path: an object of operators, also a value when it declares `$eq`, or only
+ * the value when it declares no operator.
+ */
 function conditionSchema(
   schema: core.$ZodType,
   path: string,
@@ -326,6 +332,9 @@ function conditionSchema(
     ? valueSchema(elements.flatMap((each) => each ?? []))
     : undefined
   const equal = element ? z.union([filterValue(value), filterValue(element)]) : filterValue(value)
+
+  if (operators.length === 0) return equal
+
   const object = operatorsSchema(value, element, path, operators, under)
 
   if (!operators.includes('$eq')) return object
@@ -366,9 +375,11 @@ function shapeOf(schema: core.$ZodType, declarations: Declarations) {
  * value is parsed with the schema of its field, without its default, so an ISO date becomes a
  * `Date`; `undefined` keys are dropped.
  *
- * It returns a strict `z.object`, so the project decides with Zod what happens when the client
- * sends nothing: `.default({})` for a list, `.required({ _id: true })` for a filter by id, or
- * `.refine()` for at least one field. `$and`, `$or` and `$nor` are added with `.extend()`.
+ * A field without operators, `[]`, takes the value only, typed as the field's, such as an id that
+ * the router also reads. It returns a strict `z.object`, so the project decides with Zod what
+ * happens when the client sends nothing: `.default({})` for a list, `.required({ _id: true })` for
+ * a filter by id, or `.refine()` for at least one field. `$and`, `$or` and `$nor` are added with
+ * `.extend()`.
  *
  * @example
  *   filter: mz.filter(brandSchema, { _id: ['$eq', '$in'], name: ['$eq', '$exists'] }).default({})
