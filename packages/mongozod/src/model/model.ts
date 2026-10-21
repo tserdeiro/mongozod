@@ -128,14 +128,34 @@ type ReadOptions<S, O, Sort, P, V, R, Pop> = Omit<O, 'projection' | 'sort'> &
  */
 interface ReadSuggestions<S, V, R> {
   // oxlint-disable-next-line typescript/no-generated-empty-object-type -- empty only without references
-  populate?: SuggestedPopulate<R>
-  projection?: SuggestedProjection<S, V>
-  sort?: SuggestedSort<S>
+  populate?: SuggestedPopulate<R> | undefined
+  projection?: SuggestedProjection<S, V> | undefined
+  sort?: SuggestedSort<S> | undefined
 }
 
-type ProjectionOf<O> = O extends { projection: infer P } ? P : unknown
+/**
+ * The `projection` of the options, also when the key is optional or may be `undefined`, as in the
+ * output of a `mz.projection()` input.
+ */
+type ProjectionOf<O> = O extends { projection?: infer P }
+  ? unknown extends P
+    ? unknown
+    : [Exclude<P, undefined>] extends [never]
+      ? unknown
+      : Exclude<P, undefined>
+  : unknown
 
-type PopulateOf<O> = O extends { populate: infer Pop } ? Pop : None
+/**
+ * The `populate` of the options, also when the key is optional or may be `undefined`, as in the
+ * output of a `mz.populate()` input.
+ */
+type PopulateOf<O> = O extends { populate?: infer Pop }
+  ? unknown extends Pop
+    ? None
+    : [Exclude<Pop, undefined>] extends [never]
+      ? None
+      : Exclude<Pop, undefined>
+  : None
 
 type FilterOfOptions<O> = O extends { filter: infer F } ? F : unknown
 
@@ -168,9 +188,9 @@ type UpdateOptionsBase<Driver, O> = Omit<Driver, 'arrayFilters' | 'projection' |
   arrayFilters?: O extends { arrayFilters: ReadonlyArray<unknown> }
     ? unknown
     : ReadonlyArray<Document>
-  populate?: Document
-  projection?: Document
-  sort?: Document
+  populate?: Document | undefined
+  projection?: Document | undefined
+  sort?: Document | undefined
   /** Takes an update pipeline, whose values are not validated: they are expressions. */
   updatePipeline?: true
 }

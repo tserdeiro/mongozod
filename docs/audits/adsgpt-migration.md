@@ -40,7 +40,7 @@ Los probes quedaron fuera del repo.
 | 7 y 20 | `undefined` en los filtros                            | Por diseño; el error no dice qué hacer          | Se sigue rechazando; mensaje con la solución                   | 7      |
 | 8      | Sin tipo para las opciones de lectura de un service   | Hueco                                           | `FindOptionsOf<M>`                                             | 8      |
 | 9      | `mongozod/mzod` trae `bson` en React Native           | Metro no hace tree shaking; la doc dice que sí  | Docs: corregir y agregar React Native                          | 21     |
-| 10     | `ReadOf` con la salida de `mz.populate`               | **Bug**                                         | Corregir `PopulateOf` y `ProjectionOf`                         | 2      |
+| 10     | `ReadOf` con la salida de `mz.populate`               | **Bug**, corregido                              | Corregir `PopulateOf` y `ProjectionOf`                         | 2      |
 | 11     | Un service que a veces puebla tipa siempre la unión   | Límite de la inferencia                         | Docs: un método por caso                                       | 8      |
 | 12     | `$unset` armado en una variable                       | Ensanchamiento de TS                            | Mensaje que nombra la causa, y docs                            | 12     |
 | 13     | Un modelo que referencia a otro lo importa            | Docs                                            | Una línea en Populate                                          | 22     |

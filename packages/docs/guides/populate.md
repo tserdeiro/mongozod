@@ -448,7 +448,9 @@ type PostWithAuthor = ReadOf<
 ```
 
 A `populate` that a client sends, through [`mz.populate`](./endpoint-inputs.md#mzpopulate), may
-not ask for every reference, so each one it allows is typed as the document or the id. See
+not ask for every reference, so each one it allows is typed as the document or the id. `ReadOf`
+takes the options as the input outputs them, with a `populate` that may be `undefined`, and gives
+the same type as the read. See
 [TypeScript](./typescript.md#types-for-services-and-repositories) for the other exported types.
 
 ## Common mistakes
