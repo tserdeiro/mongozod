@@ -611,7 +611,7 @@ documento de la propuesta, la fila de este documento y su changeset cuando cambi
 | 15  | `feat(mongozod): add mz.term for a search box`                             | 1, hecho          |
 | 16  | `docs(proposal): record why server updates have no helper`                 | 26, hecho         |
 | 17  | `docs(docs): delete a document for real with softDelete`                   | 6, hecho          |
-| 18  | `feat(mongozod): create the indexes on the first operation, opt-in`        | 2                 |
+| 18  | `feat(mongozod): create the indexes on the first operation, opt-in`        | 2, hecho          |
 | 19  | `docs(docs): projections and inputs that convert`                          | 3, 19 y 27 (keys) |
 | 20  | `docs(docs): share a page schema with a sort per list`                     | 4                 |
 | 21  | `docs(docs): timestamps outside the model and edits`                       | 5 y 24            |

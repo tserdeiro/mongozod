@@ -324,13 +324,15 @@ plugins definen el mismo método, o uno se llama como un miembro del modelo, com
 
 ## Plugins oficiales
 
-Cada plugin tiene su documento, con lo que ya se sabe de él. `softDelete` tiene diseño; el resto
+Cada plugin tiene su documento, con lo que ya se sabe de él. `softDelete` tiene diseño, y
+`autoIndex` está en [El modelo](../model.md#sincronización); el resto
 describe la idea y queda por diseñar. Las referencias, los virtuals y `timestamps` ya no figuran:
 pasaron al [núcleo](../model.md).
 
 | Plugin                           | Qué hace                                                                                                                     | Campos que exige         | Opciones o contexto                | Métodos    |
 | -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- | ------------------------ | ---------------------------------- | ---------- |
 | [`softDelete`](./soft-delete.md) | Borrado lógico.                                                                                                              | `deletedAt`              | —                                  | —          |
+| `autoIndex`                      | Crea los índices del modelo en su primera operación en cada base.                                                            | —                        | —                                  | —          |
 | [`audit`](./audit.md)            | Completa `createdBy` y `updatedBy` desde el contexto.                                                                        | `createdBy`, `updatedBy` | Contexto `actor` en las escrituras | —          |
 | [`logger`](./logger.md)          | Registra cada operación, su colección y su duración con el logger del proyecto.                                              | —                        | —                                  | —          |
 | [`history`](./history.md)        | Guarda el documento antes y después, con el filtro y el update, dentro de una transacción, y permite volver atrás un cambio. | —                        | Contexto                           | `rollback` |

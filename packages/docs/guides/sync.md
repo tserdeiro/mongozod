@@ -5,8 +5,8 @@ description: Create the indexes a model declares and apply a $jsonSchema validat
 
 `sync()` prepares a model's collection on the server: it creates the indexes the model declares
 and, when the model asks for it, applies a `$jsonSchema` validator generated from the schema. It
-never runs on its own. Call it when you deploy, from a script or when the app starts, not on each
-operation.
+never runs on its own: call it before the app takes requests (see
+[When to run it](#when-to-run-it)).
 
 ```ts
 import { ObjectId } from 'mongodb'
@@ -250,6 +250,28 @@ MongoZod writes the validator itself instead of using `z.toJSONSchema()`: MongoD
 is [draft 4 without `$ref`, `default`, `format` or the `integer` type](https://www.mongodb.com/docs/manual/reference/operator/query/jsonSchema/),
 rejects unknown keywords, and uses `bsonType` for dates and the other BSON types.
 
+## When to run it
+
+`sync()` is idempotent: indexes that exist are left as they are, and it sends a few commands per
+model. Run it for every model, before the code that relies on its indexes takes requests, in one of
+these ways:
+
+- **A deploy step**: a command that runs before the new version takes traffic, such as the release
+  or pre-deploy command, the job or the CI step of your platform, with access to the database. A
+  failure stops the deploy, and the version that runs keeps running. A user with `dbAdmin` applies
+  the `$jsonSchema` there too (see [Connection](../getting-started/connection.md#the-user)).
+- **When the process starts**, before it listens: for a long-running server without a deploy step.
+  MongoDB joins the identical builds of several instances. A build on a large collection delays
+  the start, and one that fails, such as a unique index over repeated values, fails each start.
+- **On the first operation**, with the [`autoIndex`](../plugins/auto-index.md) plugin: for
+  development, tests and serverless platforms, which have no start before requests. It creates the
+  indexes only.
+- **In the setup of the tests**, as `await Model.init()` in Mongoose, when the tests rely on a
+  unique index and do not use `autoIndex`.
+
+Keep the models in one list, such as the module that exports them, so that a new one is not left
+out of the step that syncs them.
+
 ## Where it runs
 
 - **Time-series and capped collections**, and a default collation, are created with the driver,
@@ -261,7 +283,8 @@ rejects unknown keywords, and uses `bsonType` for dates and the other BSON types
 ## Common mistakes
 
 - **Never calling `sync()`**: the model works, but a `unique` index doesn't exist, so duplicates get
-  in, and queries scan the collection. Run it on each deploy.
+  in, and queries scan the collection. Run it on each deploy, or use
+  [`autoIndex`](../plugins/auto-index.md).
 - **Running `sync()` with `jsonSchema` as the application's user**: `collMod` fails with the code
   13, `Unauthorized`, unless the user has `dbAdmin`. Give it to the user of the deploy step only.
 - **Changing the options of an existing index**: `sync()` fails with the code 85 or 86. Drop the

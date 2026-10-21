@@ -54,6 +54,7 @@ import type {
   FindOneOptions,
   FindOptions,
   Flatten,
+  IndexDescription,
   IndexDescriptionInfo,
   InsertManyResult,
   InsertOneOptions,
@@ -524,6 +525,9 @@ export interface Model<
 
   /** The name of the collection. */
   readonly 'name': string
+
+  /** The indexes the model declares, which `sync()` and the `autoIndex` plugin create. */
+  readonly 'indexes': readonly IndexDescription[]
 
   /** The driver's database: the one `db` returns now, when it is a function. */
   readonly 'db': Db

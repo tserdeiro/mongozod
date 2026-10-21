@@ -40,6 +40,7 @@ version.
 ## Plugins
 
 - [Soft delete](./plugins/soft-delete.md): Mark documents as deleted instead of removing them, and hide them from reads and updates, with the softDelete plugin.
+- [Auto index](./plugins/auto-index.md): Create the indexes a model declares on its first operation, with the autoIndex plugin, for development, tests and serverless platforms.
 - [Writing plugins](./plugins/writing-plugins.md): Write a plugin with definePlugin, with its fields, fills, options, context, hooks, middleware and methods.
 
 ## Migrating from Mongoose

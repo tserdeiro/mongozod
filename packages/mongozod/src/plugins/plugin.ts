@@ -4,9 +4,11 @@ import type { UnionToIntersection } from '../utils/type-helpers'
 import type {
   BulkWriteResult,
   ClientSession,
+  Collection,
   Db,
   DeleteResult,
   Document,
+  IndexDescription,
   InsertManyResult,
   InsertOneResult,
   ModifyResult,
@@ -124,7 +126,10 @@ type GroupOf<O extends Operation> = {
  * @see https://mongozod.dev/docs/api/mongozod#anymodel
  */
 export interface AnyModel {
+  /** The driver's collection, typed only with the methods that do not depend on the documents. */
+  readonly collection: Pick<Collection, 'createIndexes'>
   readonly db: Db
+  readonly indexes: readonly IndexDescription[]
   readonly name: string
   readonly schema: core.$ZodType
   aggregate(pipeline?: readonly Document[], options?: Document): ModelCursor<unknown>

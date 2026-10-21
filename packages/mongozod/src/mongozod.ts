@@ -639,6 +639,7 @@ export function mongozod(
     get db() {
       return getDb()
     },
+    indexes,
     name: options.collection,
     schema: options.schema,
     references: options.references ?? {},

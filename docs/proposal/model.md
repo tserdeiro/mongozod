@@ -134,7 +134,25 @@ objeto por campo. Está apagada por defecto.
 
 `sync()` prepara la colección en el servidor: aplica el `$jsonSchema` si el modelo lo pide y crea
 los índices declarados. Es explícito, para correr al desplegar o desde un script, y no en cada
-operación. Está a prueba: si resulta repetitivo o fácil de olvidar, se cambia.
+operación. Estaba a prueba, y la [migración de adsgpt](../audits/adsgpt-migration.md) (la 2) mostró
+que es fácil de olvidar: ningún test lo llamaba, uno pasaba por casualidad sin su índice único, y el
+deploy no llegaba a la base desde CI. Se acordó con el maintainer:
+
+- **La guía de Sync dice cuándo correrlo**, sin atarse a una plataforma: un paso del deploy antes
+  de recibir tráfico, al arrancar un servidor de larga vida, en la primera operación con
+  `autoIndex`, o en el setup de los tests.
+- **El plugin oficial `autoIndex`**, en `mongozod/plugins/auto-index`, como el `autoIndex` de
+  Mongoose: un middleware que, en la primera operación de un modelo en cada base, espera un
+  `createIndexes` de `model.indexes`, compartido por las operaciones concurrentes (una promesa por
+  `Db` y colección). Solo índices: el `$jsonSchema` usa `collMod`, que el usuario `readWrite` de la
+  app no tiene. Si el build falla, la operación lanza el error del servidor y la siguiente
+  reintenta: guardar el error lo dejaba para siempre, y no bloquear la operación, como Mongoose, lo
+  perdería sin eventos. Para llegar a los índices, el modelo expone `indexes` y `AnyModel` suma
+  `indexes` y una `collection` con solo `createIndexes`, el único método del driver que no depende
+  del tipo de los documentos.
+- **Descartados**: `sync({ dryRun: true })`, como el `diffIndexes` de Mongoose, porque adsgpt no
+  llega a la base desde CI; `syncAll(models)`, que no evita olvidar un modelo; y un registro global
+  de modelos, que se ensucia con los de los tests y los `db` por tenant.
 
 ```ts
 export const PluginsModel = mongozod({
