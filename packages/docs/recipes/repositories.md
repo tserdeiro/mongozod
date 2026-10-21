@@ -251,21 +251,22 @@ const NotesModel = mongozod({
 
 type NotesModel = typeof NotesModel
 
+const after = { returnDocument: 'after' } as const
+
 export const notesService = {
 
   list: (filter, options = {}) => NotesModel.find(filter, options),
 
-  updateOne: (filter, update, options?) =>
-    NotesModel.findOneAndUpdate(
-      filter,
-      update,
-      Object.assign({ returnDocument: 'after' as const }, options)
-    )
+  updateMany: (filter, update, options?) => NotesModel.updateMany(filter, update, options),
+
+  updateOne: (filter, update) => NotesModel.findOneAndUpdate(filter, update, after)
 } satisfies {
 
   list: FilterMethod<NotesModel>
 
-  updateOne: UpdateMethod<NotesModel>
+  updateMany: UpdateMethod<NotesModel>
+
+  updateOne: UpdateMethod<NotesModel, typeof after>
 }
 
 export const listNotes = ((filter, options = {}) =>
@@ -288,6 +289,11 @@ await notesService.list({ titel: 'Hello' })
   `AggregateMethod` and `DistinctMethod` (see the [API](../api/mongozod.md#types-for-services)).
   `FilterMethod<M, O>` takes the options of a `find` unless you give others, such as those of
   `countDocuments`.
+- **The options of an update**: `UpdateMethod<M>` takes the caller's and passes them on,
+  `arrayFilters` included. `UpdateMethod<M, typeof after>` takes none and passes its own, such as
+  `{ returnDocument: 'after' }` to return the document. Don't merge the two, such as with
+  `Object.assign(after, options)`: the update the caller writes and the one the model checks become
+  different types, and comparing them costs about 150,000 type instantiations once per program.
 - **Optional arguments**: mark them in the arrow too, with `?` or a default, such as
   `options = {}`. An argument that the type does not have, at the end and optional, is fine.
 - **`type NotesModel = typeof NotesModel`** next to the model saves the `typeof`.

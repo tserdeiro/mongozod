@@ -603,6 +603,20 @@ export type UpdateCheck<S, U, F, O, N extends TimestampNames = NoTimestamps> = {
 }
 
 /**
+ * The options an update's check reads: its `arrayFilters`, `upsert: true`, `timestamps: false` and
+ * `updatePipeline: true`. Options that differ only in others, such as `returnDocument`, give the
+ * same type, so the check of a service that passes an update on and the model's are the same type,
+ * which TypeScript does not compare: comparing two of them structurally costs tens of thousands of
+ * instantiations.
+ */
+export type CheckedOptions<O> = (O extends { arrayFilters: infer AF }
+  ? { arrayFilters: AF }
+  : unknown) &
+  (O extends { upsert: true } ? { upsert: true } : unknown) &
+  (O extends { timestamps: false } ? { timestamps: false } : unknown) &
+  (O extends { updatePipeline: true } ? { updatePipeline: true } : unknown)
+
+/**
  * The paths the editor suggests under each operator, with the `_id` only under `$setOnInsert`. The
  * checks come from `UpdateCheck`.
  */
@@ -628,7 +642,7 @@ export type ModelUpdate<S, U, F, O, N extends TimestampNames = NoTimestamps> = U
   S,
   U,
   F,
-  O,
+  CheckedOptions<O>,
   N
 > &
   SuggestedUpdate<S>

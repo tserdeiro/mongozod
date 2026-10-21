@@ -41,6 +41,8 @@ const PostsModel = mongozod({
 
 type Posts = typeof PostsModel
 
+const after = { returnDocument: 'after' } as const
+
 /** A service whose methods take their type parameters from `satisfies`. */
 const postsService = {
   aggregate: (pipeline) => PostsModel.aggregate(pipeline),
@@ -48,12 +50,8 @@ const postsService = {
   distinct: (key, filter?) => PostsModel.distinct(key, filter),
   list: (filter, options = {}) => PostsModel.find(filter, options),
   replaceOne: (filter, replacement) => PostsModel.replaceOne(filter, replacement),
-  updateOne: (filter, update, options?) =>
-    PostsModel.findOneAndUpdate(
-      filter,
-      update,
-      Object.assign({ returnDocument: 'after' as const }, options)
-    ),
+  updateMany: (filter, update, options?) => PostsModel.updateMany(filter, update, options),
+  updateOne: (filter, update) => PostsModel.findOneAndUpdate(filter, update, after),
   write: (operations) => PostsModel.bulkWrite(operations)
 } satisfies {
   aggregate: AggregateMethod<Posts>
@@ -61,7 +59,8 @@ const postsService = {
   distinct: DistinctMethod<Posts>
   list: FilterMethod<Posts>
   replaceOne: ReplaceMethod<Posts>
-  updateOne: UpdateMethod<Posts>
+  updateMany: UpdateMethod<Posts>
+  updateOne: UpdateMethod<Posts, typeof after>
   write: BulkWriteMethod<Posts>
 }
 
@@ -80,7 +79,7 @@ test('a method typed with satisfies checks what it passes to the model', () => {
     void postsService.list({ status: 'draft' }, { limit: 20, sort: { createdAt: -1 } })
     void postsService.count({ status: 'draft' }, { limit: 1 })
     void postsService.updateOne({ title: 'One' }, { $set: { status: 'published' } })
-    void postsService.updateOne({}, setChecked, { arrayFilters: [{ 'link.url': 'https://a.b' }] })
+    void postsService.updateMany({}, setChecked, { arrayFilters: [{ 'link.url': 'https://a.b' }] })
     void postsService.replaceOne(
       { title: 'One' },
       { author: 'ada', links: [], status: 'draft', title: 'Two' }
@@ -95,7 +94,9 @@ test('a method typed with satisfies checks what it passes to the model', () => {
     // @ts-expect-error a status is 'draft' or 'published'
     void postsService.updateOne({}, { $set: { status: 'archived' } })
     // @ts-expect-error "links.$[link].checked" uses an identifier: pass arrayFilters
-    void postsService.updateOne({}, setChecked)
+    void postsService.updateMany({}, setChecked)
+    // @ts-expect-error the method passes its own options
+    void postsService.updateOne({}, { $set: { title: 'Two' } }, { upsert: true })
     // @ts-expect-error title is required
     void postsService.replaceOne({}, { author: 'ada', links: [], status: 'draft' })
     // @ts-expect-error "titel" is not a path of the document

@@ -14,9 +14,10 @@ import type { FilterCheck, ModelFilter, SuggestedFilter } from '../types/filter'
 import type { PathSuggestions } from '../types/path-suggestions'
 import type { PipelineCheck } from '../types/pipeline'
 import type { ProjectionCheck, SuggestedProjection } from '../types/projection'
-import type { SortCheck, SuggestedSort } from '../types/sort'
+import type { SortCheck, SortDirection, SuggestedSort } from '../types/sort'
 import type {
   ArrayFiltersEntriesCheck,
+  CheckedOptions,
   FoundSchema,
   ModelUpdate,
   SuggestedUpdate,
@@ -220,7 +221,7 @@ type BulkUpdateCheck<
     ? ArrayFiltersEntriesCheck<S, M['update'], AF>
     : never
   filter: FilterCheck<S, M['filter']>
-  update: UpdateCheck<S, M['update'], M['filter'], M & BulkOptions, N>
+  update: UpdateCheck<S, M['update'], M['filter'], CheckedOptions<M & BulkOptions>, N>
 }
 
 /**
@@ -415,7 +416,9 @@ export type FindOptionsOf<M> = M extends { readonly schema: infer S extends Mode
         PluginsOf<M>,
         'read',
         Omit<FindOptions, 'projection' | 'sort'> & {
-          sort?: SuggestedSort<S> | undefined
+          // The keys of `SuggestedSort` written out: through the alias, the model's inference of
+          // the sort would compute the variance of the schema's classes.
+          sort?: { [K in PathSuggestions<S, 'filter'> | '_id']?: SortDirection } | undefined
         } & ([keyof ReferencesOf<M>] extends [never]
             ? unknown
             : { populate?: PopulateProjections<ReferencesOf<M>> | undefined })
@@ -705,7 +708,7 @@ export interface Model<
    */
   'findOneAndUpdate'<
     const F extends FilterCheck<S, F>,
-    const U extends UpdateCheck<S, U, F, O, N>,
+    const U extends UpdateCheck<S, U, F, CheckedOptions<O>, N>,
     const O extends UpdateOptionsBase<FindOneAndUpdateOptions, O> &
       TimestampsOperationOption<N> &
       UpdateOptionsCheck<S, U, O, V, R>
@@ -723,7 +726,7 @@ export interface Model<
   ): Promise<ModifyResultOf<S, V, R, ProjectionOf<O>, PopulateOf<O>>>
   'findOneAndUpdate'<
     const F extends FilterCheck<S, F>,
-    const U extends UpdateCheck<S, U, F, O, N>,
+    const U extends UpdateCheck<S, U, F, CheckedOptions<O>, N>,
     const O extends UpdateOptionsBase<FindOneAndUpdateOptions, O> &
       TimestampsOperationOption<N> &
       UpdateOptionsCheck<S, U, O, V, R>
@@ -794,7 +797,7 @@ export interface Model<
    */
   'updateMany'<
     const F extends FilterCheck<S, F>,
-    const U extends UpdateCheck<S, U, F, O, N>,
+    const U extends UpdateCheck<S, U, F, CheckedOptions<O>, N>,
     const O extends UpdateOptionsBase<UpdateOptions, O> &
       TimestampsOperationOption<N> &
       UpdateOptionsCheck<S, U, O>
@@ -812,7 +815,7 @@ export interface Model<
    */
   'updateOne'<
     const F extends FilterCheck<S, F>,
-    const U extends UpdateCheck<S, U, F, O, N>,
+    const U extends UpdateCheck<S, U, F, CheckedOptions<O>, N>,
     const O extends UpdateOptionsBase<UpdateOptions, O> &
       TimestampsOperationOption<N> &
       UpdateOptionsCheck<S, U, O>
