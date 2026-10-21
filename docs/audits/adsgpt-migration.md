@@ -47,7 +47,7 @@ Los probes quedaron fuera del repo.
 | 14     | Genéricos `const` en cada método del service          | Por diseño; **caro en tipos**                   | Medir y bajar el costo; docs del `const`                       | 11     |
 | 15     | Las opciones de cada lista en un tipo por módulo      | Hueco                                           | `FindOptionsOf<M>`                                             | 8      |
 | 16     | Sin tipo para las operaciones de `bulkWrite`          | Hueco                                           | Exportar `BulkWriteOf`                                         | 9      |
-| 17     | `$set` de un `z.unknown()`                            | **Bug**                                         | `Loose` deja pasar `unknown`                                   | 5      |
+| 17     | `$set` de un `z.unknown()`                            | **Bug**, corregido                              | `Loose` deja pasar `unknown`                                   | 5      |
 | 18     | `mz.filter` con `$eq` no deja leer el valor           | Por diseño; `[]` compila sin servir             | `[]` en `mz.filter` como «el valor»                            | 13     |
 | 19     | Un input que se convierte antes de guardarse          | Por diseño                                      | Docs: codecs con `.extend()` y el patrón del comando           | 18     |
 | 21     | Las keys de un record por `enum` no son paths         | **Bug**, corregido                              | Comparar el segmento con el template del enum                  | 4      |
