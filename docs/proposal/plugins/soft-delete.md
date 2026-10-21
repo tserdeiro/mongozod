@@ -8,7 +8,12 @@ Borrado lógico. Se importa de `mongozod/plugins/soft-delete` y se suma al model
 **Si el filtro menciona `deletedAt`, el plugin no lo toca.** Se fija en el primer nivel del filtro y
 dentro de `$and`, `$or` y `$nor`. Es el criterio del ejemplo oficial de soft delete que publicaba
 Prisma, que excluía los borrados solo si no se pedían explícitamente. Así el plugin no suma
-opciones ni métodos: todo se expresa con filtros de Mongo.
+opciones ni métodos: todo se expresa con filtros de Mongo. Un borrado real de un documento, esté
+marcado o no, menciona `deletedAt` con un `$or` de los dos `$exists`, que la tabla de referencia de
+la guía muestra; se descartaron, con el maintainer, exportar una constante `withDeleted`, que no es
+API de MongoDB ni de Mongoose, opciones por operación como `{ hard: true }` y
+`Model.collection.deleteOne()`, que se saltea el chequeo de `undefined` y los demás plugins (la 6
+de la [migración de adsgpt](../../audits/adsgpt-migration.md)).
 
 ## Comportamiento
 
