@@ -669,15 +669,15 @@ resueltas, 5 por diseño y la 26 abierta por decisión. Al adoptarla aparecieron
 de la A a la G, verificados contra el paquete con TypeScript 7 y 5.5 (decididos con el maintainer
 el 2026-10-21):
 
-| Punto | Qué encontró                                                               | Verificación                                                                     | Decisión                                                        |
-| ----- | -------------------------------------------------------------------------- | -------------------------------------------------------------------------------- | --------------------------------------------------------------- |
-| A     | Un default desestructurado en el parámetro, `{ sort = { createdAt: -1 } }` | TypeScript no le da tipo contextual: el `-1` se ensancha a `number`              | Docs: el default va en el cuerpo, o con `as const`              |
-| B     | `UpdateMethod` obliga a elegir entre las opciones del caller y las propias | `{ ...options, returnDocument: 'after' }` compila: +60.000 una vez, +300 por más | Docs: se pueden sumar; `upsert: true` sigue en un método propio |
-| C     | La key calculada de `$inc` necesita un objeto aparte                       | Es el ensanchamiento de TypeScript; la guía ya muestra `Partial<Record<…>>`      | Nada: ya documentado                                            |
-| D     | Un service con métodos propios no puede usar `satisfies` sobre el objeto   | Un `satisfies` sobre el objeto rechaza las propiedades que su tipo no nombra     | Docs: `satisfies` en cada método que pasa algo al modelo        |
-| E     | `mz.term` cambia la salida de `term` de texto a filtro                     | Es lo que hace un constructor de filtros                                         | Docs: quien necesite el texto lo lee del input sin parsear      |
-| F     | Keys del input que no son del documento                                    | La guía ya dice que `mz.filter` toma `.extend()`                                 | Se mantiene: sin sección, como se decidió en el PR 19           |
-| G     | Un alias `type XModel = typeof XModel` por modelo                          | Es opcional: `FilterMethod<typeof XModel>` funciona igual                        | Nada                                                            |
+| Punto | Qué encontró                                                               | Verificación                                                                        | Decisión                                                        |
+| ----- | -------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| A     | Un default desestructurado en el parámetro, `{ sort = { createdAt: -1 } }` | TypeScript lo tipa aparte: el `sort` es una unión que no compila, ni con `as const` | Docs: el default va en el cuerpo                                |
+| B     | `UpdateMethod` obliga a elegir entre las opciones del caller y las propias | `{ ...options, returnDocument: 'after' }` compila: +60.000 una vez, +300 por más    | Docs: se pueden sumar; `upsert: true` sigue en un método propio |
+| C     | La key calculada de `$inc` necesita un objeto aparte                       | Es el ensanchamiento de TypeScript; la guía ya muestra `Partial<Record<…>>`         | Nada: ya documentado                                            |
+| D     | Un service con métodos propios no puede usar `satisfies` sobre el objeto   | Un `satisfies` sobre el objeto rechaza las propiedades que su tipo no nombra        | Docs: `satisfies` en cada método que pasa algo al modelo        |
+| E     | `mz.term` cambia la salida de `term` de texto a filtro                     | Es lo que hace un constructor de filtros                                            | Docs: quien necesite el texto lo lee del input sin parsear      |
+| F     | Keys del input que no son del documento                                    | La guía ya dice que `mz.filter` toma `.extend()`                                    | Se mantiene: sin sección, como se decidió en el PR 19           |
+| G     | Un alias `type XModel = typeof XModel` por modelo                          | Es opcional: `FilterMethod<typeof XModel>` funciona igual                           | Nada                                                            |
 
 La 26 también se mantiene: Validation ya dice que un update descarta las keys `undefined`, que es lo
 que adsgpt descubrió leyendo el código, y el patrón de `$set` y `$unset` complementarios se descartó
