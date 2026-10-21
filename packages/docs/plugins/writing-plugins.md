@@ -189,9 +189,10 @@ middleware run on them, and they take no context.
   previous ones still run.
 - **A group and an operation**: when a plugin has both for an operation, the `before` hooks run from
   the group to the operation, and the `after` hooks the other way around.
-- **`model`** is the model, typed as `AnyModel`: its operations take and return `Document`s, and go
-  through every plugin again. That is how `softDelete` turns a delete into an update, so
-  `timestamps` and the other plugins see an update.
+- **`model`** is the model, typed as `AnyModel`: its `db`, `name`, `schema` and `indexes`, a
+  `collection` typed with `createIndexes` only, and its operations, which take and return
+  `Document`s and go through every plugin again. That is how `softDelete` turns a delete into an
+  update, so `timestamps` and the other plugins see an update.
 - **Cursors**: the `before` hooks of `find` and `aggregate` run once, when the cursor starts, and
   see the modifiers of the cursor in `args.options`: `sort`, `limit`, `skip` and the `projection` of
   `.project()`. Their `after` hooks, and the middleware, run once per batch the server returns,
@@ -535,12 +536,12 @@ A method types its filter or its update with the types for services, such as `Fi
 `UpdateOf` (see [TypeScript](../guides/typescript.md#types-for-services-and-repositories)). These
 are the types of a plugin's own:
 
-| Type                  | What it is                                                                          |
-| --------------------- | ----------------------------------------------------------------------------------- |
-| `AnyModel`            | Any model, as hooks and methods see it: its operations take and return `Document`s. |
-| `ReadOptionsArg<M>`   | The options argument of the reads of `M`, with the context its plugins ask for.     |
-| `UpdateOptionsArg<M>` | The options argument of the updates of `M`, with the context its plugins ask for.   |
-| `Plugin`              | The type `definePlugin` returns.                                                    |
+| Type                  | What it is                                                                                                                                                                        |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `AnyModel`            | Any model, as hooks and methods see it: `db`, `name`, `schema`, `indexes`, a `collection` typed with `createIndexes` only, and the operations, which take and return `Document`s. |
+| `ReadOptionsArg<M>`   | The options argument of the reads of `M`, with the context its plugins ask for.                                                                                                   |
+| `UpdateOptionsArg<M>` | The options argument of the updates of `M`, with the context its plugins ask for.                                                                                                 |
+| `Plugin`              | The type `definePlugin` returns.                                                                                                                                                  |
 
 The [API reference](../api/mongozod.md#types-for-plugins) lists the rest, such as `Operation`,
 `Group` and `OperationArgs`.
@@ -570,8 +571,9 @@ of its models require `tenantId`.
   `updatePipeline: true` is an array. Add a `$set` stage to it instead.
 - **Returning a `result` from a group hook without narrowing `operation`**: each operation has a
   result of its own shape, and TypeScript does not catch the wrong one. Narrow it first.
-- **Dispatching through `model.collection`**: it is the driver's collection, which skips the
-  validation, `timestamps` and every plugin. Dispatch through `model`, with `args.options`.
+- **Dispatching through `model.collection`**: in a plugin it types only `createIndexes`, and the
+  driver's collection skips the validation, `timestamps` and every plugin. Dispatch through the
+  model's operations, with `args.options`, which go through every plugin.
 - **Declaring `fills` and leaving out a write**, such as `insertMany`, `findOneAndReplace` or the
   inserts of `bulkWrite`: it compiles without the field and throws the `ZodError` of the schema.
   Cover every insert and replacement.

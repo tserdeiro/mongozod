@@ -146,8 +146,8 @@ await PostsModel.find({ status: { $in: ['draft', 'published'] } })
 - **Keys** that are not paths of the schema do not compile, where Mongoose's `strictQuery` keeps or
   drops them ([Mongoose docs](https://mongoosejs.com/docs/tutorials/query_casting.html#the-strictquery-option)).
   An `undefined` value does not compile either, and the model throws a `ZodError` for one that
-  arrives typed `any`: the driver would send it as `null`, which matches the documents without the
-  field.
+  arrives typed `any`: it would match the documents without the field, or every document with
+  `ignoreUndefined`.
 - **Pipelines**: Mongoose does not cast them
   ([Mongoose docs](https://mongoosejs.com/docs/queries.html#versus-aggregation)), so a string for an
   `ObjectId` in a `$match` finds nothing
@@ -188,10 +188,11 @@ turning the creation of indexes off in production
 the indexes the schema does not declare
 ([Mongoose docs](https://mongoosejs.com/docs/api/model.html#Model.syncIndexes%28%29)).
 
-MongoZod does nothing when the app starts. `sync()` creates the declared indexes, and applies the
-`$jsonSchema` when the model asks for it, when you call it, such as from a deploy script. It never
-drops an index: it returns the ones the model does not declare in `extraIndexes`. MongoDB creates
-the collection on the first write.
+MongoZod does nothing when the app starts, unless a model uses the opt-in
+[`autoIndex`](../plugins/auto-index.md) plugin, which creates its indexes on its first operation.
+`sync()` creates the declared indexes, and applies the `$jsonSchema` when the model asks for it,
+when you call it, such as from a deploy script. It never drops an index: it returns the ones the
+model does not declare in `extraIndexes`. MongoDB creates the collection on the first write.
 
 ```ts
 const { indexes, extraIndexes } = await PostsModel.sync()

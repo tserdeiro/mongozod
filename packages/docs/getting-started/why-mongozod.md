@@ -13,16 +13,16 @@ endpoints are derived from it.
 
 ## Compared with Mongoose
 
-|                   | Mongoose 9                                                                                                                                                  | MongoZod                                                                                                             |
-| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| Schema            | A Mongoose schema, apart from what validates your endpoints                                                                                                 | One Zod schema for the document, its types and the inputs of your endpoints                                          |
-| Update validation | [Off by default](https://mongoosejs.com/docs/validation.html#update-validators), and only on `$set`, `$unset`, `$push`, `$addToSet`, `$pull` and `$pullAll` | Always, on every operator, with refinements, and on the document an upsert would insert                              |
-| Required fields   | [Not checked by an update](https://mongoosejs.com/docs/validation.html#update-validators-only-run-on-updated-paths) unless it `$unset`s them                | An upsert fails when the document it would insert misses one                                                         |
-| Filters           | [Cast at runtime](https://mongoosejs.com/docs/tutorials/query_casting.html): a value that cannot be cast throws a `CastError`                               | Typed: a value of the wrong type does not compile, and what clients send is parsed by `mz`                           |
-| Results           | Documents that track changes, or plain objects with `lean()`                                                                                                | The driver's plain objects, typed by the projection and `populate`                                                   |
-| Endpoint inputs   | Not covered                                                                                                                                                 | [`mongozod/mzod`](../guides/endpoint-inputs.md): MongoDB syntax from clients, limited to what each endpoint declares |
-| Indexes           | [Created when the app starts](https://mongoosejs.com/docs/guide.html#indexes), unless you turn `autoIndex` off                                              | Created by [`sync()`](../guides/sync.md) when you call it                                                            |
-| Driver            | Mongoose's own API on top of the driver                                                                                                                     | The driver's names, options and results, and the driver itself for everything else                                   |
+|                   | Mongoose 9                                                                                                                                                  | MongoZod                                                                                                                                            |
+| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Schema            | A Mongoose schema, apart from what validates your endpoints                                                                                                 | One Zod schema for the document, its types and the inputs of your endpoints                                                                         |
+| Update validation | [Off by default](https://mongoosejs.com/docs/validation.html#update-validators), and only on `$set`, `$unset`, `$push`, `$addToSet`, `$pull` and `$pullAll` | Always, on every operator, with refinements, and on the document an upsert would insert                                                             |
+| Required fields   | [Not checked by an update](https://mongoosejs.com/docs/validation.html#update-validators-only-run-on-updated-paths) unless it `$unset`s them                | An upsert fails when the document it would insert misses one                                                                                        |
+| Filters           | [Cast at runtime](https://mongoosejs.com/docs/tutorials/query_casting.html): a value that cannot be cast throws a `CastError`                               | Typed: a value of the wrong type does not compile, and what clients send is parsed by `mz`                                                          |
+| Results           | Documents that track changes, or plain objects with `lean()`                                                                                                | The driver's plain objects, typed by the projection and `populate`                                                                                  |
+| Endpoint inputs   | Not covered                                                                                                                                                 | [`mongozod/mzod`](../guides/endpoint-inputs.md): MongoDB syntax from clients, limited to what each endpoint declares                                |
+| Indexes           | [Created when the app starts](https://mongoosejs.com/docs/guide.html#indexes), unless you turn `autoIndex` off                                              | Created by [`sync()`](../guides/sync.md) when you call it, or on the first operation with the opt-in [`autoIndex`](../plugins/auto-index.md) plugin |
+| Driver            | Mongoose's own API on top of the driver                                                                                                                     | The driver's names, options and results, and the driver itself for everything else                                                                  |
 
 Both libraries can share one connection, so a project can
 [move one model at a time](../mongoose/index.md). The [cheatsheet](../mongoose/cheatsheet.md) maps
@@ -79,7 +79,8 @@ Open issues of Mongoose that MongoZod handles by design:
   ([#7304](https://github.com/Automattic/mongoose/issues/7304)).
 - **Explicit `sync()`**: indexes and collections are not created on their own
   ([#15803](https://github.com/Automattic/mongoose/issues/15803),
-  [#13546](https://github.com/Automattic/mongoose/issues/13546)).
+  [#13546](https://github.com/Automattic/mongoose/issues/13546)), unless you opt in to
+  [`autoIndex`](../plugins/auto-index.md) for the indexes.
 
 Mongoose's types have also slowed editors down
 ([#10349](https://github.com/Automattic/mongoose/issues/10349)). MongoZod's CI fails when the type

@@ -25,7 +25,7 @@
  *     filter: mz
  *       .filter(brandSchema, { _id: ['$eq', '$in'], name: ['$eq', '$exists'] })
  *       .default({}),
- *     limit: z.number().int().min(1).max(100).default(20)
+ *     options: z.object({ limit: z.number().int().min(1).max(100).default(20) }).prefault({})
  *   })
  */
 export { after } from './mzod/after'

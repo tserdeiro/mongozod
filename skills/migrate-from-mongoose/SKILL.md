@@ -25,9 +25,9 @@ the Mongoose models of the project and ask which one.
 3. Read these pages of `node_modules/mongozod/dist/docs/`: `README.md`, `mongoose/index.md`,
    `mongoose/cheatsheet.md` and `mongoose/differences.md`, then `guides/schemas.md`,
    `guides/models.md`, `guides/operations.md`, `guides/validation.md` and `guides/security.md`, and
-   the guide of each
-   feature the model uses, such as `guides/populate.md`, `guides/virtuals.md`,
-   `guides/timestamps.md`, `guides/document-types.md`, `guides/sync.md` or `guides/plugins.md`.
+   the guide of each feature the model uses, such as `guides/populate.md`, `guides/virtuals.md`,
+   `guides/timestamps.md`, `guides/document-types.md`, `guides/sync.md`, `plugins/auto-index.md`,
+   `guides/plugins.md` or `recipes/search.md`.
    They match the installed version: follow them over what you remember of MongoZod or Mongoose.
 4. Find how the project shares the connection: a function such as `mongooseDb()` that returns
    `mongoose.connection.db`. If there is none, create it as `mongoose/index.md` shows, in the module
@@ -97,12 +97,12 @@ Rewrite each use of the Mongoose model with the cheatsheet and `mongoose/differe
 
 Keep the security of each call site, with `guides/security.md` and `guides/endpoint-inputs.md`:
 
-- MongoZod doesn't sanitize or cast filters at runtime, beyond rejecting an `undefined` value, and
-  a request body is typed `any`, so `tsc` doesn't catch a request value that reaches the model,
-  such as an object of operators. Parse the input of each endpoint once,
-  before the model: a schema from `.pick()` of the model's schema for values, `mz.filter`,
-  `mz.update`, `mz.sort`, `mz.projection`, `mz.populate` or `mz.term` for what the client sends,
-  with `mz.from(schema)` to name the schema once, and `mz.objectId()` for an id.
+- MongoZod doesn't sanitize or cast filters at runtime, beyond rejecting an `undefined` value, and a
+  request body is typed `any`, so `tsc` doesn't catch a request value that reaches the model, such
+  as an object of operators. Parse the input of each endpoint once, before the model: a schema from
+  `.pick()` of the model's schema for values, `mz.filter`, `mz.update`, `mz.sort`, `mz.projection`,
+  `mz.populate`, `mz.after` or `mz.term` for what the client sends, with `mz.from(schema)` to name
+  the schema once, and `mz.objectId()` for an id.
 - Never pass `req.body`, `req.query` or another request object whole as a filter, an update or a
   document to insert. An insert takes `.pick()` of the fields a client may write.
 - Keep every condition that scopes the documents to the user, such as an owner or a tenant, and
@@ -113,6 +113,8 @@ Keep the security of each call site, with `guides/security.md` and `guides/endpo
   included, and exclude the field there.
 
 Keep the Mongoose model while other code calls it or another Mongoose schema has a `ref` to it.
+Once it is gone, nothing creates the model's indexes when the app starts: run `sync()` in a deploy
+step, or add the `autoIndex` plugin (`guides/sync.md` and `plugins/auto-index.md`).
 
 ## 6. Verify
 

@@ -79,9 +79,10 @@ export interface MongozodOptions<
   db: Db | (() => Db)
 
   /**
-   * The indexes that `sync()` creates, declared with `index(key, options)` like the driver's
-   * `createIndex`: each key is a path of the document, and `partialFilterExpression` is checked
-   * like a filter. A callback, so that the editor suggests the paths.
+   * The indexes that `sync()` creates, or the `autoIndex` plugin on its first operation, declared
+   * with `index(key, options)` like the driver's `createIndex`: each key is a path of the document,
+   * and `partialFilterExpression` is checked like a filter. A callback, so that the editor suggests
+   * the paths.
    *
    * @example
    *   indexes: (index) => [index({ organization: 1, createdAt: -1 }), index({ slug: 1 }, { unique: true })]
@@ -137,7 +138,7 @@ export interface MongozodOptions<
    * Writes `createdAt` when a document is created and `updatedAt` on every write, like Mongoose:
    * `true`, or an object that renames each field or turns it off with `false`. The schema declares
    * them, taking a `Date`, and inserts take them as optional: an operation with `timestamps: false`
-   * gives them. Off by default.
+   * gives them. A field the object leaves out keeps its default name. Off by default.
    *
    * @example
    *   import * as mz from 'mongozod/mzod'

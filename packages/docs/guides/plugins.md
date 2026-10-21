@@ -5,8 +5,8 @@ description: Add plugins to a model, pass the options and the context they take,
 
 A plugin hooks into the operations of a model: it can change their arguments and their results,
 wrap them, add options, ask each call for a context and add methods to the model. MongoZod ships
-[`softDelete`](../plugins/soft-delete.md) and [`autoIndex`](../plugins/auto-index.md), and [Writing plugins](../plugins/writing-plugins.md)
-shows how to write your own.
+[`softDelete`](../plugins/soft-delete.md) and [`autoIndex`](../plugins/auto-index.md), and
+[Writing plugins](../plugins/writing-plugins.md) shows how to write your own.
 
 ```ts
 import { ObjectId } from 'mongodb'

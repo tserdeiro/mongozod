@@ -53,7 +53,7 @@ The schema stays the single source of truth, so it declares the fields `timestam
 - **In every type of document**, when the schema has [several](./document-types.md).
 - **Taking and returning a `Date`**. The usual field is [`mz.date()`](./bson-types.md#dates),
   which also takes the ISO string that a JSON client sends; `z.date()` works too.
-- **Without a `.default()`**: while `timestamps` is on, inserts and replacements take them as
+- **A `.default()` is optional**: while `timestamps` is on, inserts and replacements take them as
   optional, because MongoZod fills them before validating. A `.default()` still works, and helps
   when the schema is also parsed outside the model, such as in test fixtures: the model's date
   wins over it.

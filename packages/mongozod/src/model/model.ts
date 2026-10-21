@@ -789,7 +789,10 @@ export interface Model<
    * Prepares the collection on the server: applies the `$jsonSchema` when the model asks for it,
    * and creates the declared indexes. It never drops an index: an existing one that differs from
    * the declared fails with the driver's error, and the undeclared ones are returned in
-   * `extraIndexes`. Call it when deploying, not on each operation.
+   * `extraIndexes`. Call it when the app deploys or starts, or in the setup of the tests, not on
+   * each operation.
+   *
+   * @see https://mongozod.dev/docs/guides/sync#when-to-run-it
    */
   'sync'(): Promise<SyncResult>
 

@@ -68,7 +68,7 @@ packages/docs/
 │   ├── why-mongozod.md          la comparación con Mongoose y con el driver y Zod a mano, con los issues de Mongoose que resuelve
 │   ├── installation.md          los peers, los mínimos, Yarn y el peer `bson`, Bun
 │   ├── quick-start.md           schema, modelo, escribir y leer, y un endpoint con `mz`
-│   ├── connection.md            qué poner en el `MongoClient`, en el usuario (`readWrite`, `dbAdmin` para `sync()`) y en el servidor (`javascriptEnabled`)
+│   ├── connection.md            qué poner en el `MongoClient`, en el usuario (`readWrite`, `dbAdmin` para `sync()`) y en el servidor (`javascriptEnabled`); sin `ignoreUndefined`, y el driver conecta en la primera operación
 │   └── ai-agents.md             las docs instaladas, el bloque de `AGENTS.md`, `llms.txt` y las skills
 ├── guides/
 │   ├── schemas.md               el `_id` en sus tres formas, defaults, `.overwrite()`, input y output, Zod Mini, lo que se rechaza
@@ -77,10 +77,10 @@ packages/docs/
 │   ├── validation.md            qué se valida y cuándo, los upserts, los refinements asíncronos, `ZodError`
 │   ├── typescript.md            filtros, updates y proyecciones estrictos, paths con punto, los tipos exportados
 │   ├── bson-types.md            los tipos de campo de `mz` y `.meta({ bsonType })`
-│   ├── endpoint-inputs.md       `mz.filter`, `mz.update`, `mz.sort`, `mz.projection` y `mz.populate`
+│   ├── endpoint-inputs.md       `mz.filter`, `mz.update`, `mz.sort`, `mz.projection`, `mz.populate`, `mz.term` y `mz.from`
 │   ├── security.md              lo que protegen los constructores y lo que queda en la aplicación
 │   ├── pagination.md            `mz.after`, `skip` y `limit`
-│   ├── populate.md              `references` y `populate`
+│   ├── populate.md              `references` y `populate`; una referencia importa el módulo del otro modelo, así que los modelos no importan nada más, para evitar ciclos
 │   ├── virtuals.md
 │   ├── timestamps.md
 │   ├── document-types.md        las `z.discriminatedUnion`
@@ -90,6 +90,7 @@ packages/docs/
 │   └── plugins.md               usar plugins y el contexto
 ├── plugins/
 │   ├── soft-delete.md
+│   ├── auto-index.md            `autoIndex`, los índices en la primera operación
 │   └── writing-plugins.md       `definePlugin`
 ├── mongoose/
 │   ├── index.md                 migrar modelo por modelo sobre la misma conexión, con el «Copy prompt»
@@ -97,9 +98,9 @@ packages/docs/
 │   └── differences.md           sin `.save()`, sin casting, `__v`, `sync()` explícito
 ├── recipes/                     las recetas del roadmap (fase 6), agrupadas
 │   ├── ids.md · multi-tenant.md · repositories.md · transforms.md
-│   └── schema-migrations.md · http-apis.md · streams.md · dates-and-money.md · schema-patterns.md
+│   └── schema-migrations.md · http-apis.md · streams.md · dates-and-money.md · schema-patterns.md · search.md
 └── api/
-    ├── mongozod.md              lo que exporta `mongozod`
+    ├── mongozod.md              lo que exporta `mongozod`, y el comando `agents-md`
     └── mzod.md                  lo que exporta `mongozod/mzod`
 ```
 

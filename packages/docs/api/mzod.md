@@ -63,15 +63,20 @@ export const listPostsInput = z.object({
 
   after: mz.after(postSchema, { createdAt: -1, _id: -1 }),
 
-  populate: mz.populate({
-    authorId: userSchema.pick({ _id: true, name: true })
-  }),
+  options: z
+    .object({
 
-  limit: z.number()
-    .int()
-    .min(1)
-    .max(100)
-    .default(20)
+      populate: mz.populate({
+        authorId: userSchema.pick({ _id: true, name: true })
+      }),
+
+      limit: z.number()
+        .int()
+        .min(1)
+        .max(100)
+        .default(20)
+    })
+    .prefault({})
 })
 ```
 
@@ -89,12 +94,12 @@ Native. The examples on this page reuse `userSchema` and `postSchema` above.
 
 ## Builders
 
-Each builder takes a declaration, and the schema of the document for all of them but
-`mz.populate`, and returns a Zod schema to nest in the input of an endpoint. A missing `after` is
-the first page, a missing projection is the mask, and a missing sort or populate is `undefined`; a
-missing filter is up to each endpoint. A
-wrong declaration doesn't compile and throws an `Error` prefixed with the builder's name, and a
-wrong input fails with Zod's `ZodError`. See [Endpoint inputs](../guides/endpoint-inputs.md), and
+Each builder takes a declaration, and the schema of the document for all of them but `mz.populate`,
+and returns a Zod schema to nest in the input of an endpoint. A missing `after` is the first page, a
+missing term is `{}`, a missing projection is the mask, and a missing sort or populate is
+`undefined`; a missing filter is up to each endpoint. A wrong declaration doesn't compile and throws
+an `Error` prefixed with the builder's name, and a wrong input fails with Zod's `ZodError`. See
+[Endpoint inputs](../guides/endpoint-inputs.md), and
 [Defaults and required fields](../guides/endpoint-inputs.md#defaults-and-required-fields) for what a
 missing input means.
 
@@ -327,7 +332,7 @@ const postsTerm = z.string()
   .pipe(mz.term(postSchema, { title: true, tags: true }))
 
 postsTerm.parse('cafe')
-// { $and: [{ $or: [{ title: { $regex: 'c…[aàáâãä…]f[eèéêë…]', $options: 'i' } }, { tags: … }] }] }
+// { $and: [{ $or: [{ title: { $regex: '[cç…][aàáâãä…]f[eèéêë…]', $options: 'i' } }, …] }] }
 ```
 
 - **Paths**: the ones that hold strings or arrays of strings. The editor suggests only those.

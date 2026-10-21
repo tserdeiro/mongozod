@@ -1,6 +1,6 @@
 ---
 title: Endpoint inputs
-description: Accept MongoDB filters, updates, sorts, projections and populate from clients, limited to what each endpoint declares.
+description: Accept MongoDB filters, updates, sorts, projections, populate and search terms from clients, limited to what each endpoint declares.
 ---
 
 An endpoint that lists or edits documents takes a filter, a sort or an update from its client. The
@@ -103,29 +103,34 @@ const listPostsInput = z.object({
     })
     .default({}),
 
-  sort: mz
-    .sort(postSchema, {
-      createdAt: true,
-      title: true
-    })
-    .default({ createdAt: -1 }),
+  options: z
+    .object({
 
-  limit: z.number()
-    .int()
-    .min(1)
-    .max(100)
-    .default(20)
+      sort: mz
+        .sort(postSchema, {
+          createdAt: true,
+          title: true
+        })
+        .default({ createdAt: -1 }),
+
+      limit: z.number()
+        .int()
+        .min(1)
+        .max(100)
+        .default(20)
+    })
+    .prefault({})
 })
 
 // The body of a request
 const input = listPostsInput.parse({
   filter: { tags: { $in: ['mongodb'] }, createdAt: { $gte: '2026-01-01T00:00:00Z' } },
-  sort: { title: 1 }
+  options: { sort: { title: 1 } }
 })
 // { filter: { tags: { $in: ['mongodb'] }, createdAt: { $gte: 2026-01-01T00:00:00.000Z } },
-//   sort: { title: 1 }, limit: 20 }
+//   options: { sort: { title: 1 }, limit: 20 } }
 
-const posts = await PostsModel.find(input.filter, { sort: input.sort, limit: input.limit })
+const posts = await PostsModel.find(input.filter, input.options)
 
 listPostsInput.parse({ filter: { $where: 'sleep(1000)' } })
 // ZodError: Unrecognized key: "$where"
@@ -145,9 +150,9 @@ the model.
 - **Checked declarations**: a path that doesn't exist, or an operator that doesn't apply to its
   field, doesn't compile. Most of these mistakes also throw an `Error` that names the builder when
   the schema is built.
-- **Nothing to remember but for filters**: a missing `after` is the first page, a missing
-  projection is the mask, and a missing sort or populate is `undefined`. What a missing filter
-  means is up to each endpoint, which decides it with Zod's methods (see
+- **Nothing to remember but for filters**: a missing `after` is the first page, a missing term is
+  `{}`, a missing projection is the mask, and a missing sort or populate is `undefined`. What a
+  missing filter means is up to each endpoint, which decides it with Zod's methods (see
   [Defaults and required fields](#defaults-and-required-fields)).
 - **Client-safe**: `mongozod/mzod` never imports the driver, so the same input schemas run in web and
   React Native clients, such as to type a form.
@@ -186,8 +191,9 @@ const tagsFilter = z.object({
 
 `mongozod/mzod` has only named exports, so a bundler that tree-shakes keeps the builders and field
 types a file uses and drops the rest. React Native's Metro keeps everything (see
-[BSON types](./bson-types.md)). There is no `mz` object to import by name: an object would bring every builder
-into the client's bundle. It doesn't re-export Zod either, so each file keeps its own `z`.
+[BSON types](./bson-types.md)). There is no `mz` object to import by name: an object would bring
+every builder into the client's bundle. It doesn't re-export Zod either, so each file keeps its own
+`z`.
 
 `import { filter, sort } from 'mongozod/mzod'` works too, but names such as `filter`, `update` and
 `sort` clash with common variables.
@@ -229,8 +235,8 @@ postsFilter.parse({
   each one, its operators.
 - **Equality**: a field that declares `$eq` also takes the value alone, as in MongoDB. One that
   declares no operator, `[]`, takes the value only, typed as the field's, so the router and a typed
-  client can read it, such as the id of a filter by id. On an array,
-  an equality takes an element or the whole array, and the ranges compare its elements.
+  client can read it, such as the id of a filter by id. On an array, an equality takes an element or
+  the whole array, and the ranges compare its elements.
 - **An object of operators** has one at least: `{}` would be an equality with an empty object.
 - **`$options`** goes only with `$regex`: MongoDB rejects it alone. It takes the flags MongoDB
   takes, `i`, `m`, `x`, `s` and `u`. The pattern itself is checked by the server, which rejects an
@@ -557,6 +563,19 @@ fields optional, since the model doesn't know at compile time what the client as
 `mz.after(schema, sort)` turns the last document of a page into the filter of the next one. See
 [Pagination](./pagination.md).
 
+## `mz.term`
+
+`mz.term(schema, mask)` turns the term of a search box into a filter in which each word appears in
+one of the declared paths, without telling case or accents apart. Pipe the client's string into it,
+and join its filter with the others in an `$and`. See [Search](../recipes/search.md).
+
+```ts
+const postsTerm = z.string()
+  .max(100)
+  .optional()
+  .pipe(mz.term(postSchema, { title: true, summary: true }))
+```
+
 ## Defaults and required fields
 
 Each builder but `mz.filter` and `mz.update` knows what a missing input means:
@@ -564,6 +583,7 @@ Each builder but `mz.filter` and `mz.update` knows what a missing input means:
 | Builder         | When the client sends nothing                             |
 | --------------- | --------------------------------------------------------- |
 | `mz.after`      | `{}`, the first page, which the router joins in an `$and` |
+| `mz.term`       | `{}`, which matches every document                        |
 | `mz.projection` | The mask                                                  |
 | `mz.sort`       | `undefined`, the natural order, unless you give a default |
 | `mz.populate`   | `undefined`, which expands nothing                        |
@@ -594,8 +614,8 @@ findPostInput.parse({ filter: {} })
 
 const findByTitleOrId = mz
   .filter(postSchema, {
-    _id: ['$eq'],
-    title: ['$eq']
+    _id: [],
+    title: []
   })
   .refine((filter) => Object.keys(filter).length > 0, 'pass _id or title')
 ```
@@ -655,7 +675,8 @@ fits an allow list. When an endpoint needs one, the router writes it.
 
 A complete endpoint for the posts of a blog, with keyset pagination, a search term and the author.
 The input mirrors the call of the model: what picks the documents, `filter`, `after` and `term`,
-which the router joins with `$and`, and `options` that go to the driver as they are. In a project, the inputs go in a file that imports no model, so a client can use them too:
+which the router joins with `$and`, and `options` that go to the driver as they are. In a project,
+the inputs go in a file that imports no model, so a client can use them too:
 
 ```ts
 const authorInput = mz.populate({
@@ -729,9 +750,9 @@ export async function findOnePost(input: z.output<typeof findOnePostSchema>) {
 A client sends, for example,
 `{ "filter": { "tags": { "$in": ["mongodb"] } }, "options": { "populate": { "author": { "name": 1 } } } }`,
 and the router gets `populate: { author: { projection: { name: 1 } } }`. The sort of a keyset list
-is the router's, the same as the one of `mz.after`. For the next page, it also sends
-the `createdAt` and `_id` of the last post it got. Validate the request body with
-`listPostsSchema.parse(body)`, or let your framework do it, as tRPC does with `.input()`.
+is the router's, the same as the one of `mz.after`. For the next page, it also sends the `createdAt`
+and `_id` of the last post it got. Validate the request body with `listPostsSchema.parse(body)`, or
+let your framework do it, as tRPC does with `.input()`.
 
 ## Common mistakes
 

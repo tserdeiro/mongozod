@@ -5,8 +5,9 @@ description: The reference of the `mongozod` entry point, with mongozod(), the m
 
 The `mongozod` entry point exports `mongozod()`, which defines the model of a collection, the
 cursors its reads return, `definePlugin` and the types for services and plugins. The `mz` namespace
-is in [mongozod/mzod](./mzod.md), and the official soft delete plugin in
-[Soft delete](../plugins/soft-delete.md). Each entry links to the guide that explains it.
+is in [mongozod/mzod](./mzod.md), and the official plugins in
+[Soft delete](../plugins/soft-delete.md) and [Auto index](../plugins/auto-index.md). Each entry
+links to the guide that explains it.
 
 The examples on this page use these models:
 
@@ -107,17 +108,17 @@ export const PostsModel = mongozod({
 `mongozod(options)` defines the model of a collection and returns a [`Model`](#model). See
 [Models](../guides/models.md).
 
-| Option       | Type                                                                            | Default     | What it does                                                                                                   |
-| ------------ | ------------------------------------------------------------------------------- | ----------- | -------------------------------------------------------------------------------------------------------------- |
-| `collection` | a string                                                                        | required    | The name of the collection. See [Models](../guides/models.md#collection).                                      |
-| `db`         | the driver's `Db`, or a function that returns one                               | required    | The database, or a function called on every operation. See [Models](../guides/models.md#db).                   |
-| `schema`     | a `z.object`, or a `z.discriminatedUnion` of objects, of Zod or Zod Mini        | required    | The document as stored. See [Schemas](../guides/schemas.md) and [Document types](../guides/document-types.md). |
-| `timestamps` | `true`, or `{ createdAt?, updatedAt? }` with a field name or `false` each       | off         | Sets `createdAt` on insert and `updatedAt` on every write. See [Timestamps](../guides/timestamps.md).          |
-| `indexes`    | a function that takes `index` and returns a list of `index(key, options)` calls | none        | The indexes `sync()` creates. See [Sync](../guides/sync.md#indexes).                                           |
-| `jsonSchema` | `true`, or `{ validationLevel?, validationAction? }`                            | not applied | A `$jsonSchema` generated from the schema, which `sync()` applies. See [Sync](../guides/sync.md#jsonschema).   |
-| `references` | an object whose keys are paths and whose values are targets                     | none        | The fields that `populate` replaces with a document. See [Populate](../guides/populate.md).                    |
-| `virtuals`   | an object whose values are Zod schemas                                          | none        | Fields that reads compute from others. See [Virtuals](../guides/virtuals.md).                                  |
-| `plugins`    | an array of plugins                                                             | `[]`        | The plugins of the model, the first wrapping the others. See [Plugins](../guides/plugins.md).                  |
+| Option       | Type                                                                            | Default     | What it does                                                                                                                                                |
+| ------------ | ------------------------------------------------------------------------------- | ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `collection` | a string                                                                        | required    | The name of the collection. See [Models](../guides/models.md#collection).                                                                                   |
+| `db`         | the driver's `Db`, or a function that returns one                               | required    | The database, or a function called on every operation. See [Models](../guides/models.md#db).                                                                |
+| `schema`     | a `z.object`, or a `z.discriminatedUnion` of objects, of Zod or Zod Mini        | required    | The document as stored. See [Schemas](../guides/schemas.md) and [Document types](../guides/document-types.md).                                              |
+| `timestamps` | `true`, or `{ createdAt?, updatedAt? }` with a field name or `false` each       | off         | Sets `createdAt` on insert and `updatedAt` on every write; a field the object leaves out keeps its default name. See [Timestamps](../guides/timestamps.md). |
+| `indexes`    | a function that takes `index` and returns a list of `index(key, options)` calls | none        | The indexes `sync()` creates, or the [`autoIndex`](../plugins/auto-index.md) plugin on the first operation. See [Sync](../guides/sync.md#indexes).          |
+| `jsonSchema` | `true`, or `{ validationLevel?, validationAction? }`                            | not applied | A `$jsonSchema` generated from the schema, which `sync()` applies. See [Sync](../guides/sync.md#jsonschema).                                                |
+| `references` | an object whose keys are paths and whose values are targets                     | none        | The fields that `populate` replaces with a document. See [Populate](../guides/populate.md).                                                                 |
+| `virtuals`   | an object whose values are Zod schemas                                          | none        | Fields that reads compute from others. See [Virtuals](../guides/virtuals.md).                                                                               |
+| `plugins`    | an array of plugins                                                             | `[]`        | The plugins of the model, the first wrapping the others. See [Plugins](../guides/plugins.md).                                                               |
 
 `mongozod()` throws an `Error` when the options don't fit, and the types reject most of these
 cases first:
@@ -621,8 +622,10 @@ await writePosts([{ deleteMany: { filter: { status: 'draft' } } }])
 
 `FindOptionsOf<M>` is the options of a `find` or a `findOne` that a service takes from a router:
 the driver's, a `sort` of the paths of the document and, on a model with references, a `populate`
-as [`mz.populate`](./mzod.md#mzpopulate) outputs it, plus the context its plugins ask for. It is not
-generic, so each reference it allows reads as its id, the projected document or `null`.
+as [`mz.populate`](./mzod.md#mzpopulate) outputs it, plus the options and the context its plugins
+ask for. It leaves `projection` out, because a projection that is not a literal types every field as
+optional. It is not generic, so each reference it allows reads as its id, the projected document or
+`null`.
 
 ```ts
 function listRecentPosts<const F extends FilterOf<typeof PostsModel, F>>(
@@ -816,5 +819,14 @@ driver.
 
 `AnyModel` is a model as plugins see it: `db`, `name`, `schema`, `indexes`, a `collection` with its
 `createIndexes`, and the operations, which take and return `Document`s and go through every plugin
-again. A plugin method declares `this` as a type
-parameter that extends it.
+again. A plugin method declares `this` as a type parameter that extends it.
+
+## Command line
+
+### agents-md
+
+`npx mongozod agents-md [--output <file>]` writes the MongoZod rules for coding agents to
+`AGENTS.md`, or to the file of `--output` (`-o`), such as `CLAUDE.md`. It creates the file when it
+is missing, replaces the block between its markers when the file has it, appends it otherwise, and
+leaves the rest of the file as it is. See
+[AI agents](../getting-started/ai-agents.md#tell-your-agent).
