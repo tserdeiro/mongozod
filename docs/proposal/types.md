@@ -250,6 +250,18 @@ veces más en los updates, porque se intersectan con los paths sugeridos en cada
 service que recibe un filtro o un update y lo pasa al modelo, mongozod exporta `FilterOf`,
 `SortOf` y `UpdateOf`, que parten del modelo y traen las dos cosas.
 
+Para las opciones de una lectura que un service recibe del router, mongozod exporta
+`FindOptionsOf<M>` (la 8 y la 15 de la [migración de adsgpt](../audits/adsgpt-migration.md)): las
+opciones del driver, un `sort` de los paths del documento y, en un modelo con referencias, un
+`populate` con la forma que devuelve `mz.populate`, sin `true` (acordado con el maintainer), más las
+opciones y el contexto de sus plugins. No es genérico: el router le pasa la salida de sus inputs sin
+adaptarla, y la lectura tipa cada referencia que permite como su id, el documento proyectado o
+`null`, aunque el caller no pueble. Un caller del servidor que nunca puebla usa un método propio que
+devuelve `ReadOf<M>` (la 11): un genérico de opciones no sirve, porque `find` y `findOne` infieren
+su `sort`, su `projection` y su `populate` por separado y el resultado no sigue al del service. Deja
+afuera la `projection`, que sin ser literal tipa cada campo opcional. Cuesta como el `Pick` de la
+salida de los inputs que reemplaza.
+
 ## Costo de los tipos
 
 `pnpm check-type-cost` mide las instanciaciones de un proyecto típico (ver

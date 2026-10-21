@@ -113,6 +113,108 @@ await postsService.count({ status: 'published' })
 await postsService.count({ status: 'archived' })
 ```
 
+## Options from a router
+
+A service that takes the `sort`, the `populate`, `limit` and `skip` of a list from its router types
+them with `FindOptionsOf`, which follows the model, not the router's input. The router passes what
+`mz.sort` and `mz.populate` give it, and the server its own sort or limit:
+
+```ts separate
+import type { FilterOf, FindOptionsOf, ReadOf } from 'mongozod'
+
+import { ObjectId } from 'mongodb'
+import { mongozod } from 'mongozod'
+import * as mz from 'mongozod/mzod'
+import * as z from 'zod'
+
+const userSchema = z.object({
+
+  _id: mz.objectId()
+    .default(() => new ObjectId()),
+
+  name: z.string(),
+
+  email: z.email()
+})
+
+const UsersModel = mongozod({
+
+  collection: 'users',
+
+  db,
+
+  schema: userSchema
+})
+
+const postSchema = z.object({
+
+  _id: mz.objectId()
+    .default(() => new ObjectId()),
+
+  title: z.string(),
+
+  authorId: mz.objectId(),
+
+  createdAt: mz.date(),
+
+  updatedAt: mz.date()
+})
+
+const PostsModel = mongozod({
+
+  collection: 'posts',
+
+  db,
+
+  schema: postSchema,
+
+  timestamps: true,
+
+  references: {
+
+    authorId: () => UsersModel
+  }
+})
+
+const listPostsInput = z.object({
+
+  populate: mz.populate({
+
+    authorId: userSchema.pick({ _id: true, name: true })
+  }),
+
+  sort: mz.sort(postSchema, { createdAt: true, title: true })
+})
+
+export const postsService = {
+
+  /** For the router: the client chooses the sort and what to populate. */
+  list<const F extends FilterOf<typeof PostsModel, F>>(
+    filter: F,
+    options: FindOptionsOf<typeof PostsModel> = {}
+  ) {
+    const { sort = { createdAt: -1 }, ...rest } = options
+
+    return PostsModel.find(filter, { ...rest, sort })
+  },
+
+  /** For the server, which never populates: it reads the ids as they are stored. */
+  async byAuthor(authorId: ObjectId): Promise<Array<ReadOf<typeof PostsModel>>> {
+    return PostsModel.find({ authorId }, { sort: { createdAt: -1 } })
+  }
+}
+
+const input = listPostsInput.parse({ populate: { authorId: true }, sort: { title: 1 } })
+
+const posts = await postsService.list({}, { ...input, limit: 20 })
+// posts[0].authorId: ObjectId | { _id?: ObjectId; name?: string } | null
+```
+
+`FindOptionsOf` is not generic: the read types each reference it allows as its id, the projected
+document or `null`, whether the caller populates or not. A server caller that never populates gets
+the stored ids from a method of its own, such as `byAuthor` above, instead of narrowing the union.
+It leaves the `projection` out: one that is not a literal types every field as optional.
+
 ## Generic over the result, not over the model
 
 MongoZod has no type for any model with typed reads. Comparing a model with

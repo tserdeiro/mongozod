@@ -372,6 +372,7 @@ types it from the model:
 | `InsertOf<M>`           | What an insert takes, with the fields that `timestamps` and the plugins fill optional.            |
 | `FilterOf<M, F>`        | The constraint of a filter that a function passes to the model.                                   |
 | `SortOf<M, Sort>`       | The constraint of a sort that a function passes to the model.                                     |
+| `FindOptionsOf<M>`      | The options of a `find` that a service takes from a router: `sort`, `populate`, `limit` and more. |
 | `UpdateOf<M, U, F, O>`  | The constraint of an update, given its filter and its options.                                    |
 | `ReadOptionsArg<M>`     | The options argument of the reads, with the `context` its plugins ask for.                        |
 | `UpdateOptionsArg<M>`   | The options argument of the updates, with the `context` its plugins ask for.                      |
