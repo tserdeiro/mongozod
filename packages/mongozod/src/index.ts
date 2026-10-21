@@ -13,7 +13,8 @@ export type {
   SortOf,
   SyncResult,
   UpdateOf,
-  UpdateOptionsArg
+  UpdateOptionsArg,
+  UpdateOptionsOf
 } from './model/model'
 export type { MongozodOptions } from './mongozod'
 export type {

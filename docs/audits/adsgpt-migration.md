@@ -596,7 +596,7 @@ documento de la propuesta, la fila de este documento y su changeset cuando cambi
 | 7   | `fix(mongozod): say how to fix an undefined value in a filter`             | 7 y 20, hecho     |
 | 8   | `feat(mongozod): export FindOptionsOf`                                     | 8, 11 y 15, hecho |
 | 9   | `feat(mongozod): export BulkWriteOf`                                       | 16, hecho         |
-| 10  | `feat(mongozod): export UpdateOptionsOf`                                   | 25                |
+| 10  | `feat(mongozod): export UpdateOptionsOf`                                   | 25, hecho         |
 | 11  | `perf(mongozod): lower the cost of services that forward updates`          | 14                |
 | 12  | `feat(mongozod): name the widened literals of updates and sorts`           | 12 y 27 (sort)    |
 | 13  | `feat(mongozod): take a field without operators in mz.filter as a value`   | 18                |

@@ -23,7 +23,8 @@ import type {
   ReadOptionsArg,
   SortOf,
   UpdateOf,
-  UpdateOptionsArg
+  UpdateOptionsArg,
+  UpdateOptionsOf
 } from 'mongozod'
 
 import { ObjectId } from 'mongodb'
@@ -565,6 +566,25 @@ function updatePosts<
 >(filter: F, update: U) {
   return PostsModel.updateMany(filter, update)
 }
+```
+
+### UpdateOptionsOf
+
+`UpdateOptionsOf<M, U, O>` is the options of an update `U` that a function passes to the model:
+their `arrayFilters` are checked against the identifiers of the update, and their `sort`,
+`projection` and `populate` against the schema. They cannot ask for `includeResultMetadata`, so a
+`findOneAndUpdate` that takes them returns the document.
+
+```ts
+function updatePostsWith<
+  const F extends FilterOf<typeof PostsModel, F>,
+  const U extends UpdateOf<typeof PostsModel, U, F, O>,
+  const O extends UpdateOptionsOf<typeof PostsModel, U, O>
+>(filter: F, update: U, options?: O) {
+  return PostsModel.updateMany(filter, update, options)
+}
+
+await updatePostsWith({ status: 'draft' }, { $set: { status: 'published' } }, { upsert: false })
 ```
 
 ### SortOf

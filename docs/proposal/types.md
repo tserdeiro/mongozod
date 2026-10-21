@@ -250,6 +250,17 @@ veces más en los updates, porque se intersectan con los paths sugeridos en cada
 service que recibe un filtro o un update y lo pasa al modelo, mongozod exporta `FilterOf`,
 `SortOf` y `UpdateOf`, que parten del modelo y traen las dos cosas.
 
+Para las opciones de un update que un service pasa al modelo, mongozod exporta
+`UpdateOptionsOf<M, U, O>` (la 25 de la [migración de adsgpt](../audits/adsgpt-migration.md)), la
+restricción que el modelo ya usa: chequea los `arrayFilters` contra los identificadores del update,
+y el `sort`, la `projection` y el `populate` contra el schema. Un service con `options?: O` las pasa
+tal cual, y un solo `updateOne` reemplaza al método aparte con `arrayFilters: Document[]`, cuyo
+array, al no ser una tupla, apagaba el chequeo de las entradas. Además pide
+`includeResultMetadata?: false`: sin eso, un `findOneAndUpdate` con esas opciones tipaba el
+documento aunque el caller pidiera el `ModifyResult`. Para agregar `returnDocument: 'after'` a
+opciones opcionales, `Object.assign({ returnDocument: 'after' as const }, options)` conserva su tipo:
+un spread de un genérico opcional lo borra.
+
 Para las operaciones de un `bulkWrite` que un service recibe ya armadas, mongozod exporta
 `BulkWriteOf<M, Ops, O>` (la 16 de la [migración de adsgpt](../audits/adsgpt-migration.md)), el
 mismo chequeo que usa el modelo, con las opciones del driver por defecto: con los mismos argumentos
