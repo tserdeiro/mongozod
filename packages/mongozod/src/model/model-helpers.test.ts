@@ -1,4 +1,5 @@
 import type {
+  BulkWriteOf,
   FilterOf,
   FindOptionsOf,
   InsertOf,
@@ -193,6 +194,39 @@ test('FindOptionsOf types the options a service takes from a router, without the
   expectTypeOf<Found['author']>().toEqualTypeOf<string | { _id?: string; name?: string } | null>()
   expectTypeOf<FindOptionsOf<typeof UsersModel>>().not.toHaveProperty('populate')
   expectTypeOf<FindOptionsOf<typeof TasksModel>>().toHaveProperty('sort')
+})
+
+/** A service that takes the operations of a bulkWrite that a router builds. */
+function writePosts<const Ops extends BulkWriteOf<typeof PostsModel, Ops>>(operations: Ops) {
+  return PostsModel.bulkWrite(operations)
+}
+
+/** The same for a model with plugins. */
+function writeTasks<const Ops extends BulkWriteOf<typeof TasksModel, Ops>>(operations: Ops) {
+  return TasksModel.bulkWrite(operations)
+}
+
+test('BulkWriteOf passes operations built elsewhere to the model, each checked', () => {
+  const titles = ['One', 'Two']
+
+  expect(() => {
+    void writePosts([
+      { insertOne: { document: { author: 'ada', title: 'One' } } },
+      {
+        updateOne: { filter: { title: 'One' }, update: { $set: { title: 'Final' } }, upsert: true }
+      }
+    ])
+    void writePosts(
+      titles.map((title) => ({
+        updateOne: { filter: { title }, update: { $set: { author: 'ada' } } }
+      }))
+    )
+    void writeTasks([{ deleteOne: { filter: { title: 'Done' } } }])
+    // @ts-expect-error "titel" is not a path of the document
+    void writePosts([{ deleteOne: { filter: { titel: 'One' } } }])
+    // @ts-expect-error updatedAt is set by timestamps
+    void writePosts([{ updateOne: { filter: {}, update: { $set: { updatedAt: new Date() } } } }])
+  }).toBeTypeOf('function')
 })
 
 test('InsertOf is what an insert takes, without the fields timestamps and plugins fill', () => {

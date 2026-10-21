@@ -250,6 +250,11 @@ veces más en los updates, porque se intersectan con los paths sugeridos en cada
 service que recibe un filtro o un update y lo pasa al modelo, mongozod exporta `FilterOf`,
 `SortOf` y `UpdateOf`, que parten del modelo y traen las dos cosas.
 
+Para las operaciones de un `bulkWrite` que un service recibe ya armadas, mongozod exporta
+`BulkWriteOf<M, Ops, O>` (la 16 de la [migración de adsgpt](../audits/adsgpt-migration.md)), el
+mismo chequeo que usa el modelo, con las opciones del driver por defecto: con los mismos argumentos
+que el modelo, TypeScript no compara varianzas y cuesta poco.
+
 Para las opciones de una lectura que un service recibe del router, mongozod exporta
 `FindOptionsOf<M>` (la 8 y la 15 de la [migración de adsgpt](../audits/adsgpt-migration.md)): las
 opciones del driver, un `sort` de los paths del documento y, en un modelo con referencias, un

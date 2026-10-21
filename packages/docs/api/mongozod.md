@@ -13,6 +13,7 @@ The examples on this page use these models:
 ```ts
 import type {
   AnyModel,
+  BulkWriteOf,
   DocOf,
   FilterOf,
   FindOptionsOf,
@@ -577,6 +578,19 @@ function newestPosts<const Sort extends SortOf<typeof PostsModel, Sort>>(sort: S
 }
 
 await newestPosts({ createdAt: -1 })
+```
+
+### BulkWriteOf
+
+`BulkWriteOf<M, Ops, O>` is the operations of a `bulkWrite` of a model, each checked like the
+model's, given the options `O` of the call.
+
+```ts
+function writePosts<const Ops extends BulkWriteOf<typeof PostsModel, Ops>>(operations: Ops) {
+  return PostsModel.bulkWrite(operations)
+}
+
+await writePosts([{ deleteMany: { filter: { status: 'draft' } } }])
 ```
 
 ### FindOptionsOf
