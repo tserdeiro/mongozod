@@ -362,6 +362,23 @@ export type SortOf<M, Sort> = SortCheck<SchemaOf<M>, Sort> & SuggestedSort<Schem
 export type UpdateOf<M, U, F, O = unknown> = ModelUpdate<SchemaOf<M>, U, F, O, TimestampsOf<M>>
 
 /**
+ * The operations of a `bulkWrite` of a model, for a function that takes them and passes them to the
+ * model, such as a service. Each operation is checked like the model's, given the options `O` of
+ * the call.
+ *
+ * @example
+ *   function saveMessages<const Ops extends BulkWriteOf<typeof MessagesModel, Ops>>(
+ *     operations: Ops
+ *   ) {
+ *     return MessagesModel.bulkWrite(operations)
+ *   }
+ *
+ * @see https://mongozod.dev/docs/api/mongozod#bulkwriteof
+ */
+export type BulkWriteOf<M, Operations, O = BulkWriteOptions> = ReadonlyArray<Document> &
+  BulkWriteCheck<SchemaOf<M>, Operations, TimestampsOf<M>, O, PluginFills<PluginsOf<M>>>
+
+/**
  * The options of a `find` or a `findOne` of a model, for a service that takes them from a router
  * and passes them to the model: the driver's, with a `sort` of the paths of the document and, on a
  * model with references, a `populate` as `mz.populate` outputs it, plus the options and the context

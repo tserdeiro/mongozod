@@ -253,7 +253,8 @@ const result = await PostsModel.bulkWrite([
 ```
 
 `timestamps: false` and `updatePipeline: true` go in the options of the call and apply to all of
-its operations.
+its operations. A function that takes operations built elsewhere, such as a service, types them
+with [`BulkWriteOf`](../api/mongozod.md#bulkwriteof), so each one keeps its checks.
 
 ## Aggregate
 

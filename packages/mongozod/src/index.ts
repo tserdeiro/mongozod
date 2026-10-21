@@ -1,4 +1,5 @@
 export type {
+  BulkWriteOf,
   DocOf,
   FilterOf,
   FindOptionsOf,
