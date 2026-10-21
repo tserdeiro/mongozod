@@ -289,6 +289,33 @@ test('UpdateOptionsOf passes the options of an update on, with their arrayFilter
   expectTypeOf<After>().toEqualTypeOf<ReadOf<typeof PluginsModel> | null>()
 })
 
+const RoutinesModel = mongozod({
+  collection: 'routines',
+  db,
+  schema: z.object({
+    _id: z.string(),
+    brand: z.string().optional(),
+    nextRunAt: z.date().optional(),
+    title: z.string()
+  })
+})
+
+/** A service with an options type of its own, which passes the update to `findOneAndUpdate`. */
+function updateRoutine<
+  const F extends FilterOf<typeof RoutinesModel, F>,
+  const U extends UpdateOf<typeof RoutinesModel, U, F, { upsert?: boolean }>
+>(filter: F, update: U, options: { upsert?: boolean } = {}) {
+  return RoutinesModel.findOneAndUpdate(filter, update, { ...options, returnDocument: 'after' })
+}
+
+test('UpdateOf takes $unset and $currentDate through a generic service, as in adsgpt', () => {
+  expect(() => {
+    void updateRoutine({ _id: 'a' }, { $unset: { nextRunAt: '' } })
+    void updateRoutine({ _id: 'a' }, { $unset: { brand: 1, nextRunAt: true } })
+    void updateRoutine({ _id: 'a' }, { $currentDate: { nextRunAt: true } })
+  }).toBeTypeOf('function')
+})
+
 test('InsertOf is what an insert takes, without the fields timestamps and plugins fill', () => {
   /** A service that builds a post and inserts it. */
   function createPost(post: InsertOf<typeof PostsModel>) {

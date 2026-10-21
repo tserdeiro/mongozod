@@ -23,14 +23,15 @@ export type SortCheck<S, Sort> = {
         ? 'a sort key must be a literal path'
         : [FieldAt<S, K, 'filter'>] extends [never]
           ? NotAPath<K>
-          : IsAny<Sort[K]> extends true
-            ? SortDirection
-            : // A direction kept in a variable, which TypeScript widens.
-              number extends Sort[K]
-              ? `"${K}" is a number: a sort takes 1 or -1, so declare it with as const`
-              : string extends Sort[K]
-                ? `"${K}" is a string: a sort takes 'asc' or 'desc', so declare it with as const`
-                : SortDirection
+          : // A direction kept in a variable, which TypeScript widens. `IsAny` goes last, as in
+            // the checks of an update: first, it can make a generic sort circular.
+            number extends Sort[K]
+            ? IsAny<Sort[K]> extends true
+              ? SortDirection
+              : `"${K}" is a number: a sort takes 1 or -1, so declare it with as const`
+            : string extends Sort[K]
+              ? `"${K}" is a string: a sort takes 'asc' or 'desc', so declare it with as const`
+              : SortDirection
     : never
 }
 

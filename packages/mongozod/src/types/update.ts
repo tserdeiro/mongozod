@@ -441,14 +441,15 @@ type Widened<C> = string extends C
 
 /**
  * What an operator that takes a few literals takes, or, for a value TypeScript widened, why it does
- * not, as for a projection. A value typed `any` passes, as before.
+ * not, as for a projection. A value typed `any` passes, as before. `IsAny` goes after `Widened`:
+ * first, its `1 & C` resolves the constraint of an update a generic service passes on while the
+ * check is computed, which TypeScript 7 reports as a circular mapped type (TS2615).
  */
-type WidenedCheck<K extends string, C, Takes extends string, Then> =
-  IsAny<C> extends true
+type WidenedCheck<K extends string, C, Takes extends string, Then> = [Widened<C>] extends [never]
+  ? Then
+  : IsAny<C> extends true
     ? Then
-    : [Widened<C>] extends [never]
-      ? Then
-      : `"${K}" is ${Widened<C>}: ${Takes}, so declare the update with as const`
+    : `"${K}" is ${Widened<C>}: ${Takes}, so declare the update with as const`
 
 /** The value one operator takes at one path. `undefined` is dropped at runtime, so it compiles. */
 type FieldCheck<S, Op, K extends string, T, C> = [T] extends [string]
