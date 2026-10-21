@@ -1,6 +1,6 @@
 // A typical project: the models of an app, with the reads, writes and endpoint inputs it makes.
 // `check-type-cost` measures what compiling it costs, which is what the editor pays.
-import type { DocOf, FilterMethod, ReadOf, UpdateMethod } from 'mongozod'
+import type { BulkWriteMethod, DocOf, FilterMethod, ReadOf, UpdateMethod } from 'mongozod'
 
 import { MongoClient } from 'mongodb'
 import { mongozod } from 'mongozod'
@@ -199,17 +199,20 @@ export async function report(organization: string) {
 
 // A service, as an app with routers has: it passes what a router sends on to the model. Its updates
 // either pass their options through, `arrayFilters` included, or return the document after the
-// update with options of its own.
+// update with options of its own. Options that may be undefined, as `options?` gives them, cost as
+// much as the others.
 const after = { returnDocument: 'after' } as const
 
 export const pluginsService = {
   findOne: (filter, options = {}) => PluginsModel.findOne(filter, options),
   updateMany: (filter, update, options?) => PluginsModel.updateMany(filter, update, options),
-  updateOne: (filter, update) => PluginsModel.findOneAndUpdate(filter, update, after)
+  updateOne: (filter, update) => PluginsModel.findOneAndUpdate(filter, update, after),
+  write: (operations, options?) => PluginsModel.bulkWrite(operations, options)
 } satisfies {
   findOne: FilterMethod<typeof PluginsModel>
   updateMany: UpdateMethod<typeof PluginsModel>
   updateOne: UpdateMethod<typeof PluginsModel, typeof after>
+  write: BulkWriteMethod<typeof PluginsModel>
 }
 
 export async function renamePlugin(id: string, name: string, connectionId: string) {

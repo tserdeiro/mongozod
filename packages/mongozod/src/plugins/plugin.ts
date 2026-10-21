@@ -366,7 +366,7 @@ export type OptionsArg<
 > = [ContextUnion<PL, G>] extends [never]
   ? Required extends true
     ? [options: Base & PluginOptions<PL, G>]
-    : [options?: Base & PluginOptions<PL, G>]
+    : [options?: (Base & PluginOptions<PL, G>) | undefined]
   : [options: Base & PluginOptions<PL, G> & { context: UnionToIntersection<ContextUnion<PL, G>> }]
 
 /**
