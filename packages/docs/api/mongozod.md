@@ -706,7 +706,8 @@ await recentPosts.list({ status: 'published' }, { limit: 20 })
 ### UpdateMethod
 
 `UpdateMethod<M>` types a method that takes a filter, an update and the options of the update, with
-their `arrayFilters` checked against its identifiers.
+their `arrayFilters` checked against its identifiers. `UpdateMethod<M, O>` types one that takes no
+options and passes its own, `O`, such as `{ returnDocument: 'after' }`.
 
 ### ReplaceMethod
 

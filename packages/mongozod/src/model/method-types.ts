@@ -33,30 +33,40 @@ export type FilterMethod<M, O = FindOptionsOf<M>> = <const F extends FilterOf<M,
 ) => unknown
 
 /**
- * The type of a method of a service that takes a filter, an update and the options of the update,
- * given with `satisfies`, as `FilterMethod`.
+ * The type of a method of a service that takes a filter and an update, given with `satisfies`, as
+ * `FilterMethod`. Without `O`, it also takes the caller's options and passes them on,
+ * `arrayFilters` included. With `O`, the options the method passes to the model itself, such as a
+ * constant `{ returnDocument: 'after' }`, it takes none. Merging the two, such as with
+ * `Object.assign`, makes the update the caller writes and the one the model checks different types,
+ * and comparing them costs about 150,000 instantiations once per program.
  *
  * @example
+ *   const after = { returnDocument: 'after' } as const
+ *
  *   export const notesService = {
- *     updateOne: (filter, update, options) =>
- *       NotesModel.findOneAndUpdate(
- *         filter,
- *         update,
- *         Object.assign({ returnDocument: 'after' as const }, options)
- *       )
- *   } satisfies { updateOne: UpdateMethod<typeof NotesModel> }
+ *     updateMany: (filter, update, options?) => NotesModel.updateMany(filter, update, options),
+ *     updateOne: (filter, update) => NotesModel.findOneAndUpdate(filter, update, after)
+ *   } satisfies {
+ *     updateMany: UpdateMethod<typeof NotesModel>
+ *     updateOne: UpdateMethod<typeof NotesModel, typeof after>
+ *   }
  *
  * @see https://mongozod.dev/docs/api/mongozod#updatemethod
  */
-export type UpdateMethod<M> = <
-  const F extends FilterOf<M, F>,
-  const U extends UpdateOf<M, U, F, O>,
-  const O extends UpdateOptionsOf<M, U, O>
->(
-  filter: F,
-  update: U,
-  options?: O
-) => unknown
+export type UpdateMethod<M, O = never> = [O] extends [never]
+  ? <
+      const F extends FilterOf<M, F>,
+      const U extends UpdateOf<M, U, F, Options>,
+      const Options extends UpdateOptionsOf<M, U, Options>
+    >(
+      filter: F,
+      update: U,
+      options?: Options
+    ) => unknown
+  : <const F extends FilterOf<M, F>, const U extends UpdateOf<M, U, F, O>>(
+      filter: F,
+      update: U
+    ) => unknown
 
 /**
  * The type of a method of a service that takes a filter and a document that replaces the one it

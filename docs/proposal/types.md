@@ -257,9 +257,11 @@ y el `sort`, la `projection` y el `populate` contra el schema. Un service con `o
 tal cual, y un solo `updateOne` reemplaza al método aparte con `arrayFilters: Document[]`, cuyo
 array, al no ser una tupla, apagaba el chequeo de las entradas. Además pide
 `includeResultMetadata?: false`: sin eso, un `findOneAndUpdate` con esas opciones tipaba el
-documento aunque el caller pidiera el `ModifyResult`. Para agregar `returnDocument: 'after'` a
-opciones opcionales, `Object.assign({ returnDocument: 'after' as const }, options)` conserva su tipo:
-un spread de un genérico opcional lo borra.
+documento aunque el caller pidiera el `ModifyResult`. Un service que devuelve el documento le pasa
+al modelo opciones propias, como una constante `{ returnDocument: 'after' }`, y no toma las del
+caller: mezclarlas, con `Object.assign` o un spread, hace distintos el update que chequea el service
+y el que chequea el modelo, y compararlos cuesta unas 150.000 instanciaciones una vez por programa
+(ver [Costo de los tipos](#costo-de-los-tipos)).
 
 Para no repetir los parámetros de tipo en cada método (la 14), mongozod exporta tipos de método:
 `FilterMethod<M, O>`, `UpdateMethod<M>`, `ReplaceMethod<M, O>`, `BulkWriteMethod<M>`,
@@ -293,6 +295,23 @@ salida de los inputs que reemplaza.
 `pnpm check-type-cost` mide las instanciaciones de un proyecto típico (ver
 [Herramientas](./structure.md#herramientas)). Estas reglas las bajan sin cambiar lo que compila, los
 mensajes de mongozod ni lo que sugiere el editor:
+
+- **Las opciones que lee el chequeo de un update, normalizadas** (la 14 de la
+  [migración de adsgpt](../audits/adsgpt-migration.md)): `UpdateCheck` recibe `CheckedOptions<O>`,
+  que solo guarda `arrayFilters`, `upsert: true`, `timestamps: false` y `updatePipeline: true`. Un
+  service que pasa un update con otras opciones que las del modelo, como `returnDocument`, daba dos
+  instancias distintas de `UpdateCheck`, y compararlas calcula la varianza de `UpdateCheck` y de sus
+  alias internos, que no es confiable, y las recorre enteras: unas 82.000 instanciaciones con
+  TypeScript 7. Con las mismas opciones normalizadas son el mismo tipo y no se comparan: unas 7.000.
+  Una mezcla de opciones genéricas y propias, como `Object.assign(after, options)`, sigue dando dos
+  tipos distintos: cuesta unas 150.000 la primera vez en el programa y unas 6.000 cada service más.
+- **Sin alias en el `sort` de `FindOptionsOf`**: sus keys se escriben en el tipo, sin
+  `SuggestedSort<S>`. Con el alias, el modelo infería el `sort` de un service por los argumentos de
+  `SuggestedSort` y calculaba la varianza de las clases del schema: 104.000 instanciaciones contra
+  4.000.
+- **El proyecto típico tiene un service**: un `findOne` con `FindOptionsOf`, un `updateMany` que pasa
+  las opciones del caller y un `updateOne` que devuelve el documento, con los tipos de método. Suma
+  unas 14.600 instanciaciones con TypeScript 7 y 18.900 con 5.5, y el límite sube a 86.000 y 98.000.
 
 - **Sin intersectar dos arrays**: una sugerencia no se intersecta con la lista que declara el mismo
   argumento. Con `readonly ['$eq'] & ReadonlyArray<…>`, TypeScript compara cada método de los dos

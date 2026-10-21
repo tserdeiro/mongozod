@@ -1,6 +1,6 @@
 // A typical project: the models of an app, with the reads, writes and endpoint inputs it makes.
 // `check-type-cost` measures what compiling it costs, which is what the editor pays.
-import type { DocOf, ReadOf } from 'mongozod'
+import type { DocOf, FilterMethod, ReadOf, UpdateMethod } from 'mongozod'
 
 import { MongoClient } from 'mongodb'
 import { mongozod } from 'mongozod'
@@ -195,6 +195,36 @@ export async function report(organization: string) {
   await PluginsModel.deleteOne({ name: { $regex: '^tmp-' }, organization })
 
   return { accounts, tags, total, views }
+}
+
+// A service, as an app with routers has: it passes what a router sends on to the model. Its updates
+// either pass their options through, `arrayFilters` included, or return the document after the
+// update with options of its own.
+const after = { returnDocument: 'after' } as const
+
+export const pluginsService = {
+  findOne: (filter, options = {}) => PluginsModel.findOne(filter, options),
+  updateMany: (filter, update, options?) => PluginsModel.updateMany(filter, update, options),
+  updateOne: (filter, update) => PluginsModel.findOneAndUpdate(filter, update, after)
+} satisfies {
+  findOne: FilterMethod<typeof PluginsModel>
+  updateMany: UpdateMethod<typeof PluginsModel>
+  updateOne: UpdateMethod<typeof PluginsModel, typeof after>
+}
+
+export async function renamePlugin(id: string, name: string, connectionId: string) {
+  const plugin = await pluginsService.findOne(
+    { _id: id },
+    { populate: { createdBy: { projection: { email: 1 } } }, sort: { createdAt: -1 } }
+  )
+
+  await pluginsService.updateMany(
+    { _id: id },
+    { $set: { 'connections.$[c].status': 'expired' } },
+    { arrayFilters: [{ 'c._id': connectionId }] }
+  )
+
+  return plugin && pluginsService.updateOne({ _id: plugin._id }, { $set: { name } })
 }
 
 // What an app does with what it reads: array methods infer from the documents, through the virtuals
