@@ -53,6 +53,8 @@ const postsService = {
   replaceOne: (filter, replacement, options?) =>
     PostsModel.replaceOne(filter, replacement, options),
   updateMany: (filter, update, options?) => PostsModel.updateMany(filter, update, options),
+  updateAndRead: (filter, update, options?) =>
+    PostsModel.findOneAndUpdate(filter, update, { ...options, returnDocument: 'after' }),
   updateOne: (filter, update) => PostsModel.findOneAndUpdate(filter, update, after),
   write: (operations) => PostsModel.bulkWrite(operations)
 } satisfies {
@@ -63,6 +65,7 @@ const postsService = {
   remove: FilterMethod<Posts, FindOneAndDeleteOptions>
   replaceOne: ReplaceMethod<Posts>
   updateMany: UpdateMethod<Posts>
+  updateAndRead: UpdateMethod<Posts>
   updateOne: UpdateMethod<Posts, typeof after>
   write: BulkWriteMethod<Posts>
 }
@@ -83,6 +86,9 @@ test('a method typed with satisfies checks what it passes to the model', () => {
     void postsService.count({ status: 'draft' }, { limit: 1 })
     void postsService.updateOne({ title: 'One' }, { $set: { status: 'published' } })
     void postsService.updateMany({}, setChecked, { arrayFilters: [{ 'link.url': 'https://a.b' }] })
+    void postsService.updateAndRead({}, setChecked, {
+      arrayFilters: [{ 'link.url': 'https://a.b' }]
+    })
     void postsService.replaceOne(
       { title: 'One' },
       { author: 'ada', links: [], status: 'draft', title: 'Two' },
