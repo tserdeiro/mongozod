@@ -393,7 +393,9 @@ Los tipos siguen la regla de [Tipos](#tipos). Además:
   the update with as const`. Un valor `any` pasa como antes. No se acepta `string` en `$unset`,
   aunque MongoDB ignora el valor: `$currentDate` y `$pop` seguirían fallando sin explicación, y el
   modelo se alejaría de `mz.update`. En la rama de un elemento de array no hay mensaje: con TS 7 daba
-  una restricción circular (TS2615).
+  una restricción circular (TS2615). Por lo mismo, el chequeo de `any` va después del de
+  ensanchamiento: antes, un service genérico que reenvía su update por `UpdateOf`, como el de las
+  rutinas de adsgpt, daba TS2615 con TS 7.
 - **Proyección en una variable**: `const projection = { password: 0 }` tipa el `0` como `number`,
   que no compila: el error dice que se tipe `0 | 1` o se declare con `as const`, también para un
   virtual. Una con keys `string`, como un `Record<string, 0 | 1>` armado en runtime, no tiene paths
