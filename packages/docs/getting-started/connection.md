@@ -22,6 +22,9 @@ const client = new MongoClient(process.env.MONGODB_URI ?? 'mongodb://localhost:2
 const db = client.db('blog')
 ```
 
+The driver connects on the first operation, so a module can create the client and the `Db` without
+awaiting `connect()`, and the models take that `Db`.
+
 - **The connection string comes from the environment**, with the credentials of the
   [application's user](#the-user) and TLS: `mongodb+srv://` turns it on, and a `mongodb://` string
   takes `tls=true`.
@@ -33,7 +36,8 @@ const db = client.db('blog')
   `undefined` instead of sending `null`, so `findOne({ email: undefined })` becomes `findOne({})`
   and matches the first document. MongoZod drops `undefined` keys when it writes and in the
   builders of `mongozod/mzod`, and throws a `ZodError` for an `undefined` value in a filter (see
-  [Values that skip the builders](../guides/security.md#values-that-skip-the-builders)).
+  [Values that skip the builders](../guides/security.md#values-that-skip-the-builders)), so a
+  project that uses it doesn't need `ignoreUndefined`.
 - **Leave `promoteBuffers` off**: it reads every `Binary` as a `Buffer`, UUIDs included, where the
   field types of `mongozod/mzod` return a `Binary` and a `UUID`.
 
