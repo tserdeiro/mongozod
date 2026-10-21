@@ -109,6 +109,8 @@ await NotesModel.find({ $and: [filter, term] }, { maxTimeMS: 2000 })
 - **Cost**: a `$regex` that ignores case uses no index. It reads every document that the rest of
   the filter leaves, so filter by an indexed field too, such as the organization, and pass
   `maxTimeMS`.
+- **The text**: after parsing, `term` is the filter. Code that needs the text, such as a client
+  that highlights it, reads it from the input before parsing.
 - **Accents**: the Latin letters match their accented forms, such as `a` with `á`, `ä` and `ã`,
   and `n` with `ñ`, in both directions. Letters with no decomposition, such as `ø` or `ß`, match
   only themselves.

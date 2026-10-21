@@ -539,6 +539,8 @@ manda `{ createdAt, _id }` del último elemento de la página.
   mayúsculas (`$options: 'i'`) y sin acentos: el término se normaliza y cada letra latina toma sus
   variantes de Latin-1 y Latin Extended, armadas desde Unicode. El nombre se acordó con el
   maintainer: `mz.search` chocaba con `$search`, `mz.regex` se leía como un input de regex y
-  `mz.contains` no es un término de MongoDB ni de Zod.
+  `mz.contains` no es un término de MongoDB ni de Zod. Después de parsear, `term` es el filtro: la
+  receta dice que quien necesite el texto, como un cliente que lo resalta, lo lee del input sin
+  parsear (la E de la [revisión de la 0.4.0](../audits/adsgpt-migration.md)).
 - El `MongoQuerySchema` de la audiencia de wortise pasa a ser un `mz.filter` con `$and` y `$or`
   compuestos con Zod.
