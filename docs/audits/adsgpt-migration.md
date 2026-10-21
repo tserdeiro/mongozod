@@ -334,7 +334,14 @@ mongozod. Dos formas compilan en TS 7 y 5.5 y conservan el contrato `pagination.
   default del sort.
 - **Con genérico**: el helper envuelve el sort en `.optional()`. Pierde el tipo del default.
 
-**Decisión**: la primera, en la sección de páginas numeradas de Pagination.
+**Decisión** (con el maintainer): el input de una lista refleja la llamada del modelo,
+`find(filter, options)`. Lo que elige los documentos (`filter`, `after`, `term`) va del lado del
+filtro, y `options` lleva las opciones del driver: `limit` y `skip`, validados con números de Zod y
+un `.max()`, y `sort`, `projection` y `populate` de `mz`. El router pasa `input.options` tal cual,
+sin middleware ni `ctx.pagination`, y el cliente calcula el `skip` de una página
+(`pageIndex * pageSize`). No hace falta un constructor: se descartó un `mz.page()` que convirtiera
+el número de página, por las props propias y la ceremonia. El `cursor` de tRPC queda afuera: para el
+scroll infinito, `mz.after`. Lo cubren los ejemplos de Pagination y de Endpoint inputs.
 
 #### 19. Un input que se convierte antes de guardarse
 
@@ -615,7 +622,7 @@ documento de la propuesta, la fila de este documento y su changeset cuando cambi
 | 17  | `docs(docs): delete a document for real with softDelete`                   | 6, hecho          |
 | 18  | `feat(mongozod): create the indexes on the first operation, opt-in`        | 2, hecho          |
 | 19  | `docs(docs): projections and inputs that convert`                          | 3, 19 y 27, hecho |
-| 20  | `docs(docs): share a page schema with a sort per list`                     | 4                 |
+| 20  | `docs(docs): take the options of a list as the driver's`                   | 4, hecho          |
 | 21  | `docs(docs): timestamps outside the model and edits`                       | 5 y 24            |
 | 22  | `docs(docs): bson in React Native`                                         | 9                 |
 | 23  | `docs(docs): ignoreUndefined, the connection and references across models` | 13, 20 y 27       |
