@@ -31,32 +31,32 @@ Los probes quedaron fuera del repo.
 
 | #      | Fricción                                              | Diagnóstico                                     | Solución                                                       | PR     |
 | ------ | ----------------------------------------------------- | ----------------------------------------------- | -------------------------------------------------------------- | ------ |
-| 1      | Sin helper de búsqueda                                | Por diseño; ningún helper escapa el término     | Constructor en `mongozod/mzod` que escapa y pliega acentos     | 14     |
-| 2      | `sync()` sin camino para el deploy                    | Por diseño, a prueba                            | Docs: cuándo correrlo, y un plugin opt-in que crea los índices | 17     |
-| 3      | `mz.projection` tipa todo opcional                    | Por diseño; la doc de `.optional()` quedó vieja | Docs: proyección fija por endpoint, y corregir `.optional()`   | 18     |
-| 4      | `mz.sort` en un helper genérico de paginación         | Límite de TypeScript con los tipos de Zod       | Docs: el schema de página compartido con `.extend()`           | 19     |
-| 5      | `updatedAt` también al insertar                       | Por diseño, como Mongoose                       | Se mantiene; docs: «editado alguna vez»                        | 20     |
-| 6      | Borrado real con `softDelete`                         | Por diseño: solo filtros                        | Docs: el filtro de MongoDB para borrar de verdad               | 16     |
+| 1      | Sin helper de búsqueda                                | Por diseño; ningún helper escapa el término     | Constructor en `mongozod/mzod` que escapa y pliega acentos     | 15     |
+| 2      | `sync()` sin camino para el deploy                    | Por diseño, a prueba                            | Docs: cuándo correrlo, y un plugin opt-in que crea los índices | 18     |
+| 3      | `mz.projection` tipa todo opcional                    | Por diseño; la doc de `.optional()` quedó vieja | Docs: proyección fija por endpoint, y corregir `.optional()`   | 19     |
+| 4      | `mz.sort` en un helper genérico de paginación         | Límite de TypeScript con los tipos de Zod       | Docs: el schema de página compartido con `.extend()`           | 20     |
+| 5      | `updatedAt` también al insertar                       | Por diseño, como Mongoose                       | Se mantiene; docs: «editado alguna vez»                        | 21     |
+| 6      | Borrado real con `softDelete`                         | Por diseño: solo filtros                        | Docs: el filtro de MongoDB para borrar de verdad               | 17     |
 | 7 y 20 | `undefined` en los filtros                            | Por diseño; el error no dice qué hacer          | Se sigue rechazando; mensaje con la solución                   | 7      |
 | 8      | Sin tipo para las opciones de lectura de un service   | Hueco                                           | `FindOptionsOf<M>`                                             | 8      |
-| 9      | `mongozod/mzod` trae `bson` en React Native           | Metro no hace tree shaking; la doc dice que sí  | Docs: corregir y agregar React Native                          | 21     |
+| 9      | `mongozod/mzod` trae `bson` en React Native           | Metro no hace tree shaking; la doc dice que sí  | Docs: corregir y agregar React Native                          | 22     |
 | 10     | `ReadOf` con la salida de `mz.populate`               | **Bug**, corregido                              | Corregir `PopulateOf` y `ProjectionOf`                         | 2      |
 | 11     | Un service que a veces puebla tipa siempre la unión   | Límite de la inferencia                         | Docs: un método por caso                                       | 8      |
-| 12     | `$unset` armado en una variable                       | Ensanchamiento de TS                            | Mensaje que nombra la causa, y docs                            | 12     |
-| 13     | Un modelo que referencia a otro lo importa            | Docs                                            | Una línea en Populate                                          | 22     |
-| 14     | Genéricos `const` en cada método del service          | Por diseño; **caro en tipos**                   | Medir y bajar el costo; docs del `const`                       | 11     |
+| 12     | `$unset` armado en una variable                       | Ensanchamiento de TS                            | Mensaje que nombra la causa, y docs                            | 13     |
+| 13     | Un modelo que referencia a otro lo importa            | Docs                                            | Una línea en Populate                                          | 23     |
+| 14     | Genéricos `const` en cada método del service          | Por diseño; **caro en tipos**                   | Tipos de método; medir y bajar el costo                        | 11, 12 |
 | 15     | Las opciones de cada lista en un tipo por módulo      | Hueco                                           | `FindOptionsOf<M>`                                             | 8      |
 | 16     | Sin tipo para las operaciones de `bulkWrite`          | Hueco                                           | Exportar `BulkWriteOf`                                         | 9      |
 | 17     | `$set` de un `z.unknown()`                            | **Bug**, corregido                              | `Loose` deja pasar `unknown`                                   | 5      |
-| 18     | `mz.filter` con `$eq` no deja leer el valor           | Por diseño; `[]` compila sin servir             | `[]` en `mz.filter` como «el valor»                            | 13     |
-| 19     | Un input que se convierte antes de guardarse          | Por diseño                                      | Docs: codecs con `.extend()` y el patrón del comando           | 18     |
+| 18     | `mz.filter` con `$eq` no deja leer el valor           | Por diseño; `[]` compila sin servir             | `[]` en `mz.filter` como «el valor»                            | 14     |
+| 19     | Un input que se convierte antes de guardarse          | Por diseño                                      | Docs: codecs con `.extend()` y el patrón del comando           | 19     |
 | 21     | Las keys de un record por `enum` no son paths         | **Bug**, corregido                              | Comparar el segmento con el template del enum                  | 4      |
 | 22     | `timestamps: { updatedAt: false }` pide `createdAt`   | **Bug**, corregido                              | Corregir `FieldName`                                           | 3      |
 | 23     | `softDelete` también filtra los updates               | Por diseño, sin guía de migración               | Sin cambios: es del patrón propio, no de Mongoose              | —      |
-| 24     | Los campos de `timestamps` sin `.default()`           | Por diseño; el `.default()` ya funciona         | Docs: cuándo poner `.default()`                                | 20     |
+| 24     | Los campos de `timestamps` sin `.default()`           | Por diseño; el `.default()` ya funciona         | Docs: cuándo poner `.default()`                                | 21     |
 | 25     | `arrayFilters` obliga a otro método                   | Hueco, y el método aparte pierde chequeos       | Exportar `UpdateOptionsOf`                                     | 10     |
-| 26     | Sin equivalente de `parser.update`                    | Hueco: la propuesta no trata el servidor        | Docs: los updates que arma el servidor                         | 15     |
-| 27     | Detalles: sort en una constante, resultados, conexión | Ensanchamiento de TS; docs                      | Mensaje del sort; docs de resultados y conexión                | 12, 22 |
+| 26     | Sin equivalente de `parser.update`                    | Hueco: la propuesta no trata el servidor        | Docs: los updates que arma el servidor                         | 16     |
+| 27     | Detalles: sort en una constante, resultados, conexión | Ensanchamiento de TS; docs                      | Mensaje del sort; docs de resultados y conexión                | 13, 23 |
 
 Los números de PR son los del [stack](#stack-de-prs).
 
@@ -177,6 +177,13 @@ tipo literal del argumento. Lo verificado:
 bajar el costo (por ejemplo, que `UpdateCheck` dependa solo de `arrayFilters`, `upsert`,
 `timestamps` y `updatePipeline`) y, si no se puede, documente las opciones en una constante. La guía
 explica por qué va el `const`.
+
+Además, para no repetir los genéricos en cada método, el maintainer pidió una forma más corta sin
+perder seguridad de tipos. Se descartó un `Filter<M>` no genérico, como el del driver, que no puede
+chequear cada key, y se exportan tipos de método que se dan con `satisfies` (PR 11):
+`FilterMethod`, `UpdateMethod`, `ReplaceMethod`, `BulkWriteMethod`, `AggregateMethod` y
+`DistinctMethod`, más `PipelineOf`. Conservan los chequeos, las sugerencias y el costo, y sirven
+para objetos, funciones sueltas y propiedades flecha de clases; el resto escribe los genéricos.
 
 #### 16. `bulkWrite` desde un service
 
@@ -597,18 +604,19 @@ documento de la propuesta, la fila de este documento y su changeset cuando cambi
 | 8   | `feat(mongozod): export FindOptionsOf`                                     | 8, 11 y 15, hecho |
 | 9   | `feat(mongozod): export BulkWriteOf`                                       | 16, hecho         |
 | 10  | `feat(mongozod): export UpdateOptionsOf`                                   | 25, hecho         |
-| 11  | `perf(mongozod): lower the cost of services that forward updates`          | 14                |
-| 12  | `feat(mongozod): name the widened literals of updates and sorts`           | 12 y 27 (sort)    |
-| 13  | `feat(mongozod): take a field without operators in mz.filter as a value`   | 18                |
-| 14  | `feat(mongozod): build a search filter from a term`                        | 1                 |
-| 15  | `docs(docs): updates the server builds`                                    | 26                |
-| 16  | `docs(docs): delete a document for real with softDelete`                   | 6                 |
-| 17  | `feat(mongozod): create the indexes on the first operation, opt-in`        | 2                 |
-| 18  | `docs(docs): projections and inputs that convert`                          | 3, 19 y 27 (keys) |
-| 19  | `docs(docs): share a page schema with a sort per list`                     | 4                 |
-| 20  | `docs(docs): timestamps outside the model and edits`                       | 5 y 24            |
-| 21  | `docs(docs): bson in React Native`                                         | 9                 |
-| 22  | `docs(docs): ignoreUndefined, the connection and references across models` | 13, 20 y 27       |
+| 11  | `feat(mongozod): export method types for services`                         | 14, hecho         |
+| 12  | `perf(mongozod): lower the cost of services that forward updates`          | 14                |
+| 13  | `feat(mongozod): name the widened literals of updates and sorts`           | 12 y 27 (sort)    |
+| 14  | `feat(mongozod): take a field without operators in mz.filter as a value`   | 18                |
+| 15  | `feat(mongozod): build a search filter from a term`                        | 1                 |
+| 16  | `docs(docs): updates the server builds`                                    | 26                |
+| 17  | `docs(docs): delete a document for real with softDelete`                   | 6                 |
+| 18  | `feat(mongozod): create the indexes on the first operation, opt-in`        | 2                 |
+| 19  | `docs(docs): projections and inputs that convert`                          | 3, 19 y 27 (keys) |
+| 20  | `docs(docs): share a page schema with a sort per list`                     | 4                 |
+| 21  | `docs(docs): timestamps outside the model and edits`                       | 5 y 24            |
+| 22  | `docs(docs): bson in React Native`                                         | 9                 |
+| 23  | `docs(docs): ignoreUndefined, the connection and references across models` | 13, 20 y 27       |
 
 Los arreglos van primero porque son chicos e independientes, y los tipos nuevos de los services
 antes que las docs que los usan. La 23 no lleva PR (ver [su análisis](#23-softdelete-en-los-updates-y-los-conteos)).
@@ -618,14 +626,14 @@ antes que las docs que los usan. La 23 no lleva PR (ver [su análisis](#23-softd
 Lo que no es de mongozod pero apareció al verificar:
 
 - **`searchFilter`** (`packages/libs/src/mongodb/search-filter.ts`) no escapa el término, y sus
-  clases de vocales matchean la coma. Se arregla con lo que se decida en el PR 14.
+  clases de vocales matchean la coma. Se arregla con lo que se decida en el PR 15.
 - **El test de `tool-usages`** necesita `sync()` en su setup, o pasa por casualidad.
 - **El `MongoClient` sigue con `ignoreUndefined: true`** (`packages/libs/src/mongodb/db.ts`).
 - **Los upserts por `_id` que mandan los clientes** de brands, products y blueprints fallan con
   11000 sobre un documento borrado.
 - **El `as const` del sort** de `messages/router.test.ts` no hace falta hoy, y sí después del PR 6.
 - **Un comentario de `use-table.ts`** todavía habla de `pagination.sort`.
-- **Si se vuelve al contrato `pagination.sort`** con el patrón del PR 20, los clientes no cambian.
+- **Si se vuelve al contrato `pagination.sort`** con el patrón del PR 21, los clientes no cambian.
 
 ## Para los otros proyectos
 
