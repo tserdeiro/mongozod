@@ -354,6 +354,18 @@ type ForeignCheck<S extends ModelSchema, T, K, FF extends string, L extends stri
         : `populate needs "${L}" for "${K & string}": the projection excludes it`
       : `"${K & string}": "${FF}" stores another type than "${L}"`
 
+/**
+ * A `populate` as `mz.populate` outputs it: a `projection` of the fields of each target, its
+ * virtuals included, that a service takes from a router.
+ */
+export type PopulateProjections<R> = {
+  [K in keyof R]?: {
+    projection: {
+      [F in PathSuggestions<TargetSchema<R[K]>, 'filter'> | '_id' | keyof TargetVirtuals<R[K]>]?: 1
+    }
+  }
+}
+
 /** The keys and options the editor suggests in a `populate`. */
 export type SuggestedPopulate<R> = {
   [K in keyof R]?:

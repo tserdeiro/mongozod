@@ -5,6 +5,7 @@ import type {
   PopulatedProjection,
   Populated,
   PopulateOption,
+  PopulateProjections,
   SuggestedPopulate
 } from '../references/references'
 import type { Read } from '../references/virtuals'
@@ -359,6 +360,40 @@ export type SortOf<M, Sort> = SortCheck<SchemaOf<M>, Sort> & SuggestedSort<Schem
  * @see https://mongozod.dev/docs/api/mongozod#updateof
  */
 export type UpdateOf<M, U, F, O = unknown> = ModelUpdate<SchemaOf<M>, U, F, O, TimestampsOf<M>>
+
+/**
+ * The options of a `find` or a `findOne` of a model, for a service that takes them from a router
+ * and passes them to the model: the driver's, with a `sort` of the paths of the document and, on a
+ * model with references, a `populate` as `mz.populate` outputs it, plus the options and the context
+ * its plugins ask for. Not generic, so the read types each reference it allows as its id, the
+ * projected document or `null`; a projection is left out, since one that is not a literal types
+ * every field as optional.
+ *
+ * @example
+ *   function listNotes<const F extends FilterOf<typeof NotesModel, F>>(
+ *     filter: F,
+ *     options: FindOptionsOf<typeof NotesModel> = {}
+ *   ) {
+ *     const { sort = { createdAt: -1 }, ...rest } = options
+ *
+ *     return NotesModel.find(filter, { ...rest, sort })
+ *   }
+ *
+ * @see https://mongozod.dev/docs/api/mongozod#findoptionsof
+ */
+export type FindOptionsOf<M> = M extends { readonly schema: infer S extends ModelSchema }
+  ? NonNullable<
+      OptionsArg<
+        PluginsOf<M>,
+        'read',
+        Omit<FindOptions, 'projection' | 'sort'> & {
+          sort?: SuggestedSort<S> | undefined
+        } & ([keyof ReferencesOf<M>] extends [never]
+            ? unknown
+            : { populate?: PopulateProjections<ReferencesOf<M>> | undefined })
+      >[0]
+    >
+  : never
 
 /**
  * The options argument of the model's reads, with the context its plugins ask for.

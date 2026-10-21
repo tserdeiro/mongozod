@@ -1,6 +1,7 @@
 export type {
   DocOf,
   FilterOf,
+  FindOptionsOf,
   Input,
   InsertOf,
   Model,

@@ -1,4 +1,12 @@
-import type { FilterOf, InsertOf, ReadOf, SortOf, UpdateOf, UpdateOptionsArg } from './model'
+import type {
+  FilterOf,
+  FindOptionsOf,
+  InsertOf,
+  ReadOf,
+  SortOf,
+  UpdateOf,
+  UpdateOptionsArg
+} from './model'
 
 import { MongoClient } from 'mongodb'
 import { expect, expectTypeOf, test } from 'vitest'
@@ -8,6 +16,7 @@ import { mongozod } from '../mongozod'
 import { date } from '../mzod/fields/date'
 import { populate } from '../mzod/populate'
 import { projection } from '../mzod/projection'
+import { sort as sortInput } from '../mzod/sort'
 import { softDelete } from '../plugins/soft-delete'
 
 const db = new MongoClient('mongodb://localhost').db()
@@ -147,6 +156,43 @@ test('ReadOf takes options from an input, whose populate and projection may be u
   expectTypeOf<
     ReadOf<typeof PostsModel, { populate?: undefined; projection?: undefined }>
   >().toEqualTypeOf<ReadOf<typeof PostsModel>>()
+})
+
+test('FindOptionsOf types the options a service takes from a router, without the router', () => {
+  const listPostsInput = z.object({
+    populate: populate({ author: z.object({ _id: z.string(), name: z.string() }) }),
+    sort: sortInput(PostsModel.schema, { createdAt: true, title: true })
+  })
+
+  type Options = FindOptionsOf<typeof PostsModel>
+
+  /** A service: the router passes its input, and the server its own sort and limit. */
+  const postsService = {
+    list<const F extends FilterOf<typeof PostsModel, F>>(filter: F, options: Options = {}) {
+      return PostsModel.find(filter, options)
+    },
+    findOne<const F extends FilterOf<typeof PostsModel, F>>(filter: F, options: Options = {}) {
+      return PostsModel.findOne(filter, options)
+    }
+  }
+
+  const input = listPostsInput.parse({})
+
+  expect(() => {
+    void postsService.list({}, { limit: 20, populate: input.populate, skip: 0, sort: input.sort })
+    void postsService.list({ title: 'Draft' }, { maxTimeMS: 1000, sort: { updatedAt: 1 } })
+    void postsService.findOne({}, { populate: { author: { projection: { name: 1 } } } })
+    // @ts-expect-error "titel" is not a path of the document
+    void postsService.list({}, { sort: { titel: 1 } })
+    // @ts-expect-error "editor" is not a reference of the model
+    void postsService.list({}, { populate: { editor: { projection: { name: 1 } } } })
+  }).toBeTypeOf('function')
+
+  type Found = NonNullable<Awaited<ReturnType<typeof postsService.findOne>>>
+
+  expectTypeOf<Found['author']>().toEqualTypeOf<string | { _id?: string; name?: string } | null>()
+  expectTypeOf<FindOptionsOf<typeof UsersModel>>().not.toHaveProperty('populate')
+  expectTypeOf<FindOptionsOf<typeof TasksModel>>().toHaveProperty('sort')
 })
 
 test('InsertOf is what an insert takes, without the fields timestamps and plugins fill', () => {

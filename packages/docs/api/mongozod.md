@@ -15,6 +15,7 @@ import type {
   AnyModel,
   DocOf,
   FilterOf,
+  FindOptionsOf,
   Input,
   InsertOf,
   ReadOf,
@@ -576,6 +577,26 @@ function newestPosts<const Sort extends SortOf<typeof PostsModel, Sort>>(sort: S
 }
 
 await newestPosts({ createdAt: -1 })
+```
+
+### FindOptionsOf
+
+`FindOptionsOf<M>` is the options of a `find` or a `findOne` that a service takes from a router:
+the driver's, a `sort` of the paths of the document and, on a model with references, a `populate`
+as [`mz.populate`](./mzod.md#mzpopulate) outputs it, plus the context its plugins ask for. It is not
+generic, so each reference it allows reads as its id, the projected document or `null`.
+
+```ts
+function listRecentPosts<const F extends FilterOf<typeof PostsModel, F>>(
+  filter: F,
+  options: FindOptionsOf<typeof PostsModel> = {}
+) {
+  const { sort = { createdAt: -1 }, ...rest } = options
+
+  return PostsModel.find(filter, { ...rest, sort })
+}
+
+await listRecentPosts({ status: 'published' }, { limit: 20, populate: { authorId: { projection: { name: 1 } } } })
 ```
 
 ### ReadOptionsArg
