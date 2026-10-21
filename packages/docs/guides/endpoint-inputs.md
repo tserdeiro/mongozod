@@ -348,6 +348,96 @@ mz.update(postSchema, { $unset: ['title'] })
 mz.update(postSchema, { $inc: ['title'] })
 ```
 
+### Inputs that convert
+
+A client may write a field in another form than the one stored, such as an amount in units that is
+stored in micros. When the conversion is pure, field by field, give `mz.update` a schema whose field
+is a [`z.codec`](https://zod.dev/codecs), with `.extend()`: the client sends the input of the codec,
+and the router gets the value to store.
+
+```ts separate
+import { ObjectId } from 'mongodb'
+import { mongozod } from 'mongozod'
+import * as mz from 'mongozod/mzod'
+import * as z from 'zod'
+
+const priceSchema = z.object({
+
+  amountMicros: z.number()
+    .int(),
+
+  currency: z.string()
+    .length(3)
+})
+
+const productSchema = z.object({
+
+  _id: mz.objectId()
+    .default(() => new ObjectId()),
+
+  name: z.string(),
+
+  price: priceSchema
+})
+
+const ProductsModel = mongozod({
+
+  collection: 'products',
+
+  db,
+
+  schema: productSchema
+})
+
+/** The price as a client writes it, in units, and as it is stored, in micros. */
+const priceInput = z.codec(
+  z.object({
+
+    amount: z.number()
+      .nonnegative(),
+
+    currency: z.string()
+      .length(3)
+  }),
+  priceSchema,
+  {
+    decode: ({ amount, currency }) => ({ amountMicros: Math.round(amount * 1_000_000), currency }),
+    encode: ({ amountMicros, currency }) => ({ amount: amountMicros / 1_000_000, currency })
+  }
+)
+
+const productInputSchema = productSchema.extend({ price: priceInput })
+
+const updateProductInput = z.object({
+
+  filter: mz
+    .filter(productSchema, {
+      _id: []
+    })
+    .required({ _id: true }),
+
+  update: mz.update(productInputSchema, {
+
+    $set: ['name', 'price']
+  })
+})
+
+const { filter, update } = updateProductInput.parse({
+  filter: { _id: '65c3b9b4f1d2a34b5c6d7e8f' },
+  update: { $set: { price: { amount: 2.5, currency: 'USD' } } }
+})
+// update: { $set: { price: { amountMicros: 2500000, currency: 'USD' } } }
+
+await ProductsModel.updateOne(filter, update)
+```
+
+To answer the client in units, `z.encode(productInputSchema, product)` turns a stored product back.
+
+When the conversion depends on what is stored or on other services, such as a draft that merges
+with the saved document and validates rules across fields, it is a command, not an update: the
+input has its own schema, and the router reads the document, merges the input, parses the whole
+document with the model's schema and writes it, with `$set` or `replaceOne`.
+
 ## `mz.sort`
 
 `mz.sort(schema, mask)` takes the paths the client can sort by, as a mask like Zod's `.pick()`. The
@@ -398,12 +488,24 @@ them. Excluding every declared path leaves the `_id`, which MongoDB returns unle
 `_id: 0`. A mask can't declare a path and a path inside it, such as `author` and `author.name`,
 because MongoDB rejects both in one projection.
 
-A client that sends no projection gets the mask too, so its key is optional in an input. Don't add
-`.optional()`: Zod returns `undefined` without running the builder, and a model without a
-projection reads the whole document.
+A client that sends no projection gets the mask too, so its key is optional in an input. Don't give
+it a `.default({})`: Zod returns `{}` without parsing it, and MongoDB reads `{}` as the whole
+document, with the fields the mask leaves out.
 
 The model doesn't know at compile time whether a projection that arrives at runtime includes or
-excludes, so the read types each projected field as optional. To let a client ask for a
+excludes, so the read types each projected field as optional, for every client of the endpoint,
+since its output has one type. A view that always needs the whole document, or a set of fields,
+goes in an endpoint of its own, with a projection written on the server, which types exactly:
+
+```ts
+const postCards = await PostsModel.find(
+  { status: 'published' },
+  { projection: { title: 1, summary: 1 } }
+)
+// Array<{ _id: ObjectId; title: string; summary?: string }>
+```
+
+To let a client ask for a
 [virtual](./virtuals.md), pass a schema that adds it, such as
 `mz.projection(userSchema.extend({ displayName: z.string() }), { name: true, displayName: true })`.
 
@@ -626,8 +728,9 @@ the `createdAt` and `_id` of the last post it got. Validate the request body wit
 
 ## Common mistakes
 
-- **`.optional()` on `mz.projection`**: a client that sends no projection gets the whole document,
-  with the fields the mask leaves out. Leave it as it is: a missing projection is the mask.
+- **`.default({})` on `mz.projection`**: a client that sends no projection gets the whole document,
+  with the fields the mask leaves out, since Zod returns a default without parsing it. Leave it as
+  it is: a missing projection is the mask.
 - **A filter by id without `.required({ _id: true })`**: a request without `_id` gives `{}`, which
   matches any document, so an update or a delete acts on the first one. Require the fields that
   identify the document.

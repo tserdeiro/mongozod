@@ -358,7 +358,9 @@ expresa.
 después del `.extend()` y `.prefault({})`. La salida es un filtro del modelo, y el cliente sigue
 sin poder mandar `$expr`. Prototipado en TS 7, 5.5 y MongoDB.
 
-**Decisión**: un ejemplo en Endpoint inputs.
+**Decisión**: sin doc. Se agrega con `.extend()` y la traduce el router, como hoy: una sección con
+`.transform()` y `.prefault({})` mostraba más ceremonia que el caso, y el maintainer pidió no hacer
+que la librería parezca más compleja de lo que es.
 
 #### 1. Búsqueda en varios campos
 
@@ -612,7 +614,7 @@ documento de la propuesta, la fila de este documento y su changeset cuando cambi
 | 16  | `docs(proposal): record why server updates have no helper`                 | 26, hecho         |
 | 17  | `docs(docs): delete a document for real with softDelete`                   | 6, hecho          |
 | 18  | `feat(mongozod): create the indexes on the first operation, opt-in`        | 2, hecho          |
-| 19  | `docs(docs): projections and inputs that convert`                          | 3, 19 y 27 (keys) |
+| 19  | `docs(docs): projections and inputs that convert`                          | 3, 19 y 27, hecho |
 | 20  | `docs(docs): share a page schema with a sort per list`                     | 4                 |
 | 21  | `docs(docs): timestamps outside the model and edits`                       | 5 y 24            |
 | 22  | `docs(docs): bson in React Native`                                         | 9                 |
