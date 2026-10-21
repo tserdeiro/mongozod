@@ -201,7 +201,11 @@ manda `{ createdAt, _id }` del último elemento de la página.
      fechas e ids; `$regex` en strings; los de arrays en arrays. El editor sugiere los paths y, en
      cada uno, solo sus operadores.
    - **Igualdad**: un campo que declara `$eq` también acepta el valor solo, como en Mongo. En un
-     array, la igualdad toma un elemento o el array entero, y los rangos comparan elementos.
+     array, la igualdad toma un elemento o el array entero, y los rangos comparan elementos. Uno que
+     no declara operadores, `[]`, toma solo el valor, tipado como el del campo, y el router o un
+     cliente tipado lo leen sin acotar una unión con `{ $eq }`, como el id de un filtro por id (la 18
+     de la [migración de adsgpt](../audits/adsgpt-migration.md)). Hasta entonces, `[]` compilaba y
+     no aceptaba nada. Se descartó un constructor aparte, `mz.equals`, que suma API para lo mismo.
    - **Valores sin claves `$`**: ningún valor, solo o dentro de un operador, puede ser un objeto
      con una clave que empieza con `$`, que falla con un `ZodError`. MongoDB lee ese objeto como
      operadores en una igualdad y en `$all`, y lo rechaza en `$in` (verificado con MongoDB 8.2.6),

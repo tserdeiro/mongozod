@@ -607,7 +607,7 @@ documento de la propuesta, la fila de este documento y su changeset cuando cambi
 | 11  | `feat(mongozod): export method types for services`                         | 14, hecho         |
 | 12  | `perf(mongozod): lower the cost of services that forward updates`          | 14, hecho         |
 | 13  | `feat(mongozod): name the widened literals of updates and sorts`           | 12 y 27, hecho    |
-| 14  | `feat(mongozod): take a field without operators in mz.filter as a value`   | 18                |
+| 14  | `feat(mongozod): take a field without operators in mz.filter as a value`   | 18, hecho         |
 | 15  | `feat(mongozod): build a search filter from a term`                        | 1                 |
 | 16  | `docs(docs): updates the server builds`                                    | 26                |
 | 17  | `docs(docs): delete a document for real with softDelete`                   | 6                 |
