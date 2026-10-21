@@ -101,8 +101,8 @@ Keep the security of each call site, with `guides/security.md` and `guides/endpo
   a request body is typed `any`, so `tsc` doesn't catch a request value that reaches the model,
   such as an object of operators. Parse the input of each endpoint once,
   before the model: a schema from `.pick()` of the model's schema for values, `mz.filter`,
-  `mz.update`, `mz.sort`, `mz.projection` or `mz.populate` for what the client sends as MongoDB
-  syntax, and `mz.objectId()` for an id.
+  `mz.update`, `mz.sort`, `mz.projection`, `mz.populate` or `mz.term` for what the client sends,
+  with `mz.from(schema)` to name the schema once, and `mz.objectId()` for an id.
 - Never pass `req.body`, `req.query` or another request object whole as a filter, an update or a
   document to insert. An insert takes `.pick()` of the fields a client may write.
 - Keep every condition that scopes the documents to the user, such as an owner or a tenant, and

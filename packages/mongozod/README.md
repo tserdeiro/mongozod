@@ -142,35 +142,42 @@ await PostsModel.updateOne({ _id: post._id }, { $set: { status: 'archived' } })
 and only what the endpoint declares gets through:
 
 ```ts
+const posts = mz.from(postSchema)
+
 const listPostsInput = z.object({
 
-  filter: mz
-    .filter(postSchema, {
+  filter: posts
+    .filter({
       status: ['$eq'],
       tags: ['$in']
     })
     .default({}),
 
-  sort: mz
-    .sort(postSchema, {
-      createdAt: true,
-      title: true
-    })
-    .default({ createdAt: -1 }),
+  options: z
+    .object({
 
-  limit: z.number()
-    .int()
-    .min(1)
-    .max(100)
-    .default(20)
+      sort: posts
+        .sort({
+          createdAt: true,
+          title: true
+        })
+        .default({ createdAt: -1 }),
+
+      limit: z.number()
+        .int()
+        .min(1)
+        .max(100)
+        .default(20)
+    })
+    .prefault({})
 })
 
 // The body of a request, such as { "filter": { "tags": { "$in": ["mongodb"] } } }
 export async function listPosts(body: unknown) {
 
-  const { filter, sort, limit } = listPostsInput.parse(body)
+  const { filter, options } = listPostsInput.parse(body)
 
-  return PostsModel.find(filter, { sort, limit })
+  return PostsModel.find(filter, options)
 }
 ```
 

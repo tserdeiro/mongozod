@@ -77,8 +77,9 @@ export const listPostsInput = z.object({
 
 It has two groups of exports:
 
-- **[Builders](#builders)**: `filter`, `update`, `sort`, `projection`, `after` and `populate` build
-  Zod schemas that accept MongoDB syntax from a client, limited to what the endpoint declares.
+- **[Builders](#builders)**: `filter`, `update`, `sort`, `projection`, `after`, `populate` and
+  `term` build Zod schemas that accept MongoDB syntax from a client, limited to what the endpoint
+  declares. [`from`](#mzfrom) binds the ones that take a schema to it.
 - **[Field types](#field-types)**: `objectId`, `decimal128`, `binary`, `uuid`, `date`, `set` and the
   [GeoJSON](#geojson) geometries go in a document schema. They take what a JSON client sends and
   return the BSON value.
@@ -96,6 +97,38 @@ wrong declaration doesn't compile and throws an `Error` prefixed with the builde
 wrong input fails with Zod's `ZodError`. See [Endpoint inputs](../guides/endpoint-inputs.md), and
 [Defaults and required fields](../guides/endpoint-inputs.md#defaults-and-required-fields) for what a
 missing input means.
+
+### mz.from()
+
+`mz.from(schema)` binds the builders that take a schema to one, so the inputs of a module name it
+once: `after`, `filter`, `projection`, `sort`, `term` and `update`, each with what it takes after
+the schema, and the same checks, suggestions and result. It loads the six, so a client bundle that
+uses it keeps all of them.
+
+```ts
+const posts = mz.from(postSchema)
+
+const postsListInput = z.object({
+
+  filter: posts
+    .filter({
+      status: ['$eq'],
+      tags: ['$in']
+    })
+    .default({}),
+
+  options: z
+    .object({
+
+      sort: posts
+        .sort({
+          createdAt: true
+        })
+        .default({ createdAt: -1 })
+    })
+    .prefault({})
+})
+```
 
 ### mz.filter()
 

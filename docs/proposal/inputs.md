@@ -110,6 +110,15 @@ manda `{ createdAt, _id }` del último elemento de la página.
      (`find(filter)`, `updateOne(filter, update)`, `sort`, `projection`), y los segundos, tipos BSON.
      Están planos, como `z.string()` y `z.object()` en Zod: un sub-namespace como `mz.query` no
      cuesta bundle, pero alarga lo que más se usa y `query` no le queda a `update`.
+   - **`mz.from(schema)`** (pedido del maintainer, después de la
+     [migración de adsgpt](../audits/adsgpt-migration.md)): ata a un schema los seis constructores
+     que lo toman, `after`, `filter`, `projection`, `sort`, `term` y `update`, para que los inputs
+     de un módulo lo nombren una vez: `mz.from(noteSchema).filter({ … })`. Cada método tiene el
+     mismo tipo que el constructor suelto con el schema (verificado con `expectTypeOf` en TS 7 y
+     5.5) y las mismas sugerencias del editor. Carga los seis, así que un bundle de cliente que lo
+     usa los conserva; los sueltos siguen siendo tree-shakeables. `mz.populate` queda afuera porque
+     no toma el schema del documento. Una API más encadenada, como `.pick()` del schema, queda
+     anotada en la auditoría.
    - **Un lugar**: primero los tipos de campo vivían en `mongozod/codecs/*` y `mongozod/geojson`,
      un corte por implementación, «convierte o no convierte», que un usuario no tiene por qué
      conocer. La [migración de adsgpt](../audits/adsgpt-migration.md) (la 9) mostró que Metro, el
