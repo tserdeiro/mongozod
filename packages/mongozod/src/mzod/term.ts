@@ -25,7 +25,7 @@ type IsString<S, P extends string> = [
   : true
 
 /** Checks the mask of `mz.term`: each key is a path of the document that holds strings. */
-type TermMaskCheck<S, K> = {
+export type TermMaskCheck<S, K> = {
   [P in keyof K]: P extends string
     ? string extends P
       ? 'a path must be a literal'
@@ -38,7 +38,7 @@ type TermMaskCheck<S, K> = {
 }
 
 /** The paths the editor suggests in the mask of `mz.term`: the ones that hold strings. */
-type SuggestedTermMask<S> = {
+export type SuggestedTermMask<S> = {
   [P in PathSuggestions<S, 'filter'> as IsString<S, P> extends true ? P : never]?: true
 }
 

@@ -6,7 +6,7 @@
  *   `date()`, `set()` and GeoJSON, which take what a JSON client sends and return the BSON value.
  * - **Builders of endpoint inputs**, from a document's schema: `filter`, `update`, `sort`,
  *   `projection`, `after` and `populate`, MongoDB syntax restricted to what each endpoint declares,
- *   and `term`, the text of a search box.
+ *   and `term`, the text of a search box. `from(schema)` binds the ones that take a schema to it.
  *
  * It never imports the driver, so the schemas that use it also run in web and native clients. It
  * imports `bson`, a peer dependency, which a bundler that tree-shakes leaves out unless a field
@@ -30,6 +30,7 @@
  */
 export { after } from './mzod/after'
 export { filter } from './mzod/filter'
+export { from } from './mzod/from'
 export { populate } from './mzod/populate'
 export { projection } from './mzod/projection'
 export { sort } from './mzod/sort'

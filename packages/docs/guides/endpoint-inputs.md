@@ -192,6 +192,11 @@ into the client's bundle. It doesn't re-export Zod either, so each file keeps it
 `import { filter, sort } from 'mongozod/mzod'` works too, but names such as `filter`, `update` and
 `sort` clash with common variables.
 
+When the inputs of a module repeat one schema, `mz.from(schema)` binds the builders that take it:
+`mz.from(postSchema).filter({ … })` is `mz.filter(postSchema, { … })`, with the same checks,
+suggestions and result. It loads the six builders that take a schema, so a client bundle that uses
+it keeps all of them.
+
 ## `mz.filter`
 
 `mz.filter(schema, fields)` takes each path with the operators the client can use on it:
