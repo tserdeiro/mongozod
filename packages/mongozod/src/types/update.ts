@@ -11,6 +11,7 @@ import type {
   TupleStep
 } from '../schema/schema-at'
 import type { Unwrap } from '../schema/unwrap-schema'
+import type { IsAny } from '../utils/type-helpers'
 import type { ConditionCheck, ElementConditionCheck, ElementSchema, KeyCheck } from './filter'
 import type { Loose } from './loose'
 import type { PathSuggestions, Positional } from './path-suggestions'
@@ -429,6 +430,26 @@ type RenameCheck<S, T, K extends string, To> =
               : `"${K}" and "${To}" have different types`
         : 'takes the new path'
 
+/** The primitive TypeScript widened a literal to, such as the `''` of an update kept in a variable. */
+type Widened<C> = string extends C
+  ? 'a string'
+  : number extends C
+    ? 'a number'
+    : boolean extends C
+      ? 'a boolean'
+      : never
+
+/**
+ * What an operator that takes a few literals takes, or, for a value TypeScript widened, why it does
+ * not, as for a projection. A value typed `any` passes, as before.
+ */
+type WidenedCheck<K extends string, C, Takes extends string, Then> =
+  IsAny<C> extends true
+    ? Then
+    : [Widened<C>] extends [never]
+      ? Then
+      : `"${K}" is ${Widened<C>}: ${Takes}, so declare the update with as const`
+
 /** The value one operator takes at one path. `undefined` is dropped at runtime, so it compiles. */
 type FieldCheck<S, Op, K extends string, T, C> = [T] extends [string]
   ? T
@@ -440,7 +461,7 @@ type FieldCheck<S, Op, K extends string, T, C> = [T] extends [string]
           ? '' | 1 | true | undefined
           : `$unset sets "${K}", an element of an array, to null, which it does not take`
         : AllAre<T, 'optional'> extends true
-          ? '' | 1 | true | undefined
+          ? WidenedCheck<K, C, "$unset takes '', 1 or true", '' | 1 | true | undefined>
           : `"${K}" is required, so it cannot be unset`
       : Op extends '$inc' | '$mul'
         ? AllAre<T, 'number'> extends true
@@ -454,7 +475,12 @@ type FieldCheck<S, Op, K extends string, T, C> = [T] extends [string]
             : `"${K}" is not a number`
           : Op extends '$currentDate'
             ? AllAre<T, 'date'> extends true
-              ? true | { $type: 'date' } | undefined
+              ? WidenedCheck<
+                  K,
+                  C,
+                  "$currentDate takes true or { $type: 'date' }",
+                  true | { $type: 'date' } | undefined
+                >
               : `"${K}" is not a date`
             : Op extends '$push'
               ? true extends (T extends [infer Sub] ? IsSet<Sub> : never)
@@ -478,7 +504,7 @@ type FieldCheck<S, Op, K extends string, T, C> = [T] extends [string]
                     ElementInputOf<T> | { $each: ReadonlyArray<ElementInputOf<T>> } | undefined
                   >
                 : Op extends '$pop'
-                  ? ArrayOnly<T, K, -1 | 1 | undefined>
+                  ? ArrayOnly<T, K, WidenedCheck<K, C, '$pop takes 1 or -1', -1 | 1 | undefined>>
                   : Op extends '$pullAll'
                     ? ArrayOnly<T, K, ReadonlyArray<ElementOutputOf<T>> | undefined>
                     : Op extends '$pull'

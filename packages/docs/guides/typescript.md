@@ -265,6 +265,10 @@ await PostsModel.updateOne({ _id: post._id }, { $set: { 'links.$[link].checked':
 - **Several types of document**: a path has to be in every type the filter allows, so the filter
   fixes the discriminator (see [Document types](./document-types.md)).
 - **`undefined`** compiles in an update: the key is dropped and the field keeps its value.
+- **An update kept in a variable** needs `as const`: TypeScript widens its `''`, `1` and `true` to
+  `string`, `number` and `boolean`, which `$unset`, `$currentDate` and `$pop` do not take. The error
+  says so: `"nextRunAt" is a string: $unset takes '', 1 or true, so declare the update with as
+  const`. Written in the call, it needs nothing.
 
 ## Projections
 
@@ -321,6 +325,10 @@ await PostsModel.find().sort({ 'seo.title': 'asc' })
 // @ts-expect-error: sort takes an object such as { createdAt: -1 }, not a string
 await PostsModel.find({}, { sort: '-publishedAt' })
 ```
+
+A sort kept in a variable needs `as const`, like a projection: TypeScript widens its `-1` to
+`number`, and the error says `"publishedAt" is a number: a sort takes 1 or -1, so declare it with as
+const`.
 
 ## Dotted paths
 
@@ -478,6 +486,8 @@ A change that raises the cost on purpose raises the budget in the same commit.
 
 ## Common mistakes
 
+- **An update or a sort in a variable without `as const`**: its literals widen and it does not
+  compile. Declare it with `as const`, or write it in the call.
 - **A projection in a variable without `as const`**: its `1` widens to `number` and it does not
   compile. Declare it with `as const`, or type its values as `0 | 1`.
 - **A computed key in an object literal**: ``{ [`reactions.${emoji}`]: 1 }`` is typed with a

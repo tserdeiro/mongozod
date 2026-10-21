@@ -1,4 +1,5 @@
 import type { FieldAt, NotAPath } from '../schema/schema-at'
+import type { IsAny } from '../utils/type-helpers'
 import type { PathSuggestions } from './path-suggestions'
 import type { SortDirection as DriverSortDirection } from 'mongodb'
 
@@ -22,7 +23,14 @@ export type SortCheck<S, Sort> = {
         ? 'a sort key must be a literal path'
         : [FieldAt<S, K, 'filter'>] extends [never]
           ? NotAPath<K>
-          : SortDirection
+          : IsAny<Sort[K]> extends true
+            ? SortDirection
+            : // A direction kept in a variable, which TypeScript widens.
+              number extends Sort[K]
+              ? `"${K}" is a number: a sort takes 1 or -1, so declare it with as const`
+              : string extends Sort[K]
+                ? `"${K}" is a string: a sort takes 'asc' or 'desc', so declare it with as const`
+                : SortDirection
     : never
 }
 

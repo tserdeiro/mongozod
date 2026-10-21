@@ -428,3 +428,20 @@ test('a z.unknown() field takes any value, as its input does, null and unknown i
     filterMessage({ metadata: null })
   }).toBeTypeOf('function')
 })
+
+test('a literal widened in a variable says to declare the update with as const', () => {
+  const unset = { $unset: { nickname: '' } }
+  const stamp = { $currentDate: { publishedAt: true } }
+  const pop = { $pop: { scores: 1 } }
+
+  expect(() => {
+    // @ts-expect-error "nickname" is a string: $unset takes '', 1 or true
+    update({}, unset)
+    // @ts-expect-error "publishedAt" is a boolean: $currentDate takes true or { $type: 'date' }
+    update({}, stamp)
+    // @ts-expect-error "scores" is a number: $pop takes 1 or -1
+    update({}, pop)
+    update({}, { $unset: { nickname: '' } })
+    update({}, { $unset: { nickname: '' } } as const)
+  }).toBeTypeOf('function')
+})
