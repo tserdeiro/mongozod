@@ -51,7 +51,7 @@ Los probes quedaron fuera del repo.
 | 18     | `mz.filter` con `$eq` no deja leer el valor           | Por diseño; `[]` compila sin servir             | `[]` en `mz.filter` como «el valor»                            | 13     |
 | 19     | Un input que se convierte antes de guardarse          | Por diseño                                      | Docs: codecs con `.extend()` y el patrón del comando           | 18     |
 | 21     | Las keys de un record por `enum` no son paths         | **Bug**                                         | Comparar el segmento con el template del enum                  | 4      |
-| 22     | `timestamps: { updatedAt: false }` pide `createdAt`   | **Bug**                                         | Corregir `FieldName`                                           | 3      |
+| 22     | `timestamps: { updatedAt: false }` pide `createdAt`   | **Bug**, corregido                              | Corregir `FieldName`                                           | 3      |
 | 23     | `softDelete` también filtra los updates               | Por diseño, sin guía de migración               | Sin cambios: es del patrón propio, no de Mongoose              | —      |
 | 24     | Los campos de `timestamps` sin `.default()`           | Por diseño; el `.default()` ya funciona         | Docs: cuándo poner `.default()`                                | 20     |
 | 25     | `arrayFilters` obliga a otro método                   | Hueco, y el método aparte pierde chequeos       | Exportar `UpdateOptionsOf`                                     | 10     |

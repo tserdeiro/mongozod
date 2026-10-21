@@ -1,3 +1,5 @@
+import type { InsertOf } from './model'
+
 import { MongoClient } from 'mongodb'
 import {
   afterAll,
@@ -223,6 +225,50 @@ describe('the option', () => {
 
     expect(document.created_at).toBeInstanceOf(Date)
     expect(document).not.toHaveProperty('updatedAt')
+  })
+
+  test('gives a field left out of the object its default name, in the types too', async () => {
+    const WaitlistModel = mongozod({
+      collection: 'waitlist',
+      db,
+      schema: z.object({ createdAt: timestampSchema, email: z.string() }),
+      timestamps: { updatedAt: false }
+    })
+
+    const RenamedModel = mongozod({
+      collection: 'renamed',
+      db,
+      schema: z.object({
+        created: timestampSchema,
+        name: z.string(),
+        updatedAt: timestampSchema
+      }),
+      timestamps: { createdAt: 'created' }
+    })
+
+    const { document } = await WaitlistModel.insertOne({ email: 'ada@example.com' })
+    const { document: renamed } = await RenamedModel.insertOne({ name: 'signup' })
+
+    expect(document.createdAt).toBeInstanceOf(Date)
+    expect(renamed.created).toBeInstanceOf(Date)
+    expect(renamed.updatedAt).toBeInstanceOf(Date)
+    expectTypeOf<InsertOf<typeof WaitlistModel>>().toEqualTypeOf<{
+      createdAt?: string | Date
+      email: string
+    }>()
+    await expect(
+      // @ts-expect-error createdAt is set by timestamps
+      WaitlistModel.updateOne({}, { $set: { createdAt: new Date() } })
+    ).rejects.toBeInstanceOf(z.ZodError)
+    expect(() =>
+      // @ts-expect-error the schema has no createdAt
+      mongozod({
+        collection: 'waitlist',
+        db,
+        schema: z.object({ email: z.string() }),
+        timestamps: { updatedAt: false }
+      })
+    ).toThrow('timestamps needs the field "createdAt" in the schema')
   })
 
   test('needs the fields in the schema, taking a Date', () => {

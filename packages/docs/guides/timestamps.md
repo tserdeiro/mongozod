@@ -66,7 +66,8 @@ events of your domain, such as a `publishedAt`, that your code writes; `deletedA
 ## Rename or turn off a field
 
 An object renames each field or turns it off with `false`, as for a log whose documents never
-change:
+change. A field the object leaves out keeps its name, so `{ updatedAt: false }` writes `createdAt`
+only:
 
 ```ts
 const viewSchema = z.object({
