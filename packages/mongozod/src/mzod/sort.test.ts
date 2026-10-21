@@ -46,3 +46,20 @@ test('a path that does not exist does not compile and throws', () => {
     'mz.sort: "titel" is not a path of the document'
   )
 })
+
+test('types what a client sends, so it knows the paths and the directions a list takes', () => {
+  expectTypeOf<z.input<typeof notesSort>>().toEqualTypeOf<
+    | {
+        'charge.feature'?: -1 | 1 | undefined
+        'createdAt'?: -1 | 1 | undefined
+        'title'?: -1 | 1 | undefined
+      }
+    | undefined
+  >()
+
+  const sent = { createdAt: -1 } as const
+
+  expect(notesSort.parse(sent)).toEqual(sent)
+  // @ts-expect-error a client sorts by the declared paths only
+  expectTypeOf({ titel: 1 }).toMatchTypeOf<z.input<typeof notesSort>>()
+})

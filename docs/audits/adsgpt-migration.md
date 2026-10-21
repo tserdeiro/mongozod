@@ -592,7 +592,7 @@ documento de la propuesta, la fila de este documento y su changeset cuando cambi
 | 3   | `fix(mongozod): default the timestamps fields an object leaves out`        | 22                |
 | 4   | `fix(mongozod): resolve the paths of records keyed by a TypeScript enum`   | 21                |
 | 5   | `fix(mongozod): take any value in updates of z.unknown() fields`           | 17                |
-| 6   | `fix(mongozod): type the input of mz.sort`                                 | Hallazgo          |
+| 6   | `fix(mongozod): type the input of mz.sort`                                 | Hallazgo, hecho   |
 | 7   | `fix(mongozod): say how to fix an undefined value in a filter`             | 7 y 20            |
 | 8   | `feat(mongozod): export FindOptionsOf`                                     | 8, 11 y 15        |
 | 9   | `feat(mongozod): export BulkWriteOf`                                       | 16                |

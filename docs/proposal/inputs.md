@@ -293,7 +293,9 @@ manda `{ createdAt, _id }` del último elemento de la página.
      primero. Un `z.object` devuelve sus keys en el orden del schema, así que usa
      `z.partialRecord`. Las tablas de los tres proyectos mandan una sola columna, a veces con punto.
    - **Valores**: `mz.sort` toma `1` o `-1`. `mz.projection` toma `1` o `true` para incluir y `0` o
-     `false` para excluir, como MongoDB, sin mezclar salvo `_id`.
+     `false` para excluir, como MongoDB, sin mezclar salvo `_id`. Los dos tipan su entrada, así un
+     cliente tipado sabe qué acepta cada lista; la de `mz.sort` era `unknown` hasta la
+     [migración de adsgpt](../audits/adsgpt-migration.md).
    - **La máscara es un allow list de lo que recibe el cliente**: `mz.projection` siempre devuelve
      una inclusión de paths declarados. MongoDB lee una exclusión como `{ title: 0 }`, `{}` y
      `{ _id: 0 }` como el documento entero, con los campos que la máscara deja afuera (verificado con
