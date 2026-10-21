@@ -386,6 +386,14 @@ Los tipos siguen la regla de [Tipos](#tipos). Además:
   `$[id]`. El `$` va una vez por path: con dos, como `items.$.tags.$`, MongoDB 8.2 rechaza el update
   con el código 2 (verificado), así que no compila y lanza un `ZodError`, como dos `$` en una
   proyección. La proyección los atraviesa, pero no toma índices.
+- **Update y sort en una variable** (la 12 de la [migración de adsgpt](../audits/adsgpt-migration.md)):
+  TypeScript ensancha el `''`, el `1` y el `true` de un update armado aparte, y el `-1` de un sort, a
+  `string`, `number` y `boolean`. `$unset`, `$currentDate`, `$pop` y el sort lo dicen y piden
+  `as const`, como la proyección: `"nextRunAt" is a string: $unset takes '', 1 or true, so declare
+  the update with as const`. Un valor `any` pasa como antes. No se acepta `string` en `$unset`,
+  aunque MongoDB ignora el valor: `$currentDate` y `$pop` seguirían fallando sin explicación, y el
+  modelo se alejaría de `mz.update`. En la rama de un elemento de array no hay mensaje: con TS 7 daba
+  una restricción circular (TS2615).
 - **Proyección en una variable**: `const projection = { password: 0 }` tipa el `0` como `number`,
   que no compila: el error dice que se tipe `0 | 1` o se declare con `as const`, también para un
   virtual. Una con keys `string`, como un `Record<string, 0 | 1>` armado en runtime, no tiene paths

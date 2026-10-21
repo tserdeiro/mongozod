@@ -81,6 +81,12 @@ test('SortOf passes a sort to the options of a read and to its cursor', () => {
     void sortPosts({ createdAt: -1, title: 1 })
     // @ts-expect-error "titel" is not a path of the document
     void sortPosts({ titel: 1 })
+
+    const newest = { createdAt: -1 }
+
+    // @ts-expect-error "createdAt" is a number: a sort takes 1 or -1, so declare it with as const
+    void PostsModel.find({}, { sort: newest })
+    void PostsModel.find({}, { sort: { createdAt: -1 } as const })
   }).toBeTypeOf('function')
 })
 
