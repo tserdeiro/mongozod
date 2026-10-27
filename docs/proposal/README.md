@@ -64,6 +64,7 @@ El detalle de cada tema está en su documento:
 - [Plugins](./plugins/README.md): el contrato y los plugins oficiales, cada uno con su documento.
 - [Estructura del repo](./structure.md): las carpetas, las convenciones y las herramientas.
 - [Documentación](./documentation.md): el README, las páginas, lo que leen los agentes y el sitio.
+- [Ejemplos](./examples.md): las aplicaciones de recetas, de punta a punta, y cómo se comprueban.
 - [Roadmap](./roadmap.md): el orden de implementación.
 - [Qué se verificó](./verified.md): los prototipos, los tests y las fuentes de cada decisión.
 
