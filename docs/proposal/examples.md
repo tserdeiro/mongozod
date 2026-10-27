@@ -101,24 +101,11 @@ export const RecipesModel = mongozod({
   igual (ver [Schemas](../../packages/docs/guides/schemas.md#the-_id)). La IA nunca ve el `_id`.
 - **Sin `timestamps`**: las más recientes se ordenan por `_id: -1`, porque un `ObjectId` empieza con
   el instante en que se creó, y `_id.getTimestamp()` da la fecha que se muestra.
-- **Solo campos de JSON**: sin tipos de `mongozod/mzod`, sin `.default()` y sin opcionales, porque el
-  AI SDK y TanStack AI convierten el schema a JSON Schema para el proveedor. Los `description` de
-  `.meta()` le llegan al modelo y sirven de ayuda en el formulario.
+- **Solo campos de JSON**: sin `.default()` y sin opcionales, porque el AI SDK y TanStack AI le pasan
+  el schema al proveedor como JSON Schema. Los `description` de `.meta()` le llegan al modelo y
+  sirven de ayuda en el formulario.
 - **El `_id` viaja como string**: lo que se manda al cliente lleva `_id.toHexString()`, porque un
   `ObjectId` no cruza el límite de una server function de Start ni de tRPC.
-
-Por qué no un `_id` con uuid ni `timestamps`, comprobado con `z.toJSONSchema` (`io: 'input'`, Zod
-4.6.5):
-
-- `mz.uuid()` y `mz.objectId()` fallan: «Custom types cannot be represented in JSON Schema».
-- `mz.date()` y `z.date()` fallan: «Date cannot be represented in JSON Schema». `timestamps` pide
-  declarar `createdAt` y `updatedAt` como `Date` en el schema.
-- `z.uuidv4().default(() => crypto.randomUUID())` convierte, pero Zod corre el `.default()` al
-  convertir y deja un UUID fijo en el `default` del JSON Schema: el modelo puede copiarlo, y dos
-  recetas generadas chocarían por el `_id`.
-
-Se descartó un schema derivado para la IA (`recipeSchema.extend({ _id, createdAt, updatedAt })`
-como documento): el modelo usaría otro schema, y el ejemplo dejaría de mostrar uno solo.
 
 ## Qué muestra cada uno
 
