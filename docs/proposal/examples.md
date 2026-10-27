@@ -7,17 +7,16 @@ documento que se guarda. Acordado con el maintainer el 2026-10-26.
 
 ## Los ejemplos
 
-| Ejemplo                | Stack                                                      |
-| ---------------------- | ---------------------------------------------------------- |
-| `nextjs`               | Next.js con App Router, Server Components y Server Actions |
-| `nextjs-ai-sdk`        | Next.js con el [AI SDK](https://ai-sdk.dev)                |
-| `tanstack-start`       | TanStack Start, con server functions                       |
-| `tanstack-start-ai`    | TanStack Start con [TanStack AI](https://tanstack.com/ai)  |
-| `tanstack-router-trpc` | Una SPA con TanStack Router y Vite, y un servidor tRPC     |
+| Ejemplo                | Stack                                                      | IA                                     |
+| ---------------------- | ---------------------------------------------------------- | -------------------------------------- |
+| `nextjs`               | Next.js con App Router, Server Components y Server Actions | [AI SDK](https://ai-sdk.dev)           |
+| `tanstack-start`       | TanStack Start, con server functions                       | [TanStack AI](https://tanstack.com/ai) |
+| `tanstack-router-trpc` | Una SPA con TanStack Router y Vite, y un servidor tRPC     | TanStack AI, a través de tRPC          |
 
-`nextjs-ai-sdk` y `tanstack-start-ai` hacen lo mismo con dos stacks, para que quien lee los compare.
-Se empieza por `nextjs`, que fija el dominio, el schema y el README, y después siguen los otros
-cuatro.
+Cada ejemplo tiene las dos formas de crear una receta, el formulario y la IA, así muestra mongozod
+completo y no hay dos ejemplos casi iguales que mantener (se descartaron `nextjs-ai-sdk` y
+`tanstack-start-ai` aparte, el 2026-10-26). Entre los tres aparecen los dos SDKs de IA. Se empieza
+por `nextjs`, que fija el dominio, el schema y el README, y después siguen los otros dos.
 
 No se despliegan: no hay demos ni grabaciones. Cada ejemplo se corre en local siguiendo su README
 (ver [Cómo se comprueban](#cómo-se-comprueban)). Una demo pública pedía una base, un dominio y una
@@ -27,13 +26,18 @@ de base de datos es el código.
 
 ## El dominio: recetas
 
-Los cinco ejemplos son la misma aplicación de recetas, para que se puedan comparar. Una receta se
+Los tres ejemplos son la misma aplicación de recetas, para que se puedan comparar. Una receta se
 crea de dos formas:
 
 - **Con un formulario**: el schema valida el formulario en el cliente y el endpoint en el servidor.
 - **Con IA**: quien usa la app describe un plato o pega una receta, el modelo genera el JSON con el
   mismo schema, el JSON llena el formulario mientras llega, y se revisa y se guarda como cualquier
-  otra.
+  otra. Se genera de una vez; un chat que rehace el JSON con cada pedido, como «hazla
+  vegetariana», se suma si los dos SDKs lo resuelven sin código propio.
+
+La IA vive en su ruta, como `app/recipes/generate/` en Next.js, así el resto del ejemplo se lee sin
+ella, y su key es opcional: sin key, la app funciona entera y esa pantalla dice qué variable falta
+en el `.env`.
 
 Las recetas se listan con filtros en la URL (`mz.filter`: `minutes` con `$lte`, `difficulty` con
 `$eq`, `tags` con `$in`), con `mz.sort` y con `mz.after`, como en la receta
@@ -118,31 +122,29 @@ como documento): el modelo usaría otro schema, y el ejemplo dejaría de mostrar
 
 ## Qué muestra cada uno
 
-| Ejemplo                | Lo que enseña                                                                                                                                                                         |
-| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `nextjs`               | Las lecturas tipadas en Server Components, el alta en una Server Action que valida con `recipeSchema`, y la lista con los filtros en la URL.                                          |
-| `nextjs-ai-sdk`        | La IA genera la receta con `streamText({ output: Output.object({ schema: recipeSchema }) })`, y `useObject` llena el formulario mientras llega. Se guarda con la misma Server Action. |
-| `tanstack-start`       | Las server functions con `recipeSchema` como validador de entrada, y los filtros de la lista en `validateSearch`.                                                                     |
-| `tanstack-start-ai`    | La IA genera la receta con `chat({ outputSchema: recipeSchema })`, y `useChat({ outputSchema })` llena el formulario con `partial` y lo completa con `final`.                         |
-| `tanstack-router-trpc` | Cliente y servidor separados: procedimientos con `.input(recipeSchema)` y con los inputs de `mz` para la lista, la carga previa en los loaders del router, y el servidor tRPC aparte. |
+| Ejemplo                | Lo que enseña                                                                                                                                                                                                                                                                                |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `nextjs`               | Las lecturas tipadas en Server Components, el alta en una Server Action que valida con `recipeSchema`, y la lista con los filtros en la URL. La IA genera la receta con `streamText({ output: Output.object({ schema: recipeSchema }) })`, y `useObject` llena el formulario mientras llega. |
+| `tanstack-start`       | Las server functions con `recipeSchema` como validador de entrada, y los filtros de la lista en `validateSearch`. La IA genera la receta con `chat({ outputSchema: recipeSchema })`, y `useChat({ outputSchema })` llena el formulario con `partial` y lo completa con `final`.              |
+| `tanstack-router-trpc` | Cliente y servidor separados: procedimientos con `.input(recipeSchema)` y con los inputs de `mz` para la lista, la carga previa en los loaders del router, y el servidor tRPC aparte. La IA pasa por un procedimiento de tRPC que transmite la receta mientras se genera.                    |
 
 ## La key de la IA
 
-Cada ejemplo de IA lee la key del proveedor de su `.env`, sin una UI para cargarla: el código queda
-en mongozod, no en el manejo de keys.
+Cada ejemplo lee la key del proveedor de su `.env`, sin una UI para cargarla: el código queda en
+mongozod, no en el manejo de keys.
 
-- **`tanstack-start-ai`**: OpenRouter, que la documentación de TanStack AI recomienda como primera
-  opción: una key para cientos de modelos.
-- **`nextjs-ai-sdk`**: AI Gateway, también una key para muchos modelos.
+- **`nextjs`**: AI Gateway, una key para muchos modelos.
+- **`tanstack-start` y `tanstack-router-trpc`**: OpenRouter, que la documentación de TanStack AI
+  recomienda como primera opción: una key para cientos de modelos.
 
 ## La UI
 
-[shadcn/ui](https://ui.shadcn.com) en los cinco:
+[shadcn/ui](https://ui.shadcn.com) en los tres:
 
 - **Cada ejemplo tiene su `components/ui`**: shadcn copia el código de los componentes al proyecto,
   así cada ejemplo se copia solo. No hay un paquete de UI compartido.
 - **Formularios**: las dos integraciones que documenta shadcn, una por stack.
-  [React Hook Form](https://ui.shadcn.com/docs/forms/react-hook-form) con `zodResolver` en los de
+  [React Hook Form](https://ui.shadcn.com/docs/forms/react-hook-form) con `zodResolver` en el de
   Next.js, y [TanStack Form](https://ui.shadcn.com/docs/forms/tanstack-form), que toma el schema de
   Zod por Standard Schema, en los de TanStack.
 - **La UI de IA**: AI Elements, el kit de shadcn para chats, como el campo del prompt.
@@ -152,9 +154,7 @@ en mongozod, no en el manejo de keys.
 ```
 examples/
 ├── nextjs/
-├── nextjs-ai-sdk/
 ├── tanstack-start/
-├── tanstack-start-ai/
 └── tanstack-router-trpc/
 ```
 
@@ -163,7 +163,7 @@ examples/
   repiten en cada uno, sin un paquete compartido.
 - **En el workspace**: `pnpm-workspace.yaml` ya incluye `examples/*`, así que Turborepo les corre
   `build` y `check-types`, y el CI los compila contra el paquete de `main`, como tests de integración
-  con cuatro frameworks. Las reglas de React de oxlint, que [Estructura del repo](./structure.md)
+  con tres stacks. Las reglas de React de oxlint, que [Estructura del repo](./structure.md)
   dejó para los ejemplos, entran con el primero.
 
 ## El README de cada ejemplo
@@ -175,7 +175,7 @@ Explica el ejemplo y cómo correrlo, y GitHub lo muestra al abrir su carpeta:
 2. Lo que pide: Node.js, pnpm y un MongoDB, con el `docker run` de la imagen oficial o una URI de
    Atlas.
 3. Cómo copiar el ejemplo fuera del repo.
-4. El `.env`: `MONGODB_URI` y, en los de IA, la key del proveedor.
+4. El `.env`: `MONGODB_URI` y, opcional, la key del proveedor de IA.
 5. `pnpm install`, `pnpm seed` y `pnpm dev`.
 
 ## Cómo se comprueban
@@ -187,7 +187,7 @@ Explica el ejemplo y cómo correrlo, y GitHub lo muestra al abrir su carpeta:
 
 ## En los docs
 
-Una página, `packages/docs/getting-started/examples.md`, lista los cinco ejemplos, con una línea cada
+Una página, `packages/docs/getting-started/examples.md`, lista los tres ejemplos, con una línea cada
 uno y el link a su carpeta en GitHub, donde se lee el README. Así se encuentran desde mongozod.dev,
 y a un agente le llega con el paquete. Los links son absolutos, a
 `https://github.com/tserdeiro/mongozod/tree/main/examples/<ejemplo>`: la carpeta `examples/` no
@@ -203,3 +203,6 @@ Antes de escribirlo como decidido, cada punto se comprueba en la documentación 
 - **El modo estricto de los proveedores**: si exige que todos los campos sean obligatorios, y cómo
   lo convierten el AI SDK y TanStack AI.
 - **AI Elements**: sus integraciones con el AI SDK y con TanStack AI.
+- **La IA por tRPC**: que un procedimiento de tRPC transmita la receta mientras se genera, con la
+  conexión de TanStack AI. Si no se puede de forma limpia, la IA va en un endpoint HTTP junto al
+  servidor tRPC.
