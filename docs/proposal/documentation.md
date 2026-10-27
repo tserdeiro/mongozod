@@ -69,7 +69,8 @@ packages/docs/
 │   ├── installation.md          los peers, los mínimos, Yarn y el peer `bson`, Bun
 │   ├── quick-start.md           schema, modelo, escribir y leer, y un endpoint con `mz`
 │   ├── connection.md            qué poner en el `MongoClient`, en el usuario (`readWrite`, `dbAdmin` para `sync()`) y en el servidor (`javascriptEnabled`); sin `ignoreUndefined`, y el driver conecta en la primera operación
-│   └── ai-agents.md             las docs instaladas, el bloque de `AGENTS.md`, `llms.txt` y las skills
+│   ├── ai-agents.md             las docs instaladas, el bloque de `AGENTS.md`, `llms.txt` y las skills
+│   └── examples.md              los ejemplos de `examples/`, con links a GitHub
 ├── guides/
 │   ├── schemas.md               el `_id` en sus tres formas, defaults, `.overwrite()`, input y output, Zod Mini, lo que se rechaza
 │   ├── models.md                `mongozod()`: `schema`, `collection` y `db`, también como función
