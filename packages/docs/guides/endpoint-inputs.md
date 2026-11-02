@@ -203,6 +203,50 @@ When the inputs of a module repeat one schema, `mz.from(schema)` binds the build
 suggestions and result. It loads the six builders that take a schema, so a client bundle that uses
 it keeps all of them.
 
+```ts
+const postInputs = mz.from(postSchema)
+
+const findPostsInput = z.object({
+
+  filter: postInputs
+    .filter({
+      tags: ['$in']
+    })
+    .default({}),
+
+  term: z.string()
+    .max(100)
+    .optional()
+    .pipe(postInputs.term({ title: true, body: true })),
+
+  options: z
+    .object({
+
+      sort: postInputs
+        .sort({
+          createdAt: true,
+          title: true
+        })
+        .default({ createdAt: -1 })
+    })
+    .prefault({})
+})
+
+const editPostInput = z.object({
+
+  filter: postInputs
+    .filter({
+      _id: []
+    })
+    .required({ _id: true }),
+
+  update: postInputs.update({
+
+    $set: ['title', 'body', 'tags']
+  })
+})
+```
+
 ## `mz.filter`
 
 `mz.filter(schema, fields)` takes each path with the operators the client can use on it:
