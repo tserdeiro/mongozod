@@ -200,13 +200,15 @@ plantear una sección como una falla de mongozod.
 - [x] **Qué destacar**: ver [arriba](#qué-destacar).
 - [ ] **Benchmark**: decidir si se publica uno reproducible contra Mongoose, con y sin `lean()`,
       para dar números del punto 4.
-- [ ] **React Native en las docs**: sumarlo a lo que dice
-      [Installation](../../packages/docs/getting-started/installation.md) de `mongozod/mzod`, que
-      hoy nombra solo los navegadores.
+- [x] **React Native en las docs**: en
+      [Installation](../../packages/docs/getting-started/installation.md) y el README, junto a los
+      navegadores; la referencia de `mongozod/mzod` ya lo decía.
 - [x] **Las preguntas**: ver [Las preguntas](#las-preguntas).
-- [ ] **El primer párrafo**: que el de las páginas que responden esas preguntas diga la respuesta
-      de entrada, y que su `description` la resuma. Primero las que responden varias: Introduction,
-      Why MongoZod, Quick start, Validation, TypeScript, Endpoint inputs y Migrating from Mongoose.
+- [x] **El primer párrafo**: el de las páginas que responden esas preguntas dice la respuesta de
+      entrada, con las palabras de la pregunta, y su `description` la resume: Introduction, Why
+      MongoZod, Quick start, Validation, TypeScript, Endpoint inputs y Migrating from Mongoose, y la
+      `description` de Schemas, BSON types, Sync, Populate, Document types, Security, Pagination,
+      Cheatsheet, Soft delete y AI agents. Una `description` no lleva `: `, que rompe su YAML.
 - [ ] **Mongoose y el driver**: decidir si Why MongoZod suma un párrafo sobre Mongoose frente al
       driver nativo.
 - [x] **Otras librerías**: investigadas, ver [Comparaciones](#comparaciones).
@@ -224,8 +226,8 @@ Lo hace el maintainer, salvo el `package.json`.
 - [ ] **Google Search Console**: verificar el dominio y enviar el sitemap.
 - [ ] **Bing Webmaster Tools**: importar el sitio desde Search Console y enviar el sitemap.
 - [ ] **IndexNow**: decidir si se avisa en cada despliegue o si alcanza con el sitemap.
-- [ ] **npm**: `homepage` a `https://mongozod.dev` y `keywords` con `mongoose`, `odm` y
-      `mongoose-alternative`, con su changeset.
+- [x] **npm**: `homepage` a `https://mongozod.dev` y `keywords` con `mongoose`, `odm` y
+      `mongoose-alternative`, con su changeset. Se ve en npm con la próxima versión.
 - [ ] **Menciones**: proponer mongozod en la página de ecosistema de Zod y en las listas de
       MongoDB y TypeScript, si el maintainer quiere.
 
