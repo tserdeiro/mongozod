@@ -5,24 +5,113 @@ description: How MongoZod compares with Mongoose and with the driver and Zod by 
 
 A project on MongoDB and TypeScript usually describes each document three times: in a Mongoose
 schema, in a TypeScript type, and in the Zod schemas that validate what its endpoints receive. They
-drift apart, and each one checks something different.
+drift apart, and each one checks something different:
+
+```ts nocheck
+import mongoose from 'mongoose'
+import * as z from 'zod'
+
+// For TypeScript
+interface Post {
+  title: string
+  status: 'draft' | 'published'
+  tags: string[]
+  createdAt: Date
+  updatedAt: Date
+}
+
+// For MongoDB: the same fields again
+const postSchema = new mongoose.Schema<Post>(
+  {
+    title: { type: String, required: true, minlength: 1 },
+    status: { type: String, enum: ['draft', 'published'], default: 'draft' },
+    tags: { type: [String], default: [] }
+  },
+  { timestamps: true }
+)
+
+const PostModel = mongoose.model<Post>('Post', postSchema)
+
+// For the endpoint: the same fields a third time
+const createPostInput = z.object({
+
+  title: z.string()
+    .min(1),
+
+  status: z.enum(['draft', 'published'])
+    .optional(),
+
+  tags: z.string()
+    .array()
+    .optional()
+})
+```
 
 MongoZod keeps one description, the Zod schema, and builds the rest from it: the model validates
 every write with it, the types of every query and result come from it, and the inputs of the
-endpoints are derived from it.
+endpoints are derived from it:
+
+```ts separate
+import { MongoClient, ObjectId } from 'mongodb'
+import { mongozod } from 'mongozod'
+import * as mz from 'mongozod/mzod'
+import * as z from 'zod'
+
+const client = new MongoClient('mongodb://localhost:27017')
+
+const postSchema = z.object({
+
+  _id: mz.objectId()
+    .default(() => new ObjectId()),
+
+  title: z.string()
+    .min(1),
+
+  status: z.enum(['draft', 'published'])
+    .default('draft'),
+
+  tags: z.string()
+    .array()
+    .default([]),
+
+  createdAt: mz.date(),
+
+  updatedAt: mz.date()
+})
+
+const PostsModel = mongozod({
+
+  collection: 'posts',
+
+  db: client.db(),
+
+  schema: postSchema,
+
+  timestamps: true
+})
+
+const createPostInput = postSchema.pick({
+  title: true,
+  status: true,
+  tags: true
+})
+
+type Post = z.output<typeof postSchema>
+```
 
 ## Compared with Mongoose
 
-|                   | Mongoose 9                                                                                                                                                  | MongoZod                                                                                                                                            |
-| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Schema            | A Mongoose schema, apart from what validates your endpoints                                                                                                 | One Zod schema for the document, its types and the inputs of your endpoints                                                                         |
-| Update validation | [Off by default](https://mongoosejs.com/docs/validation.html#update-validators), and only on `$set`, `$unset`, `$push`, `$addToSet`, `$pull` and `$pullAll` | Always, on every operator, with refinements, and on the document an upsert would insert                                                             |
-| Required fields   | [Not checked by an update](https://mongoosejs.com/docs/validation.html#update-validators-only-run-on-updated-paths) unless it `$unset`s them                | An upsert fails when the document it would insert misses one                                                                                        |
-| Filters           | [Cast at runtime](https://mongoosejs.com/docs/tutorials/query_casting.html): a value that cannot be cast throws a `CastError`                               | Typed: a value of the wrong type does not compile, and what clients send is parsed by `mz`                                                          |
-| Results           | Documents that track changes, or plain objects with `lean()`                                                                                                | The driver's plain objects, typed by the projection and `populate`                                                                                  |
-| Endpoint inputs   | Not covered                                                                                                                                                 | [`mongozod/mzod`](../guides/endpoint-inputs.md): MongoDB syntax from clients, limited to what each endpoint declares                                |
-| Indexes           | [Created when the app starts](https://mongoosejs.com/docs/guide.html#indexes), unless you turn `autoIndex` off                                              | Created by [`sync()`](../guides/sync.md) when you call it, or on the first operation with the opt-in [`autoIndex`](../plugins/auto-index.md) plugin |
-| Driver            | Mongoose's own API on top of the driver                                                                                                                     | The driver's names, options and results, and the driver itself for everything else                                                                  |
+|                   | Mongoose 9                                                                                                                                                                                                                           | MongoZod                                                                                                                                            |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Schema            | A Mongoose schema, apart from what validates your endpoints                                                                                                                                                                          | One Zod schema for the document, its types and the inputs of your endpoints                                                                         |
+| Document type     | [Inferred](https://mongoosejs.com/docs/typescript/schemas.html) only from a schema written inline; otherwise an interface kept in sync by hand, or the classes and decorators of [Typegoose](https://typegoose.github.io/typegoose/) | The type of the Zod schema, wherever you declare it, with no interface and no decorators                                                            |
+| Update validation | [Off by default](https://mongoosejs.com/docs/validation.html#update-validators), and only on `$set`, `$unset`, `$push`, `$addToSet`, `$pull` and `$pullAll`                                                                          | Always, on every operator, with refinements, and on the document an upsert would insert                                                             |
+| Required fields   | [Not checked by an update](https://mongoosejs.com/docs/validation.html#update-validators-only-run-on-updated-paths) unless it `$unset`s them                                                                                         | An upsert fails when the document it would insert misses one                                                                                        |
+| Filters           | [Cast at runtime](https://mongoosejs.com/docs/tutorials/query_casting.html): a value that cannot be cast throws a `CastError`                                                                                                        | Typed: a value of the wrong type does not compile, and what clients send is parsed by `mz`                                                          |
+| Results           | Documents that track changes, or plain objects with `lean()`                                                                                                                                                                         | The driver's plain objects, typed by the projection and `populate`                                                                                  |
+| Endpoint inputs   | Not covered                                                                                                                                                                                                                          | [`mongozod/mzod`](../guides/endpoint-inputs.md): MongoDB syntax from clients, limited to what each endpoint declares                                |
+| Indexes           | [Created when the app starts](https://mongoosejs.com/docs/guide.html#indexes), unless you turn `autoIndex` off                                                                                                                       | Created by [`sync()`](../guides/sync.md) when you call it, or on the first operation with the opt-in [`autoIndex`](../plugins/auto-index.md) plugin |
+| Driver            | Mongoose's own API on top of the driver                                                                                                                                                                                              | The driver's names, options and results, and the driver itself for everything else                                                                  |
 
 Both libraries can share one connection, so a project can
 [move one model at a time](../mongoose/index.md). The [cheatsheet](../mongoose/cheatsheet.md) maps
