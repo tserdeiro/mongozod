@@ -42,7 +42,7 @@ driver's operations, options and results, and the driver stays at hand for every
   `$jsonSchema` validation and plugins, such as soft delete.
 - **Endpoint inputs**: `mongozod/mzod` builds Zod schemas that accept MongoDB syntax from clients,
   limited to what each endpoint declares, and BSON field types, like `ObjectId`, `Decimal128` and
-  GeoJSON. It never imports the driver, so it runs in browsers too.
+  GeoJSON. It never imports the driver, so it runs in browsers and React Native too.
 - **Light on the editor**: CI caps the type instantiations of a typical project.
 
 ## Motivation
