@@ -3,10 +3,10 @@ title: Migrating from Mongoose
 description: Move a Mongoose app to MongoZod one model at a time, on the connection Mongoose already opened, with a prompt for your coding agent.
 ---
 
-This guide is for teams with an app on Mongoose that want the Zod schema to be the single source of
-truth of each document. There is no big switch: MongoZod runs on the connection Mongoose already
-opened, so you migrate one model at a time and ship each one, while the rest of the app keeps using
-Mongoose.
+To migrate from Mongoose to MongoZod, move one model at a time. There is no big switch: MongoZod
+runs on the connection Mongoose already opened, so you ship each model on its own while the rest of
+the app keeps using Mongoose. This guide is for teams that want the Zod schema to be the single
+source of truth of each document.
 
 A model on Mongoose:
 

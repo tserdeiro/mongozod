@@ -1,11 +1,11 @@
 ---
 title: Schemas
-description: Describe a stored document with a Zod schema, from its _id and defaults to the types a model takes and returns.
+description: Describe a MongoDB document with a Zod schema, the one source for MongoDB, TypeScript and the API, from its _id and defaults to the types a model takes and returns.
 ---
 
-A model's schema is a Zod object that describes a document as it is stored. MongoZod validates
-every write with it and types every read from it, so it is the only place where the shape of a
-document lives.
+A model's schema is a Zod object that describes a MongoDB document as it is stored. MongoZod
+validates every write with it and types every read from it, and the inputs of the endpoints are
+built from it, so it is the only place where the shape of a document lives.
 
 ```ts
 import { ObjectId } from 'mongodb'

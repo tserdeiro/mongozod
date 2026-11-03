@@ -1,12 +1,12 @@
 ---
 title: Populate
-description: Declare the references between models and replace the stored ids with the documents they point to.
+description: Declare the references between MongoDB models and replace the stored ids with the documents they point to, with a typed populate.
 ---
 
 A field that stores the `_id` of another document is a
 [reference](https://www.mongodb.com/docs/manual/reference/database-references/). Declare it in the
 `references` option of `mongozod()`, and the `populate` option of a read replaces the id with the
-document it points to.
+document it points to, typed by the referenced schema.
 
 ```ts
 import { ObjectId } from 'mongodb'

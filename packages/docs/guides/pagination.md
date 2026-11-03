@@ -1,6 +1,6 @@
 ---
 title: Pagination
-description: Page through a collection with mz.after, the keyset pagination of MongoDB's range queries, or with skip and limit.
+description: Keyset pagination of a MongoDB collection with mz.after, built from the Zod schema and the sort, or offset pagination with skip and limit.
 ---
 
 Each page is a new query. For infinite scroll and "next" buttons, `mz.after` turns the last

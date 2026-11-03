@@ -1,6 +1,6 @@
 ---
 title: Soft delete
-description: Mark documents as deleted instead of removing them, and hide them from reads and updates, with the softDelete plugin.
+description: Soft delete for MongoDB, which marks documents as deleted instead of removing them and hides them from reads and updates, with the softDelete plugin.
 ---
 
 `softDelete` marks a document as deleted with a `deletedAt` date, instead of removing it, and hides

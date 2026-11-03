@@ -1,15 +1,15 @@
 ---
 title: Introduction
-description: What MongoZod is, what it adds to the MongoDB driver and Zod, and where to start.
+description: MongoZod is a TypeScript library for MongoDB where one Zod schema validates every write, types every read and defines what each endpoint accepts.
 ---
 
 > [!NOTE]
 > MongoZod is an independent open-source project. It is not affiliated with, endorsed by or
 > sponsored by MongoDB, Inc. MongoDB® is a registered trademark of MongoDB, Inc.
 
-`mongozod` is a library for MongoDB where a [Zod](https://zod.dev) schema is the single source of
-truth for each document: it validates what you write, types what you read and defines what each
-endpoint accepts. It is the alternative to Mongoose for projects that already speak Zod.
+MongoZod is a TypeScript library for MongoDB where a [Zod](https://zod.dev) schema is the single
+source of truth for each document: it validates what you write, types what you read and defines
+what each endpoint accepts. It is the alternative to Mongoose for projects that already speak Zod.
 
 It complements the official driver instead of replacing it. A model wraps a collection: its
 operations are the driver's, with the same names, options and results, and the driver stays at hand

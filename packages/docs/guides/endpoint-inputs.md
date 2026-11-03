@@ -1,10 +1,10 @@
 ---
 title: Endpoint inputs
-description: Accept MongoDB filters, updates, sorts, projections, populate and search terms from clients, limited to what each endpoint declares.
+description: Accept MongoDB filters, updates, sorts, projections, populate and search terms from clients safely, limited to what each endpoint declares.
 ---
 
-An endpoint that lists or edits documents takes a filter, a sort or an update from its client. The
-builders of `mongozod/mzod` make that input from the document's schema: the client sends MongoDB
+An endpoint that lists or edits documents takes a filter, a sort or an update from its client. To
+accept them safely, the builders of `mongozod/mzod` make that input from the document's schema: the client sends MongoDB
 syntax, and each endpoint declares what it accepts. Anything else fails with a `ZodError`, and each
 value is parsed with the schema of its field.
 

@@ -1,6 +1,6 @@
 ---
 title: BSON types
-description: Store ObjectId, Decimal128, binary data, UUIDs, dates, sets and GeoJSON, and take them as JSON from clients.
+description: Zod schemas for MongoDB ObjectId, Decimal128, binary data, UUIDs, dates, sets and GeoJSON, which take them as JSON from clients.
 ---
 
 MongoDB stores BSON, which has types that JSON lacks, such as `ObjectId`, `Decimal128` and dates. The
