@@ -11,7 +11,7 @@ version.
 
 ## Getting started
 
-- [Why MongoZod](./getting-started/why-mongozod.md): How MongoZod compares with Mongoose and with the driver and Zod by hand, the Mongoose issues it solves and when not to use it.
+- [Why MongoZod](./getting-started/why-mongozod.md): How MongoZod compares with Mongoose, with the driver and Zod by hand and with other libraries, the Mongoose issues it solves and when not to use it.
 - [Installation](./getting-started/installation.md): Install MongoZod, and the versions of Node.js, TypeScript, Zod and the MongoDB driver it needs.
 - [Quick start](./getting-started/quick-start.md): Define a model from a Zod schema, write and read documents, and accept queries from a client, in one file.
 - [Connection](./getting-started/connection.md): What to set on the MongoClient, on the database user and on the server for an app that uses MongoZod.

@@ -65,6 +65,8 @@ El detalle de cada tema está en su documento:
 - [Estructura del repo](./structure.md): las carpetas, las convenciones y las herramientas.
 - [Documentación](./documentation.md): el README, las páginas, lo que leen los agentes y el sitio.
 - [Ejemplos](./examples.md): las aplicaciones de recetas, de punta a punta, y cómo se comprueban.
+- [SEO y GEO](./seo-geo.md): cómo el sitio se encuentra en los buscadores y se cita en los motores
+  de IA.
 - [Roadmap](./roadmap.md): el orden de implementación.
 - [Qué se verificó](./verified.md): los prototipos, los tests y las fuentes de cada decisión.
 

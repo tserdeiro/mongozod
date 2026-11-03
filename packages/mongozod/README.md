@@ -1,7 +1,7 @@
 <h1 align="center">MongoZod</h1>
 
 <p align="center">
-  The Mongoose alternative built on Zod and the official MongoDB® driver.<br />
+  The Mongoose alternative built on Zod and the official MongoDB® driver. <br />
   One schema validates every write, types every read and defines what each endpoint accepts.
 </p>
 
@@ -45,16 +45,119 @@ driver's operations, options and results, and the driver stays at hand for every
   GeoJSON. It never imports the driver, so it runs in browsers too.
 - **Light on the editor**: CI caps the type instantiations of a typical project.
 
+## Motivation
+
+A project on MongoDB and TypeScript usually describes each document three times: in a Mongoose
+schema for the database, in a TypeScript type for the code and in a Zod schema for what its
+endpoints receive. When one changes, the other two have to follow, or they drift apart and each one
+checks something different.
+
+Instead of writing this:
+
+```ts nocheck
+import mongoose from 'mongoose'
+import * as z from 'zod'
+
+// For TypeScript
+interface Post {
+  title: string
+  status: 'draft' | 'published'
+  tags: string[]
+  createdAt: Date
+  updatedAt: Date
+}
+
+// For MongoDB: the same fields again
+const postSchema = new mongoose.Schema<Post>(
+  {
+    title: { type: String, required: true, minlength: 1 },
+    status: { type: String, enum: ['draft', 'published'], default: 'draft' },
+    tags: { type: [String], default: [] }
+  },
+  { timestamps: true }
+)
+
+const PostModel = mongoose.model<Post>('Post', postSchema)
+
+// For the endpoint: the same fields a third time
+const createPostInput = z.object({
+
+  title: z.string()
+    .min(1),
+
+  status: z.enum(['draft', 'published'])
+    .optional(),
+
+  tags: z.string()
+    .array()
+    .optional()
+})
+```
+
+You write one Zod schema and build the rest from it:
+
+```ts separate
+import { MongoClient, ObjectId } from 'mongodb'
+import { mongozod } from 'mongozod'
+import * as mz from 'mongozod/mzod'
+import * as z from 'zod'
+
+const client = new MongoClient('mongodb://localhost:27017')
+
+const postSchema = z.object({
+
+  _id: mz.objectId()
+    .default(() => new ObjectId()),
+
+  title: z.string()
+    .min(1),
+
+  status: z.enum(['draft', 'published'])
+    .default('draft'),
+
+  tags: z.string()
+    .array()
+    .default([]),
+
+  createdAt: mz.date(),
+
+  updatedAt: mz.date()
+})
+
+// The model validates every write with it and types every query
+const PostsModel = mongozod({
+
+  collection: 'posts',
+
+  db: client.db(),
+
+  schema: postSchema,
+
+  timestamps: true
+})
+
+// The endpoint takes the fields it accepts
+const createPostInput = postSchema.pick({
+  title: true,
+  status: true,
+  tags: true
+})
+
+// And the type, when you need it
+type Post = z.output<typeof postSchema>
+```
+
 ## Why not Mongoose?
 
-|                       | Mongoose 9                                                                                                                                                  | MongoZod                                                                                   |
-| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
-| Schema                | A Mongoose schema, apart from what validates your endpoints                                                                                                 | One Zod schema for the document, its types and the inputs of your endpoints                |
-| Update validation     | [Off by default](https://mongoosejs.com/docs/validation.html#update-validators), and only on `$set`, `$unset`, `$push`, `$addToSet`, `$pull` and `$pullAll` | Always, on every operator, and on the document an upsert would insert                      |
-| Filters               | [Cast at runtime](https://mongoosejs.com/docs/tutorials/query_casting.html): a value that cannot be cast throws a `CastError`                               | Typed: a value of the wrong type does not compile, and what clients send is parsed by `mz` |
-| Results               | Documents that track changes, or plain objects with `lean()`                                                                                                | The driver's plain objects, typed by the projection and `populate`                         |
-| Nested discriminators | [The most upvoted open issue](https://github.com/Automattic/mongoose/issues/2851)                                                                           | A `z.discriminatedUnion` inside another, up to three levels                                |
-| Driver                | Mongoose's own API on top of the driver                                                                                                                     | The driver's signatures, options and results, and the driver itself for everything else    |
+|                       | Mongoose 9                                                                                                                                                                                                                           | MongoZod                                                                                   |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------ |
+| Schema                | A Mongoose schema, apart from what validates your endpoints                                                                                                                                                                          | One Zod schema for the document, its types and the inputs of your endpoints                |
+| Document type         | [Inferred](https://mongoosejs.com/docs/typescript/schemas.html) only from a schema written inline; otherwise an interface kept in sync by hand, or the classes and decorators of [Typegoose](https://typegoose.github.io/typegoose/) | The type of the Zod schema, wherever you declare it, with no interface and no decorators   |
+| Update validation     | [Off by default](https://mongoosejs.com/docs/validation.html#update-validators), and only on `$set`, `$unset`, `$push`, `$addToSet`, `$pull` and `$pullAll`                                                                          | Always, on every operator, and on the document an upsert would insert                      |
+| Filters               | [Cast at runtime](https://mongoosejs.com/docs/tutorials/query_casting.html): a value that cannot be cast throws a `CastError`                                                                                                        | Typed: a value of the wrong type does not compile, and what clients send is parsed by `mz` |
+| Results               | Documents that track changes, or plain objects with `lean()`                                                                                                                                                                         | The driver's plain objects, typed by the projection and `populate`                         |
+| Nested discriminators | [The most upvoted open issue](https://github.com/Automattic/mongoose/issues/2851)                                                                                                                                                    | A `z.discriminatedUnion` inside another, up to three levels                                |
+| Driver                | Mongoose's own API on top of the driver                                                                                                                                                                                              | The driver's signatures, options and results, and the driver itself for everything else    |
 
 Both run on the same connection, so you can [migrate one model at a time](https://mongozod.dev/docs/mongoose).
 
