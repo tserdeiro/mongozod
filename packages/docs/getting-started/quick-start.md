@@ -1,9 +1,10 @@
 ---
 title: Quick start
-description: Define a model from a Zod schema, write and read documents, and accept queries from a client, in one file.
+description: Use Zod with MongoDB in one file, from a model defined by a Zod schema to writes, reads and the queries a client sends.
 ---
 
-This page builds the posts of a blog, from the schema to an endpoint that lists them. It assumes
+To use Zod with MongoDB, describe each document with a Zod schema and pass it to `mongozod()`: the
+model validates every write with it and types every query. This page builds the posts of a blog, from the schema to an endpoint that lists them. It assumes
 MongoZod is [installed](./installation.md) and a MongoDB server is running.
 
 ## Connect

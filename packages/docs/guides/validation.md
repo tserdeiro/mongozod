@@ -1,10 +1,12 @@
 ---
 title: Validation
-description: What MongoZod validates on each write, how it checks upserts, and the ZodError it throws when a write does not fit.
+description: How MongoZod validates MongoDB inserts, updates and upserts with Zod, and the ZodError it throws when a write does not fit.
 ---
 
-Every write goes through the schema before it reaches the driver. When something does not fit,
-the operation throws Zod's `ZodError`, with every problem it found, and writes nothing.
+MongoZod validates every MongoDB write with the document's Zod schema before it reaches the driver:
+inserts, replacements, each value of every update operator and the document an upsert would
+insert. When something does not fit, the operation throws Zod's `ZodError`, with every problem it
+found, and writes nothing.
 
 ```ts
 import { ObjectId } from 'mongodb'

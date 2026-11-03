@@ -1,0 +1,31 @@
+name: IndexNow
+
+# When a production deploy of mongozod.dev goes live, tells the search engines that take IndexNow,
+# such as Bing, which pages changed since the previous one.
+on:
+  deployment_status:
+
+permissions:
+  contents: read
+  deployments: read
+
+jobs:
+  submit:
+    name: Submit the changed pages
+    if: github.event.deployment_status.state == 'success' && github.event.deployment.environment == 'Production'
+    runs-on: ubuntu-latest
+    steps:
+      # The whole history, to compare this deploy with the previous one.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      # Installs Node.js from `.node-version`, which runs the TypeScript script as is.
+      - uses: pnpm/setup@fa36a5ef7dcdefc3a7cb25655c122e00cf6e636e # v3.1.2
+        with:
+          require-lockfile: true
+      - run: node apps/website/scripts/indexnow.ts
+        env:
+          DEPLOYMENT_ID: ${{ github.event.deployment.id }}
+          GITHUB_TOKEN: ${{ github.token }}
+          SHA: ${{ github.event.deployment.sha }}

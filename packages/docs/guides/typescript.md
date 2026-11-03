@@ -1,11 +1,11 @@
 ---
 title: TypeScript
-description: How the schema types filters, updates, projections and sorts, and the types to pass them through services and repositories.
+description: Type-safe MongoDB queries in TypeScript, with filters, updates, projections and sorts typed by the Zod schema, and the types to pass them through services and repositories.
 ---
 
-The schema types every argument of a model's operations. Filters, updates, projections and sorts
-are checked path by path against it, with every MongoDB operator, so a typo or a value of the wrong
-type does not compile, and a projection narrows what a read returns.
+MongoZod types MongoDB queries from the document's Zod schema. Filters, updates, projections and
+sorts are checked path by path against it, dotted paths included, with every MongoDB operator, so a
+typo or a value of the wrong type does not compile, and a projection narrows what a read returns.
 
 ```ts
 import type { Document } from 'mongodb'

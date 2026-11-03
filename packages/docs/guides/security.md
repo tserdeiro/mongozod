@@ -1,6 +1,6 @@
 ---
 title: Security
-description: What MongoZod protects against when an endpoint takes a query from a client, and what stays with your application.
+description: How the endpoint inputs of MongoZod keep NoSQL operator injection out when an endpoint takes a MongoDB query from a client, and what stays with your application.
 ---
 
 An endpoint that takes a filter, an update or a projection from a client parses it with an

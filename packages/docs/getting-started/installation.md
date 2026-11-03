@@ -56,12 +56,12 @@ MongoZod is published as ESM only, with its declarations. Use a `moduleResolutio
 
 ## Entry points
 
-| Import                         | What it has                                                                                                                                                                 |
-| ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `mongozod`                     | `mongozod()`, which defines a model, `definePlugin` and the public types. See the [API reference](../api/mongozod.md).                                                      |
-| `mongozod/mzod`                | The Zod of MongoDB: the BSON field types and the builders of endpoint inputs. It never imports the driver, so it runs in browsers. See the [API reference](../api/mzod.md). |
-| `mongozod/plugins/auto-index`  | The official [`autoIndex`](../plugins/auto-index.md) plugin.                                                                                                                |
-| `mongozod/plugins/soft-delete` | The official [`softDelete`](../plugins/soft-delete.md) plugin.                                                                                                              |
+| Import                         | What it has                                                                                                                                                                                                                         |
+| ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `mongozod`                     | `mongozod()`, which defines a model, `definePlugin` and the public types. See the [API reference](../api/mongozod.md).                                                                                                              |
+| `mongozod/mzod`                | The Zod of MongoDB: the BSON field types and the builders of endpoint inputs. It never imports the driver, so it runs in browsers and React Native, where the same schemas validate forms. See the [API reference](../api/mzod.md). |
+| `mongozod/plugins/auto-index`  | The official [`autoIndex`](../plugins/auto-index.md) plugin.                                                                                                                                                                        |
+| `mongozod/plugins/soft-delete` | The official [`softDelete`](../plugins/soft-delete.md) plugin.                                                                                                                                                                      |
 
 Import `mongozod/mzod` as a namespace, as you import Zod, so a bundler that tree-shakes keeps only
 what you use:

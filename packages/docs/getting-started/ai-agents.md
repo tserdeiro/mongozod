@@ -1,6 +1,6 @@
 ---
 title: AI agents
-description: Point a coding agent at the docs installed with MongoZod, and the mistakes agents trained on Mongoose tend to make.
+description: Point a coding agent at the docs installed with MongoZod, at the installed version, and the mistakes agents trained on Mongoose tend to make.
 ---
 
 A coding agent may know Mongoose well and MongoZod not at all, or know an older version of it. The

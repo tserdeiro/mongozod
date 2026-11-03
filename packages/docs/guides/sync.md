@@ -1,10 +1,10 @@
 ---
 title: Sync
-description: Create the indexes a model declares and apply a $jsonSchema validator generated from its schema, with sync().
+description: Create the indexes a model declares and apply a MongoDB $jsonSchema validator generated from its Zod schema, with sync().
 ---
 
 `sync()` prepares a model's collection on the server: it creates the indexes the model declares
-and, when the model asks for it, applies a `$jsonSchema` validator generated from the schema. It
+and, when the model asks for it, applies a `$jsonSchema` validator generated from its Zod schema. It
 never runs on its own: call it before the app takes requests (see
 [When to run it](#when-to-run-it)).
 

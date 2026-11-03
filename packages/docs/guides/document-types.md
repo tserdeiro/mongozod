@@ -1,6 +1,6 @@
 ---
 title: Document types
-description: Store several types of document in one collection with a z.discriminatedUnion, with subtypes up to three levels.
+description: Store several types of document in one MongoDB collection with a z.discriminatedUnion, the discriminators of Mongoose, with subtypes up to three levels.
 ---
 
 One collection can store several types of document, what Mongoose calls discriminators. The schema

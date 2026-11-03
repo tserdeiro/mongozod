@@ -1,6 +1,6 @@
 ---
 title: Mongoose cheatsheet
-description: Each Mongoose feature with its MongoZod equivalent, from schema types and options to queries, populate, middleware and indexes.
+description: Each Mongoose feature with its MongoZod equivalent, from schema types and options to queries, populate, virtuals, timestamps, middleware and indexes.
 ---
 
 Each Mongoose feature and what replaces it in MongoZod. The schema is a Zod schema of the document

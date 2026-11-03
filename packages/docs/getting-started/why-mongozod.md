@@ -1,7 +1,10 @@
 ---
 title: Why MongoZod
-description: How MongoZod compares with Mongoose, with the driver and Zod by hand and with other libraries, the Mongoose issues it solves and when not to use it.
+description: MongoZod as a Mongoose alternative for TypeScript, compared with Mongoose, Typegoose, the driver and Zod by hand and other libraries, the Mongoose issues it solves and when not to use it.
 ---
+
+MongoZod is a Mongoose alternative for TypeScript: one Zod schema validates every write, types
+every query and defines the inputs of each endpoint, on the official MongoDB driver.
 
 A project on MongoDB and TypeScript usually describes each document three times: in a Mongoose
 schema, in a TypeScript type, and in the Zod schemas that validate what its endpoints receive. They
