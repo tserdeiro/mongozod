@@ -223,11 +223,18 @@ plantear una sección como una falla de mongozod.
 
 Lo hace el maintainer, salvo el `package.json`.
 
-- [ ] **Google Search Console**: verificar el dominio y enviar el sitemap.
+- [x] **Google Search Console**: el maintainer verificó el dominio el 2026-11-03.
 - [ ] **Bing Webmaster Tools**: importar el sitio desde Search Console y enviar el sitemap.
-- [ ] **IndexNow**: decidir si se avisa en cada despliegue o si alcanza con el sitemap.
-- [x] **npm**: `homepage` a `https://mongozod.dev` y `keywords` con `mongoose`, `odm` y
-      `mongoose-alternative`, con su changeset. Se ve en npm con la próxima versión.
+- [x] **IndexNow**: acordado el 2026-11-03. El workflow `indexnow.yml` corre cuando un despliegue
+      de producción de Vercel queda en `success`, compara su commit con el del despliegue anterior
+      que salió bien y manda a `api.indexnow.org` las páginas de las docs que cambiaron y la home,
+      con la key que el sitio sirve en `/<key>.txt`. Solo las que cambiaron, como pide su
+      [FAQ](https://www.indexnow.org/faq): reenviar las mismas puede dar un 422, y el sitemap sigue
+      siendo el inventario completo.
+- [x] **npm**: `homepage` a `https://mongozod.dev`, y `keywords` con `mongoose`,
+      `mongoose-alternative`, `odm`, `orm`, `bson`, `json-schema`, `nosql`, `type-safe` y las
+      demás que listan Mongoose, Typegoose y Papr, con su changeset. Se ve en npm con la próxima
+      versión.
 - [ ] **Menciones**: proponer mongozod en la página de ecosistema de Zod y en las listas de
       MongoDB y TypeScript, si el maintainer quiere.
 
