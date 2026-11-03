@@ -1,6 +1,6 @@
 ---
 title: Why MongoZod
-description: How MongoZod compares with Mongoose and with the driver and Zod by hand, the Mongoose issues it solves and when not to use it.
+description: How MongoZod compares with Mongoose, with the driver and Zod by hand and with other libraries, the Mongoose issues it solves and when not to use it.
 ---
 
 A project on MongoDB and TypeScript usually describes each document three times: in a Mongoose
@@ -137,6 +137,25 @@ result. The rest is what a team ends up writing again in each project:
   builds them from the schema.
 - **Cross-cutting rules**: [plugins](../guides/plugins.md) wrap every operation, like the official
   [soft delete](../plugins/soft-delete.md).
+
+## Compared with other libraries
+
+Other libraries that work with MongoDB and TypeScript, and what MongoZod chooses instead:
+
+- **[Papr](https://github.com/plexinc/papr)** is also a thin layer over the driver. It defines
+  schemas with its own helpers and validates writes with a `$jsonSchema` on the server. MongoZod
+  validates each write in the app with Zod, refinements and transforms included, and can also apply
+  a `$jsonSchema` generated from the schema with [`sync()`](../guides/sync.md).
+- **[zod-mongoose](https://github.com/Harm-Nullix/zod-mongoose)** writes Mongoose schemas with Zod,
+  and Mongoose runs underneath. MongoZod works on the driver, with its names, options and results.
+- **[Prisma](https://www.prisma.io/docs/orm/v7/core-concepts/supported-databases/mongodb)**
+  describes the data in its own schema language and generates a client. Prisma ORM 7 does not
+  support MongoDB yet, and its docs point to 6.19 for it. MongoZod keeps the description in
+  TypeScript, as a Zod schema, with nothing to generate.
+- **[TypeORM](https://typeorm.io/docs/drivers/mongodb)** and
+  **[MikroORM](https://mikro-orm.io/docs/usage-with-mongo)** model entities as classes with
+  decorators, and TypeORM calls its MongoDB support basic. MongoZod reads and writes plain objects,
+  with no classes and no decorators.
 
 ## Mongoose issues it solves
 

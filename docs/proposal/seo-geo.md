@@ -153,7 +153,7 @@ plantear una sección como una falla de mongozod.
 - [ ] **El primer párrafo**: que el de las páginas que responden esas preguntas diga la respuesta
       de entrada, y que su `description` la resuma.
 - [x] **Otras librerías**: investigadas, ver [Comparaciones](#comparaciones).
-- [ ] **Escribir las comparaciones** en Why MongoZod, como se acordó.
+- [x] **Escribir las comparaciones** en Why MongoZod, como se acordó.
 - [x] **Motivación**: como la de [Typegoose](https://github.com/typegoose/typegoose#motivation), el
       problema de los tres schemas y el código de antes y después, en el README y al principio de Why
       MongoZod. Acordado el 2026-11-03.
