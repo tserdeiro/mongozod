@@ -62,8 +62,11 @@ export async function generateMetadata(props: PageProps<'/docs/[[...slug]]'>): P
   return {
     title: page.data.title,
     description: page.data.description,
-    // Tells agents where the Markdown of the page is, as the llms.txt convention suggests.
-    alternates: { types: { 'text/markdown': `${page.url}.md` } },
+    alternates: {
+      canonical: page.url,
+      // Tells agents where the Markdown of the page is, as the llms.txt convention suggests.
+      types: { 'text/markdown': `${page.url}.md` }
+    },
     openGraph: {
       images: getPageImageUrl(page).url
     }

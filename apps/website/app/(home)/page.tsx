@@ -1,6 +1,12 @@
+import type { Metadata } from 'next'
+
 import { githubUrl, trademarkNotice } from '@/lib/shared'
 import { ServerCodeBlock } from 'fumadocs-ui/components/codeblock.rsc'
 import Link from 'next/link'
+
+export const metadata: Metadata = {
+  alternates: { canonical: '/' }
+}
 
 const example = `import { ObjectId } from 'mongodb'
 import { mongozod } from 'mongozod'
