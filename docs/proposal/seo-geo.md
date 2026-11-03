@@ -190,8 +190,8 @@ Un commit por punto, `feat(website): …`, cada uno verificado con `pnpm build` 
       GitHub Actions, y después comprueba que esté el primer commit del repo; si falta, el build
       falla y pide `VERCEL_DEEP_CLONE=true`, la variable con la que Vercel clona la historia
       completa (no está en su documentación; [Nextra](https://github.com/shuding/nextra) la pide
-      para lo mismo). Definida en Production el 2026-11-03: el build de #78 pasó la comprobación, y las 41 páginas del
-      sitemap publicado tienen la fecha de `git log`.
+      para lo mismo). Definida en Production el 2026-11-03: el build de #78 pasó la comprobación,
+      y las 41 páginas del sitemap publicado tienen la fecha de `git log`.
 - [x] **Validar**: la home y una página de docs publicadas dan 0 errores y 0 avisos en el
       [Schema Markup Validator](https://validator.schema.org/) (2026-11-03), con `WebSite`,
       `SoftwareSourceCode`, `TechArticle` y `BreadcrumbList`. El
