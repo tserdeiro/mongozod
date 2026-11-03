@@ -5,7 +5,7 @@
   "description": "mongozod.dev: the landing page and the docs of packages/docs, for people and agents.",
   "type": "module",
   "scripts": {
-    "build": "next build",
+    "build": "node scripts/unshallow.ts && next build",
     "check-types": "next typegen && tsc --noEmit",
     "dev": "next dev",
     "start": "next start"
@@ -29,6 +29,7 @@
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
     "postcss": "8.5.29",
+    "schema-dts": "2.1.0",
     "tailwindcss": "4.3.3",
     "typescript": "7.0.2"
   }

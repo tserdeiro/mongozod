@@ -80,7 +80,7 @@
     {
       // Next.js and Fumadocs read these files from their default export.
       "files": [
-        "apps/website/app/**/{layout,page,robots,sitemap}.{ts,tsx}",
+        "apps/website/app/**/{layout,page,robots,sitemap,opengraph-image}.{ts,tsx}",
         "apps/website/proxy.ts",
         "apps/website/*.config.{mjs,ts}"
       ],

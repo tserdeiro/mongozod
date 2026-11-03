@@ -164,26 +164,33 @@ también sirve para medir: son las preguntas que se les hacen a los motores de I
 
 Un commit por punto, `feat(website): …`, cada uno verificado con `pnpm build` y el HTML que genera.
 
-- [ ] **Canonical**: `alternates.canonical` en la home (`/`) y en cada página de docs (`page.url`).
-- [ ] **Canonical del Markdown**: el route de `llms.mdx` responde con
+- [x] **Canonical**: `alternates.canonical` en la home (`/`) y en cada página de docs (`page.url`).
+- [x] **Canonical del Markdown**: el route de `llms.mdx` responde con
       `Link: <https://mongozod.dev/docs/<página>>; rel="canonical"`, así el `.md` no compite con la
       página en los buscadores y los agentes lo siguen leyendo igual.
-- [ ] **Open Graph de la home**: `opengraph-image` en `app/(home)` con `generateOGImage` de
-      Fumadocs, como las páginas de docs, y `openGraph` con `siteName`, `url` y `type`. Como la
-      metadata de las páginas reemplaza el `openGraph` del layout, los campos comunes van en una
-      constante de `lib/shared.ts`.
-- [ ] **JSON-LD de la home**: `WebSite` y
+- [x] **Open Graph de la home**: `opengraph-image` en `app/(home)` con `generateOGImage` de
+      Fumadocs, como las páginas de docs, con la primera oración de la descripción, la única que
+      entra bajo el título. La home y las páginas de docs declaran `siteName`, `url` y `type`
+      (`website` y `article`) cada una, porque la metadata de una página reemplaza el `openGraph`
+      del layout.
+- [x] **JSON-LD de la home**: `WebSite` y
       [`SoftwareSourceCode`](https://schema.org/SoftwareSourceCode) con el nombre, la descripción,
       `codeRepository`, `programmingLanguage` (TypeScript), `runtimePlatform` (Node.js), `license`
-      (Apache-2.0) y el autor.
-- [ ] **JSON-LD de las docs**: `TechArticle` (título, descripción, URL, `dateModified`) y
-      `BreadcrumbList` con las carpetas del sidebar.
-- [ ] **Fechas**: `lastModified: true` en `defineDocs`, y la fecha en el `lastModified` del sitemap,
-      en el `dateModified` del JSON-LD y visible al pie de cada página.
+      (Apache-2.0), el autor como en el pie (`tserdeiro`) y `sameAs` con GitHub y npm. Tipado con
+      [`schema-dts`](https://www.npmjs.com/package/schema-dts), como sugiere Next.js.
+- [x] **JSON-LD de las docs**: `TechArticle` (título, descripción, URL, `dateModified`), parte del
+      sitio y sobre la librería por su `@id`, y `BreadcrumbList` desde «Docs» con las carpetas del
+      sidebar que tienen página.
+- [x] **Fechas**: `lastModified: true` en `defineDocs`, y la fecha en el `lastModified` del sitemap,
+      en el `dateModified` del JSON-LD y al pie de cada página con `PageLastUpdate`. Vercel clona
+      con `--depth=10` ([Builds](https://vercel.com/docs/builds/configure-a-build)), así que el build
+      del sitio corre `scripts/unshallow.ts`, que trae la historia completa si el clone es
+      superficial. Probado con un clone de profundidad 10: una página sin cambios en los últimos 10
+      commits tomaba la fecha del más viejo, y con el script toma la suya.
 - [ ] **Validar**: cada tipo de página en el
       [Rich Results Test](https://search.google.com/test/rich-results) y el
-      [Schema Markup Validator](https://validator.schema.org/).
-- [ ] **Registrar** las decisiones en [Documentación](./documentation.md#sitio).
+      [Schema Markup Validator](https://validator.schema.org/), cuando esté desplegado.
+- [x] **Registrar** las decisiones en [Documentación](./documentation.md#sitio).
 
 ### B. Contenido
 
@@ -241,7 +248,5 @@ Lo hace el maintainer, salvo el `package.json`.
 
 ## Por verificar
 
-- Que el build de Vercel tenga la historia de Git que pide `lastModified`. Si clona con poca
-  profundidad, las fechas salen mal o no salen, y hay que resolverlo antes de mostrarlas.
-- Cómo muestra la fecha la interfaz de Fumadocs (`PageLastUpdate` o equivalente) en la versión
-  instalada.
+- Que `git fetch --unshallow` funcione en el build de Vercel, en el primer despliegue: el log del
+  build lo muestra, y el sitemap publicado tiene las fechas de `git log`.

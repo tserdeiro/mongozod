@@ -7,6 +7,15 @@ export const docsImageRoute = '/og/docs'
 export const docsContentRoute = '/llms.mdx/docs'
 export const githubUrl = 'https://github.com/tserdeiro/mongozod'
 
+/** The @id of the site and of the library in the structured data, declared by the home. */
+export const websiteId = `${siteUrl}/#website`
+export const softwareId = `${siteUrl}/#software`
+
+/** What MongoZod is, in the title of the home and in its Open Graph image. */
+export const siteTagline = 'MongoDB with Zod as the single source of truth'
+export const siteDescription =
+  'The Mongoose alternative built on Zod and the official MongoDB driver. One schema validates every write, types every read and defines what each endpoint accepts.'
+
 /** The notice that MongoZod is not a MongoDB product, on every page of the site. */
 export const trademarkNotice =
   'MongoZod is an independent open-source project. It is not affiliated with, endorsed by or sponsored by MongoDB, Inc. MongoDB® is a registered trademark of MongoDB, Inc.'
