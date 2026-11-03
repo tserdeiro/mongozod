@@ -193,8 +193,8 @@ las rutas para agentes.
 - **Buscadores y motores de IA** (ver [SEO y GEO](./seo-geo.md#a-técnico)): el canonical de cada
   página, también en un header `Link` de su Markdown; la imagen de Open Graph de la home; JSON-LD
   del sitio y la librería en la home, y de cada página con su breadcrumb; y la fecha del último
-  commit de cada página en el sitemap, el JSON-LD y su pie. El build trae la historia de Git
-  completa cuando el clone es superficial, como el de Vercel.
+  commit de cada página en el sitemap, el JSON-LD y su pie. El build comprueba que tiene la historia de Git completa y falla
+  sin ella; en Vercel la da `VERCEL_DEEP_CLONE=true`.
 
 Publica la versión que está en npm, no la de `main`; cómo, se decide al desplegarlo. El playground
 sigue en la fase 7 del [Roadmap](./roadmap.md).

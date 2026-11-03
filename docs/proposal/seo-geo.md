@@ -181,15 +181,21 @@ Un commit por punto, `feat(website): …`, cada uno verificado con `pnpm build` 
 - [x] **JSON-LD de las docs**: `TechArticle` (título, descripción, URL, `dateModified`), parte del
       sitio y sobre la librería por su `@id`, y `BreadcrumbList` desde «Docs» con las carpetas del
       sidebar que tienen página.
-- [x] **Fechas**: `lastModified: true` en `defineDocs`, y la fecha en el `lastModified` del sitemap,
+- [ ] **Fechas**: `lastModified: true` en `defineDocs`, y la fecha en el `lastModified` del sitemap,
       en el `dateModified` del JSON-LD y al pie de cada página con `PageLastUpdate`. Vercel clona
-      con `--depth=10` ([Builds](https://vercel.com/docs/builds/configure-a-build)), así que el build
-      del sitio corre `scripts/unshallow.ts`, que trae la historia completa si el clone es
-      superficial. Probado con un clone de profundidad 10: una página sin cambios en los últimos 10
-      commits tomaba la fecha del más viejo, y con el script toma la suya.
-- [ ] **Validar**: cada tipo de página en el
-      [Rich Results Test](https://search.google.com/test/rich-results) y el
-      [Schema Markup Validator](https://validator.schema.org/), cuando esté desplegado.
+      con `--depth=10` ([Builds](https://vercel.com/docs/builds/configure-a-build)) y, según el log
+      del primer despliegue, sin marcar el clone como superficial: `git fetch --unshallow` nunca
+      corrió, y 38 de las 41 páginas salieron con la fecha del commit más viejo del clone. Por eso
+      `scripts/unshallow.ts` trae la historia solo de un clone marcado como superficial, como el de
+      GitHub Actions, y después comprueba que esté el primer commit del repo; si falta, el build
+      falla y pide `VERCEL_DEEP_CLONE=true`, la variable con la que Vercel clona la historia
+      completa (no está en su documentación; [Nextra](https://github.com/shuding/nextra) la pide
+      para lo mismo). Falta definirla en el proyecto de Vercel y comprobar las fechas publicadas.
+- [x] **Validar**: la home y una página de docs publicadas dan 0 errores y 0 avisos en el
+      [Schema Markup Validator](https://validator.schema.org/) (2026-11-03), con `WebSite`,
+      `SoftwareSourceCode`, `TechArticle` y `BreadcrumbList`. El
+      [Rich Results Test](https://search.google.com/test/rich-results) no tiene API: lo corre el
+      maintainer.
 - [x] **Registrar** las decisiones en [Documentación](./documentation.md#sitio).
 
 ### B. Contenido
@@ -216,8 +222,9 @@ plantear una sección como una falla de mongozod.
 - [x] **Motivación**: como la de [Typegoose](https://github.com/typegoose/typegoose#motivation), el
       problema de los tres schemas y el código de antes y después, en el README y al principio de Why
       MongoZod. Acordado el 2026-11-03.
-- [ ] **FAQ**: decidir si va una página de preguntas frecuentes o si cada respuesta vive en su
-      página.
+- [x] **FAQ**: descartada el 2026-11-03. Google ya no muestra los resultados enriquecidos de FAQ
+      ([FAQPage](https://developers.google.com/search/docs/appearance/structured-data/faqpage)), y
+      cada página responde su pregunta de entrada: una FAQ repetiría esas respuestas en otra URL.
 
 ### C. Fuera del sitio
 
@@ -230,7 +237,7 @@ Lo hace el maintainer, salvo el `package.json`.
       que salió bien y manda a `api.indexnow.org` las páginas de las docs que cambiaron y la home,
       con la key que el sitio sirve en `/<key>.txt`. Solo las que cambiaron, como pide su
       [FAQ](https://www.indexnow.org/faq): reenviar las mismas puede dar un 422, y el sitemap sigue
-      siendo el inventario completo.
+      siendo el inventario completo. Con el despliegue de #74 envió las 18 páginas que cambiaron.
 - [x] **npm**: `homepage` a `https://mongozod.dev`, y `keywords` con `mongoose`,
       `mongoose-alternative`, `odm`, `orm`, `bson`, `json-schema`, `nosql`, `type-safe` y las
       demás que listan Mongoose, Typegoose y Papr, con su changeset. Se ve en npm con la próxima
@@ -260,5 +267,5 @@ Lo hace el maintainer, salvo el `package.json`.
 
 ## Por verificar
 
-- Que `git fetch --unshallow` funcione en el build de Vercel, en el primer despliegue: el log del
-  build lo muestra, y el sitemap publicado tiene las fechas de `git log`.
+- Que con `VERCEL_DEEP_CLONE=true` el build de Vercel tenga la historia completa: pasa la
+  comprobación del primer commit, y el sitemap publicado tiene las fechas de `git log`.
