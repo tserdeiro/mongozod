@@ -108,6 +108,56 @@ Acordado con el maintainer el 2026-11-03:
   carpeta, [Desde Mongoose](../../packages/docs/mongoose/index.md). Cada fecha y número se revisa al
   escribir la sección.
 
+## Las preguntas
+
+Lo que alguien le pregunta a un LLM y debería traer a mongozod, y la página que lo responde.
+Acordado con el maintainer el 2026-11-03. Van en inglés, como las escribe la mayoría y como están
+las docs. Las que dicen «falta» no tienen página todavía.
+
+| Pregunta                                                         | Página                                       |
+| ---------------------------------------------------------------- | -------------------------------------------- |
+| **Alternativas y comparaciones**                                 |                                              |
+| What's a good Mongoose alternative for TypeScript?               | Why MongoZod                                 |
+| Mongoose alternative with Zod                                    | Why MongoZod                                 |
+| Is there a MongoDB ODM that uses Zod schemas?                    | Introduction                                 |
+| MongoZod vs Mongoose                                             | Why MongoZod                                 |
+| Do I need Typegoose to type Mongoose models?                     | Why MongoZod, la fila «Document type»        |
+| Prisma 7 doesn't support MongoDB: what can I use?                | Why MongoZod, otras librerías                |
+| Lightweight TypeScript library on the official MongoDB driver    | Why MongoZod (Papr), Introduction            |
+| **Zod con MongoDB**                                              |                                              |
+| How do I use Zod with MongoDB?                                   | Quick start                                  |
+| How do I validate MongoDB documents with Zod?                    | Validation                                   |
+| How do I validate MongoDB updates and upserts with Zod?          | Validation                                   |
+| One schema for MongoDB, TypeScript and the API                   | Why MongoZod (la motivación), Schemas        |
+| Zod schema for ObjectId, Decimal128 or GeoJSON                   | BSON types                                   |
+| Generate a MongoDB `$jsonSchema` validator from Zod              | Sync                                         |
+| **TypeScript**                                                   |                                              |
+| Type-safe MongoDB queries in TypeScript                          | TypeScript                                   |
+| How do I type MongoDB projections and dotted paths?              | TypeScript                                   |
+| Typed populate for MongoDB                                       | Populate                                     |
+| Discriminated unions in one MongoDB collection                   | Document types                               |
+| **APIs y seguridad**                                             |                                              |
+| How do I accept MongoDB filters from a client safely?            | Endpoint inputs, Security                    |
+| How do I prevent NoSQL operator injection in Node.js?            | Security                                     |
+| Keyset or cursor pagination in MongoDB with TypeScript           | Pagination                                   |
+| Validate a form on the client and the server with one Zod schema | Falta: las páginas por framework             |
+| **Migrar de Mongoose**                                           |                                              |
+| How do I migrate from Mongoose?                                  | Migrating from Mongoose                      |
+| Mongoose populate, virtuals or timestamps equivalent             | Cheatsheet                                   |
+| Mongoose soft delete plugin alternative                          | Soft delete                                  |
+| **Frameworks**                                                   |                                              |
+| MongoDB with Zod in Next.js                                      | Falta: su página, al terminar el ejemplo     |
+| MongoDB with Zod in TanStack Start                               | Falta: su página, al terminar el ejemplo     |
+| MongoDB with Zod and tRPC                                        | Falta: su página, al terminar el ejemplo     |
+| **Agentes de IA y performance**                                  |                                              |
+| Which MongoDB library works well with AI coding agents?          | AI agents                                    |
+| Is Mongoose slow? / Lightweight alternative to Mongoose          | Falta: depende del benchmark                 |
+| Mongoose vs the native MongoDB driver                            | Falta: un párrafo en Why MongoZod, a decidir |
+
+La de Prisma se responde como «qué usar para MongoDB», no como un juicio sobre Prisma. La lista
+también sirve para medir: son las preguntas que se les hacen a los motores de IA (ver
+[D](#d-medición)).
+
 ## Checklist
 
 ### A. Técnico
@@ -146,12 +196,12 @@ plantear una sección como una falla de mongozod.
 - [ ] **React Native en las docs**: sumarlo a lo que dice
       [Installation](../../packages/docs/getting-started/installation.md) de `mongozod/mzod`, que
       hoy nombra solo los navegadores.
-- [ ] **Las preguntas**: la lista de lo que alguien le pregunta a un LLM y debería traer a mongozod,
-      como «Mongoose alternative with Zod», «validate MongoDB documents with Zod», «type-safe
-      MongoDB queries in TypeScript» o «Zod schema for a MongoDB collection», y qué página responde
-      cada una.
+- [x] **Las preguntas**: ver [Las preguntas](#las-preguntas).
 - [ ] **El primer párrafo**: que el de las páginas que responden esas preguntas diga la respuesta
-      de entrada, y que su `description` la resuma.
+      de entrada, y que su `description` la resuma. Primero las que responden varias: Introduction,
+      Why MongoZod, Quick start, Validation, TypeScript, Endpoint inputs y Migrating from Mongoose.
+- [ ] **Mongoose y el driver**: decidir si Why MongoZod suma un párrafo sobre Mongoose frente al
+      driver nativo.
 - [x] **Otras librerías**: investigadas, ver [Comparaciones](#comparaciones).
 - [x] **Escribir las comparaciones** en Why MongoZod, como se acordó.
 - [x] **Motivación**: como la de [Typegoose](https://github.com/typegoose/typegoose#motivation), el
