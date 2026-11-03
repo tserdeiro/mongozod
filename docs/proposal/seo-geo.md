@@ -181,7 +181,7 @@ Un commit por punto, `feat(website): …`, cada uno verificado con `pnpm build` 
 - [x] **JSON-LD de las docs**: `TechArticle` (título, descripción, URL, `dateModified`), parte del
       sitio y sobre la librería por su `@id`, y `BreadcrumbList` desde «Docs» con las carpetas del
       sidebar que tienen página.
-- [ ] **Fechas**: `lastModified: true` en `defineDocs`, y la fecha en el `lastModified` del sitemap,
+- [x] **Fechas**: `lastModified: true` en `defineDocs`, y la fecha en el `lastModified` del sitemap,
       en el `dateModified` del JSON-LD y al pie de cada página con `PageLastUpdate`. Vercel clona
       con `--depth=10` ([Builds](https://vercel.com/docs/builds/configure-a-build)) y, según el log
       del primer despliegue, sin marcar el clone como superficial: `git fetch --unshallow` nunca
@@ -190,7 +190,8 @@ Un commit por punto, `feat(website): …`, cada uno verificado con `pnpm build` 
       GitHub Actions, y después comprueba que esté el primer commit del repo; si falta, el build
       falla y pide `VERCEL_DEEP_CLONE=true`, la variable con la que Vercel clona la historia
       completa (no está en su documentación; [Nextra](https://github.com/shuding/nextra) la pide
-      para lo mismo). Falta definirla en el proyecto de Vercel y comprobar las fechas publicadas.
+      para lo mismo). Definida en Production el 2026-11-03: el build de #78 pasó la comprobación, y las 41 páginas del
+      sitemap publicado tienen la fecha de `git log`.
 - [x] **Validar**: la home y una página de docs publicadas dan 0 errores y 0 avisos en el
       [Schema Markup Validator](https://validator.schema.org/) (2026-11-03), con `WebSite`,
       `SoftwareSourceCode`, `TechArticle` y `BreadcrumbList`. El
@@ -264,8 +265,3 @@ Lo hace el maintainer, salvo el `package.json`.
 3. D, con una primera medición antes de A, para comparar.
 4. Al final, una página por framework, como «MongoDB with Zod in Next.js», a medida que se termina
    cada [ejemplo](./examples.md): lo que muestra, cómo se integra y el link a su código.
-
-## Por verificar
-
-- Que con `VERCEL_DEEP_CLONE=true` el build de Vercel tenga la historia completa: pasa la
-  comprobación del primer commit, y el sitemap publicado tiene las fechas de `git log`.
