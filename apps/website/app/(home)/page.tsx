@@ -1,12 +1,49 @@
 import type { Metadata } from 'next'
+import type { Graph } from 'schema-dts'
 
-import { appName, githubUrl, trademarkNotice } from '@/lib/shared'
+import { JsonLd } from '@/components/json-ld'
+import {
+  appName,
+  githubUrl,
+  siteDescription,
+  siteUrl,
+  softwareId,
+  trademarkNotice,
+  websiteId
+} from '@/lib/shared'
 import { ServerCodeBlock } from 'fumadocs-ui/components/codeblock.rsc'
 import Link from 'next/link'
 
 export const metadata: Metadata = {
   alternates: { canonical: '/' },
   openGraph: { siteName: appName, type: 'website', url: '/' }
+}
+
+// The site and the library, which the docs pages point to by their @id.
+const structuredData: Graph = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'WebSite',
+      '@id': websiteId,
+      'url': siteUrl,
+      'name': appName,
+      'description': siteDescription
+    },
+    {
+      '@type': 'SoftwareSourceCode',
+      '@id': softwareId,
+      'name': appName,
+      'description': siteDescription,
+      'url': siteUrl,
+      'codeRepository': githubUrl,
+      'programmingLanguage': 'TypeScript',
+      'runtimePlatform': 'Node.js',
+      'license': 'https://www.apache.org/licenses/LICENSE-2.0',
+      'author': { '@type': 'Person', 'name': 'tserdeiro', 'url': 'https://x.com/tserdeiro' },
+      'sameAs': [githubUrl, 'https://www.npmjs.com/package/mongozod']
+    }
+  ]
 }
 
 const example = `import { ObjectId } from 'mongodb'
@@ -95,6 +132,7 @@ const features = [
 export default function HomePage() {
   return (
     <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-16 px-4 py-16">
+      <JsonLd data={structuredData} />
       <section className="flex flex-col items-center gap-6 text-center">
         <h1 className="max-w-3xl text-4xl font-semibold tracking-tight md:text-5xl">
           MongoDB with Zod as the single source of truth

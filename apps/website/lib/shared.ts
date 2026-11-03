@@ -7,6 +7,10 @@ export const docsImageRoute = '/og/docs'
 export const docsContentRoute = '/llms.mdx/docs'
 export const githubUrl = 'https://github.com/tserdeiro/mongozod'
 
+/** The @id of the site and of the library in the structured data, declared by the home. */
+export const websiteId = `${siteUrl}/#website`
+export const softwareId = `${siteUrl}/#software`
+
 /** What MongoZod is, in the title of the home and in its Open Graph image. */
 export const siteTagline = 'MongoDB with Zod as the single source of truth'
 export const siteDescription =
