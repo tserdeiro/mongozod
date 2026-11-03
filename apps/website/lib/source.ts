@@ -13,6 +13,8 @@ const docs = defineDocs({
     schema: pageSchema,
     // README.md is the index for GitHub and node_modules; the site builds its own from meta.json.
     files: ['**/*.md', '!README.md', '!node_modules/**'],
+    // The date of the last commit of each page, for the sitemap, its JSON-LD and its footer.
+    lastModified: true,
     postprocess: {
       includeProcessedMarkdown: true
     }

@@ -22,6 +22,7 @@ import {
   DocsPage,
   DocsTitle,
   MarkdownCopyButton,
+  PageLastUpdate,
   ViewOptionsPopover
 } from 'fumadocs-ui/layouts/docs/page'
 import { createRelativeLink } from 'fumadocs-ui/mdx'
@@ -52,6 +53,7 @@ export default async function Page(props: PageProps<'/docs/[[...slug]]'>) {
         'headline': page.data.title,
         'description': page.data.description,
         'url': `${siteUrl}${page.url}`,
+        'dateModified': page.data.lastModified?.toISOString(),
         'isPartOf': { '@id': websiteId },
         'about': { '@id': softwareId }
       },
@@ -84,6 +86,7 @@ export default async function Page(props: PageProps<'/docs/[[...slug]]'>) {
           })}
         />
       </DocsBody>
+      {page.data.lastModified && <PageLastUpdate date={page.data.lastModified} />}
       <p className="text-fd-muted-foreground border-t pt-4 text-xs">{trademarkNotice}</p>
     </DocsPage>
   )
