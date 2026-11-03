@@ -4,12 +4,15 @@
   "description": "MongoDB with the Zod schema as the single source of truth for each document.",
   "keywords": [
     "mongodb",
+    "mongoose",
+    "mongoose-alternative",
+    "odm",
     "schema",
     "typescript",
     "validation",
     "zod"
   ],
-  "homepage": "https://github.com/tserdeiro/mongozod#readme",
+  "homepage": "https://mongozod.dev",
   "bugs": "https://github.com/tserdeiro/mongozod/issues",
   "license": "Apache-2.0",
   "repository": {
