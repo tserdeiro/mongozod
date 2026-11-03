@@ -235,8 +235,11 @@ Lo hace el maintainer, salvo el `package.json`.
       `mongoose-alternative`, `odm`, `orm`, `bson`, `json-schema`, `nosql`, `type-safe` y las
       demás que listan Mongoose, Typegoose y Papr, con su changeset. Se ve en npm con la próxima
       versión.
-- [ ] **Menciones**: proponer mongozod en la página de ecosistema de Zod y en las listas de
-      MongoDB y TypeScript, si el maintainer quiere.
+- [x] **Ecosistema de Zod**: pedido en
+      [colinhacks/zod#6723](https://github.com/colinhacks/zod/issues/6723), en «Powered by Zod», el
+      2026-11-03. El repo ya no acepta PRs externas: desde septiembre las entradas se piden con un
+      issue «Ecosystem: add X to Y» con la entrada sugerida.
+- [ ] **Otras menciones**: las listas de MongoDB y TypeScript, si el maintainer quiere.
 
 ### D. Medición
 
