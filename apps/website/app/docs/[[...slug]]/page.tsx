@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 
 import { getMDXComponents } from '@/components/mdx'
 import {
+  appName,
   getPageGithubUrl,
   getPageImageUrl,
   getPageMarkdownUrl,
@@ -68,6 +69,9 @@ export async function generateMetadata(props: PageProps<'/docs/[[...slug]]'>): P
       types: { 'text/markdown': `${page.url}.md` }
     },
     openGraph: {
+      siteName: appName,
+      type: 'article',
+      url: page.url,
       images: getPageImageUrl(page).url
     }
   }
