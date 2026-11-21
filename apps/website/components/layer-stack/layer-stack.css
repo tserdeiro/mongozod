@@ -294,6 +294,24 @@
   color: var(--ls-error);
 }
 
+/* On a phone the stack shrinks so the hero fits in about one screen, and the status keeps one line. */
+@media (max-width: 767px) {
+  .ls {
+    gap: 8px;
+  }
+
+  .ls-svg {
+    max-width: 260px;
+  }
+
+  .ls-status {
+    overflow: hidden;
+    font-size: 11px;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .ls * {
     transition: none !important;
