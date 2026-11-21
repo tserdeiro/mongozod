@@ -1,0 +1,317 @@
+.ls {
+  --ls-face: #ffffff;
+  --ls-side-left: #f1f1f3;
+  --ls-side-right: #e6e6ea;
+  --ls-edge: #c7c7cd;
+  --ls-ink: #b4b4bb;
+  --ls-dot: #dcdce0;
+  --ls-error: #e5484d;
+  --ls-mongozod: #6366f1;
+  --ls-mongozod-soft: #c7d2fe;
+  --ls-zod: #3a6aff;
+  --ls-zod-soft: #bcd0ff;
+  --ls-mongodb: #00a65a;
+  --ls-mongodb-soft: #b5f5d0;
+  --ls-ease: cubic-bezier(0.32, 0.72, 0, 1);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.dark .ls {
+  --ls-face: #0e0e10;
+  --ls-side-left: #19191c;
+  --ls-side-right: #131316;
+  --ls-edge: #2c2c31;
+  --ls-ink: #45454c;
+  --ls-dot: #232327;
+  --ls-error: #ff6369;
+  --ls-mongozod: #818cf8;
+  --ls-mongozod-soft: #3730a3;
+  --ls-zod: #5b84ff;
+  --ls-zod-soft: #1e3a8a;
+  --ls-mongodb: #00ed64;
+  --ls-mongodb-soft: #00684a;
+}
+
+.ls [data-layer='mongozod'] {
+  --ls-color: var(--ls-mongozod);
+  --ls-soft: var(--ls-mongozod-soft);
+}
+
+.ls [data-layer='zod'] {
+  --ls-color: var(--ls-zod);
+  --ls-soft: var(--ls-zod-soft);
+}
+
+.ls [data-layer='mongodb'] {
+  --ls-color: var(--ls-mongodb);
+  --ls-soft: var(--ls-mongodb-soft);
+}
+
+.ls-svg {
+  display: block;
+  width: 100%;
+  max-width: 360px;
+  height: auto;
+  margin: 0 auto;
+  overflow: visible;
+}
+
+.ls-svg path {
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.ls-dot {
+  fill: var(--ls-dot);
+}
+
+.ls-grid {
+  mask-image: radial-gradient(closest-side, black 55%, transparent);
+}
+
+.ls-stop[data-at='top'] {
+  stop-color: var(--ls-color);
+}
+
+.ls-stop[data-at='bottom'] {
+  stop-color: var(--ls-soft);
+}
+
+.ls-glow {
+  fill: var(--ls-color);
+  opacity: 0;
+  filter: blur(18px);
+  transition: opacity 500ms var(--ls-ease);
+}
+
+.ls-side[data-side='left'] {
+  fill: var(--ls-side-left);
+}
+
+.ls-side[data-side='right'] {
+  fill: var(--ls-side-right);
+}
+
+.ls-tint {
+  opacity: 0;
+  transition: opacity 500ms var(--ls-ease);
+}
+
+.ls-plate[data-layer='mongozod'] .ls-tint {
+  fill: url(#ls-tint-mongozod);
+}
+
+.ls-plate[data-layer='zod'] .ls-tint {
+  fill: url(#ls-tint-zod);
+}
+
+.ls-plate[data-layer='mongodb'] .ls-tint {
+  fill: url(#ls-tint-mongodb);
+}
+
+.ls-tint[data-side='right'] {
+  filter: brightness(0.86);
+}
+
+.ls-top {
+  fill: var(--ls-face);
+}
+
+.ls-crease,
+.ls-edge {
+  fill: none;
+  stroke: var(--ls-edge);
+  stroke-width: 0.8;
+  transition: stroke 500ms var(--ls-ease);
+}
+
+.ls-inset {
+  fill: none;
+  stroke: var(--ls-edge);
+  stroke-width: 0.6;
+  stroke-dasharray: 2 3;
+}
+
+.ls-chevrons {
+  fill: none;
+  stroke: var(--ls-ink);
+  stroke-width: 1;
+  transition: stroke 500ms var(--ls-ease);
+}
+
+.ls-mark {
+  fill: var(--ls-ink);
+  transition: fill 500ms var(--ls-ease);
+}
+
+.ls-wordmark {
+  fill: var(--ls-ink);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  transition: fill 500ms var(--ls-ease);
+}
+
+.ls-plate[data-lit] .ls-tint {
+  opacity: 1;
+}
+
+.ls-plate[data-lit] .ls-glow {
+  opacity: 0.28;
+}
+
+.ls-plate[data-lit] .ls-mark,
+.ls-plate[data-lit] .ls-wordmark {
+  fill: var(--ls-color);
+}
+
+.ls-plate[data-lit] .ls-chevrons,
+.ls-plate[data-lit] .ls-edge,
+.ls-plate[data-lit] .ls-crease {
+  stroke: var(--ls-color);
+}
+
+.ls-plate[data-error] {
+  --ls-color: var(--ls-error);
+  --ls-soft: var(--ls-error);
+}
+
+.ls-plate[data-error] .ls-tint {
+  fill: var(--ls-error);
+}
+
+.ls-link {
+  fill: none;
+  stroke: var(--ls-edge);
+  stroke-width: 0.8;
+  stroke-dasharray: 3 4;
+  transition: stroke 500ms var(--ls-ease);
+}
+
+.ls-link[data-on] {
+  stroke: var(--ls-ink);
+  animation: ls-flow 1.2s linear infinite;
+}
+
+@keyframes ls-flow {
+  to {
+    stroke-dashoffset: -14;
+  }
+}
+
+.ls-packet-top {
+  fill: var(--ls-face);
+}
+
+.ls-packet-left {
+  fill: var(--ls-side-left);
+}
+
+.ls-packet-right {
+  fill: var(--ls-side-right);
+}
+
+.ls-packet-edge {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1;
+}
+
+.ls-packet {
+  color: var(--color-fd-foreground);
+}
+
+.ls-packet[data-state='parsed'] {
+  color: var(--ls-zod);
+}
+
+.ls-packet[data-state='error'] {
+  color: var(--ls-error);
+}
+
+.ls-packet[data-state='error'] .ls-packet-left,
+.ls-packet[data-state='error'] .ls-packet-right {
+  fill: var(--ls-error);
+  opacity: 0.85;
+}
+
+.ls-steps {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ls-step {
+  display: grid;
+  grid-template-columns: auto auto auto 1fr;
+  align-items: baseline;
+  gap: 10px;
+  width: 100%;
+  padding: 6px 10px;
+  border-radius: 8px;
+  text-align: left;
+  color: var(--color-fd-muted-foreground);
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition:
+    color 300ms var(--ls-ease),
+    background-color 300ms var(--ls-ease);
+}
+
+.ls-step::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  margin-right: -2px;
+  border-radius: 999px;
+  background: var(--ls-edge);
+  align-self: center;
+  transition:
+    background-color 300ms var(--ls-ease),
+    box-shadow 300ms var(--ls-ease);
+}
+
+.ls-step-role {
+  justify-self: end;
+  opacity: 0.7;
+}
+
+.ls-step:hover {
+  color: var(--color-fd-foreground);
+}
+
+.ls-step[aria-pressed='true'] {
+  color: var(--color-fd-foreground);
+  background: var(--color-fd-accent);
+}
+
+.ls-step[aria-pressed='true']::before {
+  background: var(--ls-color);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ls-color) 25%, transparent);
+}
+
+.ls-status {
+  min-height: 1.5em;
+  margin: 0;
+  padding: 0 10px;
+  color: var(--color-fd-muted-foreground);
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 12px;
+}
+
+.ls-status[data-error] {
+  color: var(--ls-error);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ls * {
+    transition: none !important;
+    animation: none !important;
+  }
+}

@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import type { Graph } from 'schema-dts'
 
 import { JsonLd } from '@/components/json-ld'
+import { LayerStack } from '@/components/layer-stack/layer-stack'
 import {
   appName,
   githubUrl,
@@ -133,28 +134,31 @@ export default function HomePage() {
   return (
     <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-16 px-4 py-16">
       <JsonLd data={structuredData} />
-      <section className="flex flex-col items-center gap-6 text-center">
-        <h1 className="max-w-3xl text-4xl font-semibold tracking-tight md:text-5xl">
-          MongoDB with Zod as the single source of truth
-        </h1>
-        <p className="text-fd-muted-foreground max-w-2xl text-lg">
-          The Mongoose alternative built on Zod and the official MongoDB® driver. One schema
-          validates every write, types every read and defines what each endpoint accepts.
-        </p>
-        <div className="flex flex-wrap justify-center gap-3">
-          <Link
-            href="/docs/getting-started/quick-start"
-            className="bg-fd-primary text-fd-primary-foreground rounded-lg px-5 py-2.5 font-medium"
-          >
-            Get started
-          </Link>
-          <Link href="/docs/mongoose" className="rounded-lg border px-5 py-2.5 font-medium">
-            Migrating from Mongoose
-          </Link>
+      <section className="grid items-center gap-12 md:grid-cols-[1.1fr_1fr]">
+        <div className="flex flex-col items-start gap-6">
+          <h1 className="max-w-3xl text-4xl font-semibold tracking-tight md:text-5xl">
+            MongoDB with Zod as the single source of truth
+          </h1>
+          <p className="text-fd-muted-foreground max-w-2xl text-lg">
+            The Mongoose alternative built on Zod and the official MongoDB® driver. One schema
+            validates every write, types every read and defines what each endpoint accepts.
+          </p>
+          <div className="flex flex-wrap gap-3">
+            <Link
+              href="/docs/getting-started/quick-start"
+              className="bg-fd-primary text-fd-primary-foreground rounded-lg px-5 py-2.5 font-medium"
+            >
+              Get started
+            </Link>
+            <Link href="/docs/mongoose" className="rounded-lg border px-5 py-2.5 font-medium">
+              Migrating from Mongoose
+            </Link>
+          </div>
+          <div className="w-full max-w-md text-left">
+            <ServerCodeBlock code="npm install mongozod" lang="sh" />
+          </div>
         </div>
-        <div className="w-full max-w-md text-left">
-          <ServerCodeBlock code="npm install mongozod" lang="sh" />
-        </div>
+        <LayerStack />
       </section>
 
       <section className="text-left">
