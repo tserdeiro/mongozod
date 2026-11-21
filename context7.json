@@ -1,0 +1,18 @@
+{
+  "$schema": "https://context7.com/schema/context7.json",
+  "projectTitle": "MongoZod",
+  "description": "Lightweight, strongly typed Mongoose alternative where one Zod schema validates data end to end, from client forms to API endpoints to the database, built on the official MongoDB driver",
+  "folders": ["packages/docs"],
+  "rules": [
+    "Define a model with mongozod({ collection, db, schema }) from a Zod schema that describes the document as it is stored",
+    "Models expose the MongoDB driver's operations (insertOne, findOne, updateOne, replaceOne); Mongoose methods like save, create, findById, lean, exec and populate chains do not exist",
+    "Write updates with operators, such as { $set: { title } }, and pass projection, sort and populate as objects in the options of find, never as strings",
+    "Filters are not cast: parse an id string with mz.objectId(), or take client filters through mz.filter",
+    "Parse each endpoint's input with the schema or the mz builders before it reaches the model, and join owner or tenant conditions with $and",
+    "Import the builders with import * as mz from 'mongozod/mzod', and Zod with import * as z from 'zod'",
+    "Use mz.objectId(), mz.date() and the other mz field types for BSON values, mz.set() instead of z.set() and z.record() instead of z.map()",
+    "Do not put a .transform() on the whole document schema; compute a field from others with .overwrite()",
+    "Reads return plain objects without running the schema; save a change with updateOne or replaceOne",
+    "Declare indexes in the model's indexes option and create them with sync() on each deploy, or with the autoIndex plugin"
+  ]
+}

@@ -248,6 +248,14 @@ Lo hace el maintainer, salvo el `package.json`.
       2026-11-03. El repo ya no acepta PRs externas: desde septiembre las entradas se piden con un
       issue «Ecosystem: add X to Y» con la entrada sugerida.
 - [ ] **Otras menciones**: las listas de MongoDB y TypeScript, si el maintainer quiere.
+- [ ] **Context7**: el `context7.json` de la raíz limita lo que indexa a `packages/docs`, con la
+      descripción de las listas y diez reglas para los agentes, tomadas de las secciones «Common
+      mistakes» de las guías, acordado el 2026-11-21 ([Library Owners](https://context7.com/docs/library-owners)). Falta enviar el repo
+      en [add-library](https://context7.com/add-library), que el maintainer lo reclame con la
+      `public_key` que da Context7 y sumarlo a la página AI agents.
+- [ ] **Artículo técnico**: «One Zod schema from the form to MongoDB» en dev.to o Medium, con código
+      real que compile, acordado el 2026-11-21. Conviene escribirlo con el ejemplo de Next.js
+      terminado, para enlazar su código.
 
 ### D. Medición
 
