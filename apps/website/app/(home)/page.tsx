@@ -165,7 +165,11 @@ export default function HomePage() {
       </section>
 
       <section className="text-left">
-        <ServerCodeBlock code={example} lang="ts" />
+        <ServerCodeBlock
+          code={example}
+          codeblock={{ viewportProps: { className: 'max-h-none' } }}
+          lang="ts"
+        />
       </section>
 
       <section className="grid gap-4 md:grid-cols-3">
