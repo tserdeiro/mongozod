@@ -2,7 +2,7 @@
 // projection puts +x down to the right and +y down to the left, like the plates in the drawing.
 
 export const WIDTH = 320
-export const HEIGHT = 520
+export const HEIGHT = 484
 const CENTER_X = WIDTH / 2
 const CENTER_Y = 400
 const COS = Math.cos(Math.PI / 6)

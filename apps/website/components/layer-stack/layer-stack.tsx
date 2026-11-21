@@ -2,9 +2,10 @@
 
 import * as React from 'react'
 
-import { LAYERS, LOOP, frameAt, type Frame, type Layer } from './flow'
+import { CARD, LAYERS, LOOP, frameAt, type Frame, type Layer, type Packet } from './flow'
 import {
   HALF,
+  iso,
   HEIGHT,
   THICK,
   WIDTH,
@@ -17,9 +18,8 @@ import {
 } from './geometry'
 import { mongodbPath, zodPath } from './logos'
 
-const PACKET = 12
+const PACKET = 13
 const LANE: [number, number] = [24, 24]
-const PIN_FOR = 7000
 const CORNER = HALF - 22
 
 const plates = LAYERS.map((_, level) => boxOf(HALF, baseOf(level), THICK))
@@ -74,7 +74,7 @@ function Plate({ level, frame }: { level: Layer; frame: Frame }) {
   return (
     <g
       className="ls-plate"
-      data-layer={LAYERS[level].key}
+      data-layer={LAYERS[level]}
       data-lit={lit ? '' : undefined}
       data-error={level === 1 && frame.error ? '' : undefined}
     >
@@ -93,15 +93,55 @@ function Plate({ level, frame }: { level: Layer; frame: Frame }) {
   )
 }
 
-function Packet({ packet }: { packet: NonNullable<Frame['packet']> }) {
-  const box = boxOf(PACKET, packet.z, packet.height, LANE)
+// The card's rows, one per field of `postSchema`, as lines of different lengths on its top.
+const ROW_Y = [-7.5, -2.5, 2.5, 7.5]
+const ROW_LENGTH = [14, 18, 10, 13]
+
+function Card({ packet }: { packet: Packet }) {
+  const top = packet.z + CARD
+  const box = boxOf(PACKET, packet.z, CARD, LANE)
   return (
     <g className="ls-packet" data-state={packet.state} style={{ opacity: packet.opacity }}>
       <path className="ls-packet-left" d={box.left} />
       <path className="ls-packet-right" d={box.right} />
       <path className="ls-packet-top" d={box.top} />
       <path className="ls-packet-edge" d={box.outline + box.crease} />
+      {packet.fields.map((field, index) => {
+        const length = ROW_LENGTH[index] * (field === 'default' ? packet.filled : 1)
+        const x = LANE[0] - PACKET + 4
+        const row = LANE[1] + ROW_Y[index]
+        return length > 0.5 ? (
+          <path
+            key={index}
+            className="ls-row"
+            data-field={field}
+            d={pathOf(
+              [
+                [x, row, top],
+                [x + length, row, top]
+              ],
+              false
+            )}
+          />
+        ) : null
+      })}
     </g>
+  )
+}
+
+/** The tag beside the card, drawn over every plate so none hides it while the card falls. */
+function Label({ packet }: { packet: Packet }) {
+  const [x, y] = iso([LANE[0] + PACKET, LANE[1] - PACKET, packet.z + CARD])
+  return (
+    <text
+      className="ls-label"
+      data-state={packet.state}
+      x={x + 8}
+      y={y + 3}
+      style={{ opacity: packet.opacity }}
+    >
+      {packet.label}
+    </text>
   )
 }
 
@@ -115,11 +155,10 @@ function slotOf(z: number) {
 
 /**
  * The home page stack: MongoZod on Zod on the MongoDB driver. A write runs down it on a loop; one
- * that fits is stored, one that does not stops at Zod. Picking a layer from the list pins it.
+ * that fits is stored, one that does not stops at Zod.
  */
 export function LayerStack() {
   const [time, setTime] = React.useState(0)
-  const [pinned, setPinned] = React.useState<Layer | undefined>(undefined)
   const root = React.useRef<HTMLDivElement>(null)
 
   React.useEffect(() => {
@@ -151,17 +190,9 @@ export function LayerStack() {
     }
   }, [])
 
-  React.useEffect(() => {
-    if (pinned === undefined) return undefined
-    const timer = window.setTimeout(() => setPinned(undefined), PIN_FOR)
-    return () => window.clearTimeout(timer)
-  }, [pinned])
-
-  const flow = frameAt(time)
-  const frame: Frame =
-    pinned === undefined ? flow : { active: pinned, error: false, status: LAYERS[pinned].body }
+  const frame = frameAt(time)
   const slot = frame.packet ? slotOf(frame.packet.z) : -1
-  const packet = frame.packet ? <Packet packet={frame.packet} /> : null
+  const packet = frame.packet ? <Card packet={frame.packet} /> : null
 
   return (
     <div ref={root} className="ls">
@@ -175,10 +206,10 @@ export function LayerStack() {
           <pattern id="ls-dots" width="12" height="12" patternUnits="userSpaceOnUse">
             <circle cx="1" cy="1" r="0.8" className="ls-dot" />
           </pattern>
-          {LAYERS.map((layer) => (
-            <linearGradient key={layer.key} id={`ls-tint-${layer.key}`} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0" className="ls-stop" data-layer={layer.key} data-at="top" />
-              <stop offset="1" className="ls-stop" data-layer={layer.key} data-at="bottom" />
+          {LAYERS.map((key) => (
+            <linearGradient key={key} id={`ls-tint-${key}`} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" className="ls-stop" data-layer={key} data-at="top" />
+              <stop offset="1" className="ls-stop" data-layer={key} data-at="bottom" />
             </linearGradient>
           ))}
         </defs>
@@ -200,25 +231,9 @@ export function LayerStack() {
         {slot === 1 ? packet : null}
         <Plate level={0} frame={frame} />
         {slot === 0 ? packet : null}
+        {frame.packet ? <Label packet={frame.packet} /> : null}
       </svg>
-      <ol className="ls-steps">
-        {LAYERS.map((layer, level) => (
-          <li key={layer.key}>
-            <button
-              type="button"
-              className="ls-step"
-              data-layer={layer.key}
-              aria-pressed={frame.active === level}
-              onClick={() => setPinned(pinned === layer.level ? undefined : layer.level)}
-            >
-              <span className="ls-step-index">0{level + 1}</span>
-              <span className="ls-step-name">{layer.name}</span>
-              <span className="ls-step-role">{layer.role}</span>
-            </button>
-          </li>
-        ))}
-      </ol>
-      <p className="ls-status" data-error={frame.error ? '' : undefined}>
+      <p className="ls-status" data-tone={frame.tone}>
         {frame.status}
       </p>
     </div>

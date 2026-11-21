@@ -226,6 +226,10 @@
   color: var(--ls-zod);
 }
 
+.ls-packet[data-state='stored'] {
+  color: var(--ls-mongodb);
+}
+
 .ls-packet[data-state='error'] {
   color: var(--ls-error);
 }
@@ -236,76 +240,57 @@
   opacity: 0.85;
 }
 
-.ls-steps {
-  display: grid;
-  gap: 2px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
+.ls-row {
+  fill: none;
+  stroke: var(--ls-ink);
+  stroke-width: 1.6;
 }
 
-.ls-step {
-  display: grid;
-  grid-template-columns: auto auto auto 1fr;
-  align-items: baseline;
-  gap: 10px;
-  width: 100%;
-  padding: 6px 10px;
-  border-radius: 8px;
-  text-align: left;
-  color: var(--color-fd-muted-foreground);
+.ls-row[data-field='default'] {
+  stroke: var(--ls-zod);
+}
+
+.ls-packet[data-state='error'] .ls-row[data-field='invalid'] {
+  stroke: var(--ls-error);
+}
+
+.ls-label[data-state='parsed'] {
+  fill: var(--ls-zod);
+}
+
+.ls-label[data-state='stored'] {
+  fill: var(--ls-mongodb);
+}
+
+.ls-label[data-state='error'] {
+  fill: var(--ls-error);
+}
+
+.ls-label {
+  fill: var(--color-fd-foreground);
   font-family: var(--font-mono, ui-monospace, monospace);
-  font-size: 12px;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  cursor: pointer;
-  transition:
-    color 300ms var(--ls-ease),
-    background-color 300ms var(--ls-ease);
-}
-
-.ls-step::before {
-  content: '';
-  width: 7px;
-  height: 7px;
-  margin-right: -2px;
-  border-radius: 999px;
-  background: var(--ls-edge);
-  align-self: center;
-  transition:
-    background-color 300ms var(--ls-ease),
-    box-shadow 300ms var(--ls-ease);
-}
-
-.ls-step-role {
-  justify-self: end;
-  opacity: 0.7;
-}
-
-.ls-step:hover {
-  color: var(--color-fd-foreground);
-}
-
-.ls-step[aria-pressed='true'] {
-  color: var(--color-fd-foreground);
-  background: var(--color-fd-accent);
-}
-
-.ls-step[aria-pressed='true']::before {
-  background: var(--ls-color);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ls-color) 25%, transparent);
+  font-size: 9px;
+  stroke: var(--color-fd-background);
+  stroke-width: 3px;
+  stroke-linejoin: round;
+  paint-order: stroke;
 }
 
 .ls-status {
   min-height: 1.5em;
   margin: 0;
   padding: 0 10px;
+  text-align: center;
   color: var(--color-fd-muted-foreground);
   font-family: var(--font-mono, ui-monospace, monospace);
   font-size: 12px;
 }
 
-.ls-status[data-error] {
+.ls-status[data-tone='stored'] {
+  color: var(--ls-mongodb);
+}
+
+.ls-status[data-tone='error'] {
   color: var(--ls-error);
 }
 
