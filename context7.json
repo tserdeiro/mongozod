@@ -1,0 +1,12 @@
+{
+  "$schema": "https://context7.com/schema/context7.json",
+  "projectTitle": "MongoZod",
+  "description": "Lightweight, strongly typed Mongoose alternative where one Zod schema validates data end to end, from client forms to API endpoints to the database, built on the official MongoDB driver",
+  "folders": ["packages/docs"],
+  "rules": [
+    "Models expose the MongoDB driver's operations (insertOne, findOne, updateOne); Mongoose methods like save, findById, lean and exec do not exist",
+    "Parse each endpoint's input with the schema or the mz builders before it reaches the model, and join owner or tenant conditions with $and",
+    "Import the builders with import * as mz from 'mongozod/mzod'",
+    "Reads return what the driver returns, without running the schema"
+  ]
+}

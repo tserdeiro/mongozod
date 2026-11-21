@@ -248,6 +248,11 @@ Lo hace el maintainer, salvo el `package.json`.
       2026-11-03. El repo ya no acepta PRs externas: desde septiembre las entradas se piden con un
       issue «Ecosystem: add X to Y» con la entrada sugerida.
 - [ ] **Otras menciones**: las listas de MongoDB y TypeScript, si el maintainer quiere.
+- [ ] **Context7**: el `context7.json` de la raíz limita lo que indexa a `packages/docs`, con la
+      descripción de las listas y cuatro reglas de «Common mistakes» de AI agents, acordado el
+      2026-11-21 ([Library Owners](https://context7.com/docs/library-owners)). Falta enviar el repo
+      en [add-library](https://context7.com/add-library), que el maintainer lo reclame con la
+      `public_key` que da Context7 y sumarlo a la página AI agents.
 
 ### D. Medición
 
