@@ -138,7 +138,8 @@ function describe(schema: core.$ZodType, seen: ReadonlySet<core.$ZodType>): Docu
 
     const inner = new Set([...seen, schema])
     const { catchall, shape } = schema._zod.def
-    const fields = Object.entries(shape)
+    // `$jsonSchema` reads a key with a `.`, which `mz.literal()` takes, as a path: it has no rule.
+    const fields = Object.entries(shape).filter(([key]) => !key.includes('.'))
     const required = fields.filter(([, field]) => field._zod.optout !== 'optional')
     const object: Document = {
       bsonType: 'object',
@@ -146,6 +147,9 @@ function describe(schema: core.$ZodType, seen: ReadonlySet<core.$ZodType>): Docu
     }
 
     if (required.length > 0) object.required = required.map(([key]) => key)
+
+    // Without the keys with a `.` among its properties, other keys must pass.
+    if (fields.length < Object.keys(shape).length) return object
 
     // A `z.strictObject` has a never catchall and a `z.looseObject` an unknown one. A plain
     // `z.object` drops the keys it does not declare, but the stored documents may have them.

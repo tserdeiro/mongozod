@@ -15,13 +15,16 @@ export type PathSuggestions<S, M extends PathMode> = Suggestions<
 /** A path with the positional `$`, which MongoDB takes once in a path. */
 export type Positional = '$' | `$.${string}` | `${string}.$` | `${string}.$.${string}`
 
+/** The keys a path reaches: not the ones of `mz.literal()` with a `.` or starting with `$`. */
+type PathKey<K> = Exclude<K & string, `$${string}` | `${string}.${string}`>
+
 type Suggestions<S, M extends PathMode, D extends unknown[] = []> = D['length'] extends 6
   ? never
   : Def<S> extends infer X
     ? X extends { shape: infer Shape; type: 'object' }
       ? {
-          [K in keyof Shape & string]: K | `${K}.${Suggestions<Shape[K], M, [...D, 1]>}`
-        }[keyof Shape & string]
+          [K in PathKey<keyof Shape>]: K | `${K}.${Suggestions<Shape[K], M, [...D, 1]>}`
+        }[PathKey<keyof Shape>]
       : X extends { element: infer E; type: 'array' }
         ? M extends 'update'
           ? Suggestions<E, M, [...D, 1]> extends infer Sub extends string

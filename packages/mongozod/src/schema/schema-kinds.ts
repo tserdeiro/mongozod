@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import * as core from 'zod/v4/core'
 
+import { literalKeys } from '../mzod/fields/literal'
 import { uniqueValues } from '../mzod/fields/set'
 
 import { unwrapSchema } from './unwrap-schema'
@@ -89,4 +90,76 @@ export function isSet(schema: core.$ZodType): boolean {
     (variant) =>
       variant instanceof core.$ZodArray && (variant._zod.def.checks ?? []).includes(uniqueValues)
   )
+}
+
+/**
+ * Whether a schema is a field of `mz.literal()`, known by its check on the schema or on one under
+ * its wrappers, lazies and pipes, such as `mz.literal(z.json()).optional()`.
+ */
+export function isLiteral(schema: core.$ZodType): boolean {
+  if ((schema._zod.def.checks ?? []).includes(literalKeys)) return true
+
+  if (
+    schema instanceof core.$ZodCatch ||
+    schema instanceof core.$ZodDefault ||
+    schema instanceof core.$ZodNonOptional ||
+    schema instanceof core.$ZodNullable ||
+    schema instanceof core.$ZodOptional ||
+    schema instanceof core.$ZodPrefault ||
+    schema instanceof core.$ZodReadonly
+  ) {
+    return isLiteral(schema._zod.def.innerType)
+  }
+
+  if (schema instanceof core.$ZodLazy) return isLiteral(schema._zod.innerType)
+
+  // What a pipe stores is its output, such as the schema of a `z.preprocess()`.
+  return schema instanceof core.$ZodPipe && isLiteral(schema._zod.def.out)
+}
+
+/** Whether a schema has a field of `mz.literal()` at any level, walking each schema once. */
+function walksToLiteral(schema: core.$ZodType, seen: Set<core.$ZodType>): boolean {
+  if (isLiteral(schema)) return true
+
+  const unwrapped = unwrapSchema(schema)
+
+  // A recursive schema leads back to itself through its lazies.
+  if (seen.has(unwrapped)) return false
+
+  seen.add(unwrapped)
+
+  let children: core.$ZodType[] = []
+
+  if (unwrapped instanceof core.$ZodArray) children = [unwrapped._zod.def.element]
+  else if (unwrapped instanceof core.$ZodRecord) children = [unwrapped._zod.def.valueType]
+  else if (unwrapped instanceof core.$ZodUnion) children = [...unwrapped._zod.def.options]
+  else if (unwrapped instanceof core.$ZodPipe) children = [unwrapped._zod.def.out]
+  else if (unwrapped instanceof core.$ZodTuple) {
+    const { items, rest } = unwrapped._zod.def
+
+    children = rest ? [...items, rest] : [...items]
+  } else if (unwrapped instanceof core.$ZodObject) {
+    const { catchall, shape } = unwrapped._zod.def
+
+    children = catchall ? [...Object.values(shape), catchall] : Object.values(shape)
+  }
+
+  return children.some((child) => walksToLiteral(child, seen))
+}
+
+const literalHolders = new WeakMap<core.$ZodType, boolean>()
+
+/**
+ * Whether a schema has a field of `mz.literal()` at any level, so that a write looks up the schema
+ * of each key only when one can be there. Remembered by schema, as a model writes with the same.
+ */
+export function holdsLiteral(schema: core.$ZodType): boolean {
+  let holds = literalHolders.get(schema)
+
+  if (holds === undefined) {
+    holds = walksToLiteral(schema, new Set())
+    literalHolders.set(schema, holds)
+  }
+
+  return holds
 }

@@ -444,6 +444,32 @@ tagsSchema.safeParse(['mongodb', 'zod', 'mongodb']).success
 
 - **Error**: `is repeated: a set keeps each value once`, at the index of the repeated value.
 
+### mz.literal()
+
+`mz.literal(schema)` is a field whose keys MongoDB doesn't interpret, like `$literal`: a key such as
+`$schema` or `a.b` is stored as data, never read as an operator or a path. It returns the same
+schema, with its type, and keeps validating the value with it. See
+[Keys that are data](../guides/schemas.md#keys-that-are-data).
+
+```ts
+const toolSchema = z.object({
+
+  name: z.string(),
+
+  inputSchema: mz.literal(z.json())
+})
+
+toolSchema.parse({
+
+  name: 'search',
+
+  inputSchema: { $schema: 'https://json-schema.org/draft/2020-12/schema', type: 'object' }
+})
+```
+
+- **Error**: `an object whose keys that start with "$" are only "$ref", "$id" and "$db" reads back
+  as a DBRef: add another key that starts with "$", or rename them`, at the path of the object.
+
 ## GeoJSON
 
 The GeoJSON geometries are Zod schemas of the

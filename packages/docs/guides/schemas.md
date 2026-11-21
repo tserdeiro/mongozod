@@ -246,7 +246,8 @@ throws an `Error` for them when the model is defined:
   back. Use [`mz.set()`](./bson-types.md), an array without repeats, or `z.record()`.
 - **A field name with a `.` or starting with `$`**, which no path reaches. The keys of a
   `z.record()`, a catchall, a `z.looseObject()`, a `z.unknown()` or a `z.json()` are checked on
-  each write instead, with a `ZodError`.
+  each write instead, with a `ZodError`. Inside a field of `mz.literal()`, both are data (see
+  [Keys that are data](#keys-that-are-data)).
 
 A `z.bigint()` needs a `Db` or a client with `useBigInt64: true`. Without it, the driver reads a
 long as a `number`, so every operation of the model throws an `Error` that names the field:
@@ -273,6 +274,79 @@ const PostStatsModel = mongozod({
 Recursive schemas, with the getters that Zod 4 recommends, are accepted (see
 [Schema patterns](../recipes/schema-patterns.md)).
 
+## Keys that are data
+
+Some formats use keys that start with `$` or have a `.`, such as a JSON Schema (`$schema`, `$ref`,
+`$defs`), the expressions of a UI spec (`{ $state: '/title' }`) or the keys of translations
+(`home.title`). Wrap the field with [`mz.literal()`](../api/mzod.md#mzliteral), like MongoDB's
+`$literal`, to store its keys as data:
+
+```ts
+const componentSchema = z.object({
+
+  name: z.string(),
+
+  inputSchema: mz.literal(z.json()),
+
+  repeat: mz.literal(
+    z.object({
+
+      statePath: z.union([
+        z.string(),
+        z.object({ $item: z.string() })
+      ])
+    })
+  )
+    .optional()
+})
+
+const ComponentsModel = mongozod({
+
+  collection: 'components',
+
+  db,
+
+  schema: componentSchema
+})
+
+await ComponentsModel.insertOne({
+
+  name: 'search',
+
+  inputSchema: { $schema: 'https://json-schema.org/draft/2020-12/schema', type: 'object' },
+
+  repeat: { statePath: { $item: 'title' } }
+})
+```
+
+Inside the field, these keys are valid, declared or dynamic, in inserts, replacements, `$set` and
+`$setOnInsert` of the field or of a path inside it, and the elements of `$push` and `$addToSet`,
+whose keys MongoDB reads as modifiers only with `$each`. Outside it, a model still rejects them.
+
+- **No path reaches them**: a filter, a projection, a sort or an update stops at the field or at a
+  key above them, as MongoDB can't index, sort or project by one. Filter by another field, or
+  read the document and look inside the value.
+- **A `DBRef` doesn't come back**: the driver reads an object whose keys that start with `$` are
+  only `$ref`, `$id` and `$db` back as a `DBRef`, so a write with one fails with a `ZodError`. An
+  object with another such key, such as `$schema`, comes back as it is.
+- **Endpoints**: [`mz.filter`](./endpoint-inputs.md) and [`mz.update`](./endpoint-inputs.md) still
+  reject these keys in what a client sends. To let a client save the field, parse it with
+  `.pick()` and write it with `$set`, which MongoDB stores as it is.
+- **`sync()`**: the [`$jsonSchema`](./sync.md) rules a declared key that starts with `$`, and leaves
+  out one with a `.`, which `$jsonSchema` reads as a path.
+
+A value read from the field is data, and MongoDB reads its keys as operators wherever it reads a
+query or an expression. Compare it with `$eq` in a filter, and wrap it with `$literal` in a
+pipeline:
+
+```ts
+const component = await ComponentsModel.findOne({ name: 'search' })
+
+if (component) {
+  await ComponentsModel.find({ inputSchema: { $eq: component.inputSchema } })
+}
+```
+
 ## Common mistakes
 
 - **Expecting a read to fill a default**: a document stored before the field had a `.default()`
@@ -287,3 +361,9 @@ Recursive schemas, with the getters that Zod 4 recommends, are accepted (see
 - **Setting a field to `undefined` to remove it**: MongoZod drops the key, and the stored value
   stays. Use `$unset`, which works on optional fields.
 - **`z.set()` for a list without repeats**: `mongozod()` throws an `Error`. Use `mz.set()`.
+- **A key that starts with `$` or has a `.` in a `z.json()` field**: the write throws a `ZodError`.
+  When the format of the value uses them, such as a JSON Schema, wrap the field with
+  `mz.literal()`.
+- **A value of an `mz.literal()` field as it is in a filter**: `{ 'props.title': stored }` reads a
+  stored `{ $ne: null }` as an operator, and matches documents it shouldn't. Write
+  `{ $eq: stored }`, and `{ $literal: stored }` in a pipeline.

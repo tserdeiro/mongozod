@@ -108,6 +108,10 @@ instead:
   stores a `Set` as an empty object and a `Map` as a plain object, and neither comes back as such.
   Use [`mz.set()`](../guides/bson-types.md#sets) for an array without repeated values and
   `z.record()` for dynamic keys.
+- **A key that starts with `$` or has a `.` in a stored value**: the model rejects it, outside a
+  field of [`mz.literal()`](../guides/schemas.md#keys-that-are-data). Use that field for a format
+  with such keys, such as a JSON Schema, and compare a value read from it with `$eq`, never as it
+  is.
 - **A `.transform()` on the whole document**: defining the model throws an `Error`, because updates
   write paths and could not run it. Compute a field from others with `.overwrite()`, which runs on
   inserts, replacements and the document an upsert would insert, not on updates. See

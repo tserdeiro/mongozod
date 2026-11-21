@@ -117,7 +117,10 @@ type Step<S, Seg extends string, M extends PathMode> =
   Def<S> extends infer X
     ? X extends { shape: infer Shape; type: 'object' }
       ? Seg extends keyof Shape
-        ? Shape[Seg]
+        ? // A key of `mz.literal()` that starts with `$` is data, which no path reaches.
+          Seg extends `$${string}`
+          ? never
+          : Shape[Seg]
         : DynamicKey<ExtraKey<S>, Seg, M>
       : X extends { innerType: infer I; type: Wrapper }
         ? Step<I, Seg, M>

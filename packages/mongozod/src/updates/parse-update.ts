@@ -11,6 +11,7 @@ import {
   elementsOf,
   isDecimal,
   isInteger,
+  isLiteral,
   isNumber,
   isOptional,
   isSet,
@@ -64,14 +65,18 @@ function fail(path: PropertyKey[], message: string, input: unknown): FieldResult
   return { issues: [{ code: 'custom', input, message, path }] }
 }
 
-/** Parses a value with every schema it has to fit, and keeps what the first one returns. */
+/**
+ * Parses a value with every schema it has to fit, and keeps what the first one returns. Its keys
+ * are data when `literal` says it is inside a field of `mz.literal()`.
+ */
 async function parseEvery(
   schemas: core.$ZodType[],
   value: unknown,
-  at: PropertyKey[]
+  at: PropertyKey[],
+  literal = false
 ): Promise<FieldResult> {
   const [first, ...rest] = await Promise.all(
-    schemas.map((schema) => safeParseWritten(schema, value))
+    schemas.map((schema) => safeParseWritten(schema, value, literal))
   )
 
   for (const result of [first, ...rest]) {
@@ -106,20 +111,22 @@ async function parseAny(
 async function parseElements(
   schemas: core.$ZodType[],
   value: unknown,
-  at: PropertyKey[]
+  at: PropertyKey[],
+  literal: boolean
 ): Promise<FieldResult> {
   const elements = schemas.map(elementsOf)
   const flat = elements.flatMap((each) => each ?? [])
 
   if (elements.some((each) => !each)) return fail(at, `"${String(at[1])}" is not an array`, value)
-  if (!isPlainObject(value) || !('$each' in value)) return parseEvery(flat, value, at)
+  // MongoDB reads the keys of an element as modifiers only with `$each`.
+  if (!isPlainObject(value) || !('$each' in value)) return parseEvery(flat, value, at, literal)
 
   const each: unknown = value.$each
 
   if (!Array.isArray(each)) return fail([...at, '$each'], '$each takes an array', each)
 
   const results = await Promise.all(
-    each.map((element, index) => parseEvery(flat, element, [...at, '$each', index]))
+    each.map((element, index) => parseEvery(flat, element, [...at, '$each', index], literal))
   )
   const failed = results.find((result) => 'issues' in result)
 
@@ -184,12 +191,17 @@ async function parseField(
     return fail(at, `"${path}" is a set: use $addToSet`, value)
   }
 
+  // A path in a field of `mz.literal()`, or the field, writes a value whose keys are data.
+  const literal = segments.some((_, end) =>
+    schemaAt(schema, segments.slice(0, end + 1).join('.'), 'update').some(isLiteral)
+  )
+
   switch (operator) {
     case '$max':
     case '$min':
     case '$set':
     case '$setOnInsert':
-      return parseEvery(schemas, value, at)
+      return parseEvery(schemas, value, at, literal)
 
     case '$unset':
       // MongoDB sets an element of an array to `null`, which keeps its position.
@@ -243,7 +255,7 @@ async function parseField(
 
     case '$addToSet':
     case '$push':
-      return parseElements(schemas, value, at)
+      return parseElements(schemas, value, at, literal)
 
     case '$pop':
     case '$pull':
