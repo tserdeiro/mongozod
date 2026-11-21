@@ -178,6 +178,14 @@ las rutas para agentes.
   mide nada (Turborepo incluye las `NEXT_PUBLIC_*` de Next.js en el hash del build). La CSP no
   restringe scripts ni conexiones, así que no cambia. Va sin banner de consentimiento por ahora,
   aunque GA usa cookies y el GDPR lo pide para visitantes de la UE.
+- **Hero**: a la derecha del título, una pila isométrica de tres capas: MongoZod (índigo), Zod
+  (azul) y el driver de MongoDB (verde), con los logos oficiales de Zod y MongoDB (de Simple Icons)
+  y el nombre de MongoZod, que no tiene logo. Un documento baja por la pila en bucle: el
+  `insertOne` del ejemplo de la home, al que Zod le completa los defaults antes de guardarse, y uno
+  con un `status` fuera del enum, que se queda en Zod con el `ZodError` real (`invalid_value`) y
+  nunca llega a MongoDB. Es un componente de React con SVG propio
+  (`components/layer-stack`), sin dependencias, que se pausa fuera de pantalla y queda quieto con
+  `prefers-reduced-motion`. En móvil va debajo del texto, más chica.
 - **Alertas**: un plugin de remark propio (`lib/remark-github-alerts.ts`) convierte cada
   `> [!NOTE]` en el `Callout` de Fumadocs, que no las reconoce solo.
 - **Para agentes**: cada página en `/docs/<página>.md` y en la misma URL con

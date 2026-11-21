@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import type { Graph } from 'schema-dts'
 
 import { JsonLd } from '@/components/json-ld'
+import { LayerStack } from '@/components/layer-stack/layer-stack'
 import {
   appName,
   githubUrl,
@@ -131,30 +132,36 @@ const features = [
 
 export default function HomePage() {
   return (
-    <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-16 px-4 py-16">
+    <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-16 px-4 py-10 md:py-16">
       <JsonLd data={structuredData} />
-      <section className="flex flex-col items-center gap-6 text-center">
-        <h1 className="max-w-3xl text-4xl font-semibold tracking-tight md:text-5xl">
-          MongoDB with Zod as the single source of truth
-        </h1>
-        <p className="text-fd-muted-foreground max-w-2xl text-lg">
-          The Mongoose alternative built on Zod and the official MongoDB® driver. One schema
-          validates every write, types every read and defines what each endpoint accepts.
-        </p>
-        <div className="flex flex-wrap justify-center gap-3">
-          <Link
-            href="/docs/getting-started/quick-start"
-            className="bg-fd-primary text-fd-primary-foreground rounded-lg px-5 py-2.5 font-medium"
-          >
-            Get started
-          </Link>
-          <Link href="/docs/mongoose" className="rounded-lg border px-5 py-2.5 font-medium">
-            Migrating from Mongoose
-          </Link>
+      <section className="grid grid-cols-[minmax(0,1fr)] items-center gap-8 md:grid-cols-[1.1fr_1fr] md:gap-12">
+        <div className="flex flex-col items-center gap-6 text-center md:items-start md:text-left">
+          <h1 className="max-w-3xl text-4xl font-semibold tracking-tight md:text-5xl">
+            MongoDB with Zod as the single source of truth
+          </h1>
+          <p className="text-fd-muted-foreground max-w-2xl text-lg">
+            The Mongoose alternative built on Zod and the official MongoDB® driver. One schema
+            validates every write, types every read and defines what each endpoint accepts.
+          </p>
+          <div className="grid w-full grid-cols-2 gap-3 md:flex md:w-auto md:flex-wrap">
+            <Link
+              href="/docs/getting-started/quick-start"
+              className="bg-fd-primary text-fd-primary-foreground flex items-center justify-center rounded-lg px-3 py-2.5 text-sm font-medium md:px-5 md:text-base"
+            >
+              Get started
+            </Link>
+            <Link
+              href="/docs/mongoose"
+              className="flex items-center justify-center rounded-lg border px-3 py-2.5 text-sm font-medium md:px-5 md:text-base"
+            >
+              Migrating from Mongoose
+            </Link>
+          </div>
+          <div className="w-full max-w-md text-left">
+            <ServerCodeBlock code="npm install mongozod" lang="sh" />
+          </div>
         </div>
-        <div className="w-full max-w-md text-left">
-          <ServerCodeBlock code="npm install mongozod" lang="sh" />
-        </div>
+        <LayerStack />
       </section>
 
       <section className="text-left">
