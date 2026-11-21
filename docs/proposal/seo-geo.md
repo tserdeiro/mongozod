@@ -249,8 +249,8 @@ Lo hace el maintainer, salvo el `package.json`.
       issue «Ecosystem: add X to Y» con la entrada sugerida.
 - [ ] **Otras menciones**: las listas de MongoDB y TypeScript, si el maintainer quiere.
 - [ ] **Context7**: el `context7.json` de la raíz limita lo que indexa a `packages/docs`, con la
-      descripción de las listas y cuatro reglas de «Common mistakes» de AI agents, acordado el
-      2026-11-21 ([Library Owners](https://context7.com/docs/library-owners)). Falta enviar el repo
+      descripción de las listas y diez reglas para los agentes, tomadas de las secciones «Common
+      mistakes» de las guías, acordado el 2026-11-21 ([Library Owners](https://context7.com/docs/library-owners)). Falta enviar el repo
       en [add-library](https://context7.com/add-library), que el maintainer lo reclame con la
       `public_key` que da Context7 y sumarlo a la página AI agents.
 - [ ] **Artículo técnico**: «One Zod schema from the form to MongoDB» en dev.to o Medium, con código
