@@ -253,6 +253,13 @@ Lo hace el maintainer, salvo el `package.json`.
       mistakes» de las guías, acordado el 2026-11-21 ([Library Owners](https://context7.com/docs/library-owners)). Falta enviar el repo
       en [add-library](https://context7.com/add-library), que el maintainer lo reclame con la
       `public_key` que da Context7 y sumarlo a la página AI agents.
+- [x] **Plugin para agentes**: el plugin `mongozod`, con el marketplace de `.claude-plugin/`, que
+      leen Claude Code, Codex y Grok Build, acordado el 2026-11-21 (ver
+      [Documentación](./documentation.md)). Falta pedir los directorios de Anthropic y de OpenAI,
+      desde la cuenta del maintainer.
+- [ ] **skills.sh**: lista una skill cuando el CLI `npx skills` la instala, por su telemetría; no
+      hay envío. Instalada el 2026-11-21 para probarla. El badge de instalaciones va en el README
+      cuando aparezca.
 - [ ] **Artículo técnico**: «One Zod schema from the form to MongoDB» en dev.to o Medium, con código
       real que compile, acordado el 2026-11-21. Conviene escribirlo con el ejemplo de Next.js
       terminado, para enlazar su código.

@@ -85,6 +85,24 @@ agent to migrate one model. The same workflow is an agent skill, which you insta
 npx skills add tserdeiro/mongozod --skill migrate-from-mongoose
 ```
 
+The skills also ship as the `mongozod` plugin, from the marketplace in the repository. In Claude
+Code:
+
+```sh
+claude plugin marketplace add tserdeiro/mongozod
+claude plugin install mongozod@mongozod
+```
+
+In Codex:
+
+```sh
+codex plugin marketplace add tserdeiro/mongozod
+codex plugin add mongozod@mongozod
+```
+
+Grok Build reads the plugins of Claude Code
+([xAI docs](https://docs.x.ai/build/features/skills-plugins-marketplaces)).
+
 ## Common mistakes
 
 Agents trained on Mongoose code tend to write it with MongoZod. What to expect, and what to ask for

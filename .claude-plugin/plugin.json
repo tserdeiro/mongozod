@@ -1,0 +1,13 @@
+{
+  "name": "mongozod",
+  "displayName": "MongoZod",
+  "description": "Agent skills for MongoZod, the MongoDB library where one Zod schema validates writes, types reads and defines endpoint inputs, such as migrating a Mongoose model",
+  "author": {
+    "name": "tserdeiro",
+    "url": "https://github.com/tserdeiro"
+  },
+  "homepage": "https://mongozod.dev",
+  "repository": "https://github.com/tserdeiro/mongozod",
+  "license": "Apache-2.0",
+  "keywords": ["mongodb", "zod", "mongoose", "mongoose-alternative", "odm", "typescript"]
+}
