@@ -63,6 +63,8 @@ El orden de implementación. Al cerrar una fase, se marca acá en el mismo cambi
          `mz.geometryCollection()`,
          con las reglas de MongoDB para los índices `2dsphere` (`[longitud, latitud]`, sus rangos
          y los anillos cerrados). No son codecs: validan la forma, sin convertir valores.
+      5. `mz.literal()` (hecho, 2026-11-21): un campo cuyas keys MongoDB no interpreta, para guardar
+         un JSON Schema o un spec con keys `$` o con punto. Ver [Tipos](./types.md#paths-con-punto).
    2. Lo que Mongoose no resolvió, de un repaso de sus issues abiertos y de los más votados (hecho;
       el detalle y el beneficio de cada punto, en [Los issues de Mongoose](../audits/mongoose-issues.md)):
       1. `exactOptionalPropertyTypes` (hecho): lo que devuelve un schema de `mz` se pasa al modelo

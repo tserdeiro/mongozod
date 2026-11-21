@@ -459,6 +459,49 @@ Los tipos siguen la regla de [Tipos](#tipos). Además:
   tipos y en runtime: `$inc: { 'reactions.$x': 1 }` pasaba, y MongoDB 8.2 guarda la key `$x`
   (verificado). Un segmento con `$` que no es `$`, `$[]` ni `$[id]` no es un path, también en el
   destino de un `$rename`.
+- **Keys que son datos** (2026-11-21): `mz.literal(schema)`, por el `$literal` de MongoDB, marca un
+  campo cuyas keys MongoDB no interpreta, para un formato propio que usa keys con `$` o con punto,
+  como un JSON Schema (`$schema`, `$ref`, `$defs`, que la salida de `z.toJSONSchema()` trae), las
+  expresiones de un spec de UI (`{ $state: '/title' }`) o las keys de traducciones (`home.title`).
+  Devuelve el mismo schema con un check, como `mz.set()`, así que no cuesta tipos, y el modelo lo
+  reconoce por ese check bajo sus wrappers, lazies y pipes. Dentro del campo, una key con `$` o con
+  punto, declarada o dinámica, es válida al definir el modelo y al escribir: inserts, reemplazos,
+  `$set` y `$setOnInsert` del campo o de un path dentro de él, y los elementos de `$push` y
+  `$addToSet`, cuyas keys MongoDB lee como modificadores solo con `$each`, como ya decide mongozod.
+  Lo decidido:
+  - **Lo que MongoDB guarda y devuelve igual** (verificado): las keys `$` y con punto anidadas, en
+    esas escrituras. El primer nivel del documento sigue rechazado, y el driver rechaza un reemplazo
+    con una key `$` en el primer nivel. Un objeto cuyas keys `$` son solo `$ref`, `$id` y `$db`, con
+    un `$ref` string y un `$id`, vuelve como un `DBRef`, como decide `bson`, así que el check del
+    campo lo rechaza con un `ZodError`; con otra key `$`, como `$schema`, vuelve igual.
+  - **Ningún path llega a esas keys**: los filtros, las proyecciones, los sorts y los updates paran
+    en el campo o en una key más arriba, en tipos y en runtime. MongoDB filtra, hace `$inc`, `$unset`
+    y `distinct` por un path con un segmento `$`, pero no indexa, no ordena ni proyecta por él
+    (verificado), así que la regla de «ningún path llega» se mantiene para que filtros, sorts y
+    proyecciones coincidan. Las sugerencias del editor tampoco las muestran.
+  - **Los inputs de los endpoints no cambian**: `mz.filter` y `mz.update` siguen rechazando esas keys
+    en lo que manda un cliente, también en un campo de `mz.literal()`. Abrir `mz.update` más
+    adelante no rompe nada; cerrarlo después sí. Un endpoint que guarda el campo lo parsea con
+    `.pick()` y lo escribe con `$set`, que MongoDB guarda literal aun con `{ $each }` en el primer
+    nivel del valor (verificado).
+  - **El riesgo está en reusar el valor**: un valor leído del campo puede ser `{ $ne: null }`, y
+    MongoDB lo lee como operador en un filtro (verificado: encontró documentos en vez de compararlo)
+    y como expresión en un pipeline. Las docs piden compararlo con `$eq`, que lo compara literal
+    (verificado), y envolverlo en `$literal` en un pipeline. Es la responsabilidad que la guía de
+    seguridad ya le da a la app con los valores que no pasan por los builders.
+  - **`sync()`**: el `$jsonSchema` regla una key `$` declarada, que MongoDB acepta en `properties`
+    y en `required` y aplica (verificado), y deja afuera una con punto, que `$jsonSchema` lee como
+    path: `required: ['a.b']` rechaza un documento con la key `a.b`. Un objeto con una key así no
+    lleva `additionalProperties`.
+  - **Opt-in por campo, no del modelo**: el riesgo aparece al reusar el valor, así que el campo lo
+    declara donde el formato lo pide. Al escribir, el modelo busca el schema de cada key solo si el
+    schema tiene un campo de `mz.literal()`; si no, cuesta lo mismo que antes. El costo de los
+    tipos sube 0,9 % (82.868 → 83.609 instanciaciones con TypeScript 7), por las keys que las
+    sugerencias y los paths dejan afuera.
+  - **El nombre**: `mz.literal()` sigue al `$literal` de MongoDB. No choca con `z.literal()` en la
+    práctica: uno toma un schema y el otro un valor, así que confundirlos no compila.
+  - **Los mensajes**: el `Error` de un nombre de campo y el `ZodError` de una key escrita nombran
+    `mz.literal()`. El de `mz.update` no, porque ahí no se abre.
 - **Inputs**: `mz` acepta paths con punto declarados uno por uno en la lista blanca. Los operadores
   posicionales y `arrayFilters` no se exponen a clientes en la v1: los arma el router. Por eso
   `mz.update` y `mz.after` solo toman paths fuera de arrays.

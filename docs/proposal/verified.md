@@ -737,6 +737,34 @@
     documento; el virtual populate usa `localField` y `foreignField`, y `count` devuelve la
     cantidad.
 
+- **Las keys que son datos, `mz.literal()`** (2026-11-21, MongoDB 8.2.6, driver 7.7.0, bson 7.3.3,
+  Zod 4.6.6, 12 tests):
+  - `insertOne`, `insertMany`, `replaceOne`, `findOneAndReplace`, `bulkWrite`, `$set`,
+    `$setOnInsert` con upsert, `$push` y `$addToSet` guardan keys `$` y con punto anidadas, y la
+    lectura las devuelve igual, `$cond`, `$then` y `$else` incluidas. Un `$set` guarda literal un
+    valor con `{ $each }` en su primer nivel.
+  - `replaceOne` con una key `$` en el primer nivel falla en el driver: `Replacement document must
+    not contain atomic operators`.
+  - En `$push` y `$addToSet`, un elemento sin `$each` se guarda literal, también `{ $slice: 1 }`,
+    `{ $position: 0 }` o `{ $sort: 1 }`; con `$each`, las keys son modificadores, y una que no lo es
+    falla con `Unrecognized clause in $push`. `$pull` lee su valor como condición: `{ $gt: 1 }`
+    quitó los mayores que 1.
+  - `bson` lee como `DBRef` un objeto cuyas keys `$` son solo `$ref`, `$id` y `$db`, con `$ref`
+    string e `$id` no nulo, en cualquier orden y con otras keys sin `$`. `{ $ref }` solo,
+    `{ $schema, $id, $ref }` y `{ $ref, $id: null }` vuelven como objetos. La salida de
+    `z.toJSONSchema()` con `$defs` y `$ref` vuelve idéntica.
+  - En un filtro, `{ p: { $state: '/a' } }` falla con `unknown operator: $state`, y un valor guardado
+    `{ $ne: null }` pasado como valor de `'props.title'` encontró documentos. `{ $eq: valor }` lo
+    compara literal, y `$in` lo rechaza con `cannot nest $ under $in`.
+  - Por un path con un segmento `$`, `find`, `$exists`, `$in`, `$match`, `$inc`, `$unset` y
+    `distinct` funcionan; la proyección, el sort, un field path de aggregate y `createIndex` fallan
+    (16410 y 67). Un update con pipeline lee `{ $state }` como expresión (168) y lo guarda con
+    `$literal`.
+  - `$jsonSchema` acepta `$item` en `properties`, `required` y `patternProperties` y lo aplica. Con
+    `a.b` en `properties` no aplica su tipo, y `required: ['a.b']` rechaza un documento que tiene la
+    key `a.b`.
+  - El costo de los tipos: 82.868 → 83.609 instanciaciones con TypeScript 7 y 96.464 → 97.205 con
+    5.5, dentro del límite.
 - **Herramientas del repo** (pnpm 12.11.2, Node 22.23.2, Bun 1.4.3):
   - Vitest 5, tsdown 0.23 y Changesets 3 piden Node 22.12 o superior, y Node 20 llegó al final de su
     vida el 2026-04-30. El driver 7 todavía acepta Node 20.19.

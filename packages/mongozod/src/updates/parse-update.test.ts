@@ -120,11 +120,11 @@ describe('values', () => {
     ).toEqual([
       [
         '$set counters a.b',
-        '"a.b" cannot be a key: no path reaches a key with a "." or starting with "$"'
+        '"a.b" cannot be a key: no path reaches a key with a "." or starting with "$": mz.literal() stores the keys of a field as data'
       ],
       [
         '$set data $x',
-        '"$x" cannot be a key: no path reaches a key with a "." or starting with "$"'
+        '"$x" cannot be a key: no path reaches a key with a "." or starting with "$": mz.literal() stores the keys of a field as data'
       ]
     ])
   })

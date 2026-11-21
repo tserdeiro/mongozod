@@ -1,16 +1,20 @@
 import * as core from 'zod/v4/core'
 
+import { isLiteral } from '../schema/schema-kinds'
 import { unwrapSchema } from '../schema/unwrap-schema'
 
 /**
  * Throws an `Error` when a field of the schema has a `.` or starts with `$`, because no path can
- * reach it. The keys of records are checked when a document is written.
+ * reach it, except inside a field of `mz.literal()`, whose keys are data. The keys of records are
+ * checked when a document is written.
  */
 export function checkFieldNames(
   schema: core.$ZodType,
   parent = '',
   seen = new Set<core.$ZodType>()
 ): void {
+  if (isLiteral(schema)) return
+
   const unwrapped = unwrapSchema(schema)
 
   // A recursive schema leads back to itself through its lazies.
@@ -30,7 +34,7 @@ export function checkFieldNames(
     for (const [key, field] of Object.entries(shape)) {
       if (key.includes('.') || key.startsWith('$')) {
         throw new Error(
-          `"${key}"${parent && ` in "${parent}"`} is not a valid field name: no path can reach a field with a "." or starting with "$"`
+          `"${key}"${parent && ` in "${parent}"`} is not a valid field name: no path can reach a field with a "." or starting with "$": mz.literal() stores the keys of a field as data`
         )
       }
 

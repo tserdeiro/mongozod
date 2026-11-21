@@ -72,14 +72,16 @@ export async function listPosts(body: unknown, userId: ObjectId) {
   on the server itself.
 - **Values**: each value is parsed with the schema of its field, so an id is an `ObjectId` and a
   date is a `Date`. No value can be an object with a key that starts with `$`, even on a field
-  typed `z.record()` or `z.unknown()`, so a client can't send `{ "$ne": null }` as a value. Nor a
+  typed `z.record()`, `z.unknown()` or [`mz.literal()`](../api/mzod.md#mzliteral), so a client
+  can't send `{ "$ne": null }` as a value. Nor a
   regular expression, which MongoDB matches as a pattern: a pattern only enters through a declared
   `$regex`. The checks run on what the client sends and on what the schema returns, so a transform
   that parses JSON or builds a `RegExp` can't produce one either.
 - **Updates**: `mz.update` accepts the paths each operator declares. It can't declare the `_id`,
   and on a model with [timestamps](./timestamps.md) the model rejects `createdAt` and `updatedAt`.
   No value of `$set` can have a key with a `.` or starting with `$`, at any level, even on a field
-  typed `z.record()` or `z.unknown()`. The model validates every write against the schema again.
+  typed `z.record()`, `z.unknown()` or `mz.literal()`. The model validates every write against the
+  schema again.
 - **Projections and populate**: the mask of `mz.projection` is the most a client gets, whatever it
   sends, and `mz.populate` returns the fields of the first level of the schema it picks: a field
   that is an object comes whole (see [`mz.populate`](./endpoint-inputs.md#mzpopulate)).
@@ -124,6 +126,11 @@ The model can't do it alone. The schema describes values, and an injection is an
 `{ title: { $ne: null } }` that your code writes, which is a valid filter, reaches the model the
 same as one a client sent. What a client may send is a decision of each endpoint, which its input
 declares.
+
+The same goes for a value your code reads from a field of
+[`mz.literal()`](./schemas.md#keys-that-are-data), whose keys are data: a stored
+`{ "$ne": null }` is an operator again when it goes into a filter as it is. Compare it with `$eq`,
+and wrap it with `$literal` in a pipeline.
 
 A value that is missing is the other half of this. An `undefined` value matches the documents
 without the field, or every document with `ignoreUndefined`, so a request without a token would

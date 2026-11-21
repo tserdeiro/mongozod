@@ -174,7 +174,10 @@ type Next<S, Seg extends string, Sc extends Scope, Path extends string> =
       ? [Unwrap<S>, Extend<Sc, Seg>]
       : X extends { shape: infer Shape; type: 'object' }
         ? Seg extends keyof Shape
-          ? [Shape[Seg], Extend<Sc, Seg>]
+          ? // A key of `mz.literal()` that starts with `$` is data, which no path reaches.
+            Seg extends `$${string}`
+            ? never
+            : [Shape[Seg], Extend<Sc, Seg>]
           : [ExtraKey<Unwrap<S>>] extends [never]
             ? never
             : [MayLack<ExtraKey<Unwrap<S>>>, Extend<Sc, Seg>]
