@@ -13,6 +13,7 @@ sitio y en `node_modules`, como hace [Next.js](https://nextjs.org/docs/app/guide
 | `packages/mongozod/README.md`  | El README de npm. El `README.md` de la raíz es un symlink a este, como en Zod, así GitHub y npm muestran el mismo.                                                       |
 | `apps/website/`                | El sitio, con Next.js y [Fumadocs](https://www.fumadocs.dev), que lee las páginas de `@repo/docs`. Turborepo pone las aplicaciones en `apps/` y lo demás en `packages/`. |
 | `skills/`                      | Las skills de flujos de trabajo, que instala `npx skills add tserdeiro/mongozod`.                                                                                        |
+| `.claude-plugin/`              | El plugin `mongozod` y su marketplace, con las mismas skills. Ver abajo.                                                                                                 |
 | `docs/`                        | Sin cambios: esta propuesta y las auditorías, en español, para quien trabaja en el repo.                                                                                 |
 
 `packages/mongozod` depende de `@repo/docs` como devDependency, así el `build`, que copia las
@@ -155,6 +156,20 @@ sabiendo que la norma 7 les permite objetar (decidido el 2026-10-12).
   las skills para los flujos de trabajo. La skill y el prompt tienen un paso para conservar la
   seguridad de cada llamada: parsear el input de cada endpoint antes del modelo, que no sanitiza
   como el `sanitizeFilter` de Mongoose, y conservar con `$and` las condiciones de dueño o tenant.
+- **Plugin**: las skills también se instalan como el plugin `mongozod`, acordado el 2026-11-21. La
+  raíz del repo es el plugin (`"source": "./"`), así las skills siguen en `skills/` sin copias, y
+  `.claude-plugin/` tiene el `plugin.json` y el `marketplace.json` de
+  [Claude Code](https://code.claude.com/docs/en/plugins/plugin-marketplaces). Ese marketplace
+  alcanza para los tres agentes: Codex y ChatGPT leen `.claude-plugin/marketplace.json`
+  ([Package your plugin](https://developers.openai.com/codex/plugins/build)), y Grok Build lee los
+  plugins de Claude Code
+  ([xAI](https://docs.x.ai/build/features/skills-plugins-marketplaces)). Verificado el 2026-11-21:
+  `claude plugin validate` pasa, y `claude plugin install` y `codex plugin add` instalan la skill
+  desde el marketplace local. El manifiesto no lleva `version`: en un marketplace de Git, Claude
+  Code usa el commit, y el plugin no se desfasa de las skills. Los directorios públicos de
+  [Anthropic](https://code.claude.com/docs/en/plugins/publish#submit-to-anthropics-directory) y de
+  [OpenAI](https://developers.openai.com/plugins/guides/submit-claude-plugin) se piden desde la
+  cuenta del maintainer.
 - **JSDoc**: cada export público lleva el link a su página.
 
 ## Sitio

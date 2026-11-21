@@ -1,0 +1,15 @@
+{
+  "name": "mongozod",
+  "description": "The MongoZod plugin, with agent skills for MongoDB and Zod",
+  "owner": {
+    "name": "tserdeiro",
+    "url": "https://github.com/tserdeiro"
+  },
+  "plugins": [
+    {
+      "name": "mongozod",
+      "source": "./",
+      "description": "Agent skills for MongoZod, such as migrating a Mongoose model"
+    }
+  ]
+}
