@@ -43,6 +43,10 @@ version.
 - [Auto index](./plugins/auto-index.md): Create the indexes a model declares on its first operation, with the autoIndex plugin, for development, tests and serverless platforms.
 - [Writing plugins](./plugins/writing-plugins.md): Write a plugin with definePlugin, with its fields, fills, options, context, hooks, middleware and methods.
 
+## Integrations
+
+- [Better Auth](./integrations/better-auth.md): A Better Auth database adapter for MongoDB whose reads and writes go through MongoZod models, so plugins such as soft delete apply to the users and organizations Better Auth manages.
+
 ## Migrating from Mongoose
 
 - [Migrating from Mongoose](./mongoose/index.md): Move a Mongoose app to MongoZod one model at a time, on the connection Mongoose already opened, with a prompt for your coding agent.

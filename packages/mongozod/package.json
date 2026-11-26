@@ -38,6 +38,7 @@
   "sideEffects": false,
   "exports": {
     ".": "./dist/index.mjs",
+    "./adapters/better-auth": "./dist/adapters/better-auth.mjs",
     "./mzod": "./dist/mzod.mjs",
     "./plugins/auto-index": "./dist/plugins/auto-index.mjs",
     "./plugins/soft-delete": "./dist/plugins/soft-delete.mjs",
@@ -45,7 +46,7 @@
   },
   "scripts": {
     "build": "tsdown",
-    "check-dist-types": "tsc -p test/consumer && node node_modules/typescript-5.5/bin/tsc -p test/consumer",
+    "check-dist-types": "tsc -p test/consumer && tsc -p test/consumer/tsconfig.better-auth.json && node node_modules/typescript-5.5/bin/tsc -p test/consumer && node node_modules/typescript-5.5/bin/tsc -p test/consumer/tsconfig.better-auth.json",
     "check-docs": "node scripts/check-docs.ts",
     "check-type-cost": "node scripts/check-type-cost.ts",
     "check-types": "tsc --noEmit",
@@ -53,9 +54,11 @@
   },
   "devDependencies": {
     "@arethetypeswrong/core": "0.18.5",
+    "@better-auth/test-utils": "1.7.28",
     "@repo/config": "workspace:*",
     "@repo/docs": "workspace:*",
     "@types/node": "22.20.5",
+    "better-auth": "1.7.28",
     "bson": "7.3.3",
     "mongodb": "7.7.0",
     "mongodb-memory-server": "11.3.0",
@@ -67,9 +70,15 @@
     "zod": "4.6.6"
   },
   "peerDependencies": {
+    "better-auth": "^1.7.0",
     "bson": "^6.10.0 || ^7.0.0",
     "mongodb": "^6.20.0 || ^7.0.0",
     "zod": "^4.5.0"
+  },
+  "peerDependenciesMeta": {
+    "better-auth": {
+      "optional": true
+    }
   },
   "config": {
     "mongodbMemoryServer": {
