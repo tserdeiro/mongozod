@@ -167,6 +167,52 @@ describe('the tables with a model', () => {
   })
 })
 
+/**
+ * The recipe of the docs: restores the deleted user of an email that signs up again, inside the
+ * transaction of the sign up, and does nothing without one.
+ */
+function restoring(transactionClient: MongoClient | undefined, failAccount = false) {
+  return authWith({
+    database: mongozodAdapter({
+      ...(transactionClient && { client: transactionClient }),
+      db,
+      models: { user: UsersModel }
+    }),
+    databaseHooks: {
+      account: {
+        create: {
+          async before() {
+            if (failAccount) throw new Error('account fails')
+          }
+        }
+      },
+      user: {
+        create: {
+          async before(user) {
+            const session = transactionSession()
+
+            if (!session) return undefined
+
+            const deleted = await UsersModel.findOne(
+              { deletedAt: { $exists: true }, email: user.email },
+              { session }
+            )
+
+            if (!deleted) return undefined
+
+            await UsersModel.deleteOne(
+              { _id: deleted._id, deletedAt: { $exists: true } },
+              { session }
+            )
+
+            return { data: { ...user, id: deleted._id } }
+          }
+        }
+      }
+    }
+  })
+}
+
 describe('transactions', () => {
   test('a failure rolls back the writes of both kinds of tables', async () => {
     const auth = authWith({
@@ -187,58 +233,25 @@ describe('transactions', () => {
   })
 
   test('transactionSession() joins a hook to the transaction of the request', async () => {
-    const sessions: unknown[] = []
-    // Restores the deleted user of an email: its id frees up, and the new user takes it.
-    const restore = (failAccount: boolean) =>
-      authWith({
-        databaseHooks: {
-          account: {
-            create: {
-              async before() {
-                if (failAccount) throw new Error('account fails')
-              }
-            }
-          },
-          user: {
-            create: {
-              async before(user) {
-                const session = transactionSession()
-
-                sessions.push(session)
-
-                // With a client, Better Auth runs the sign up in a transaction.
-                if (!session) throw new Error('The sign up runs outside of a transaction')
-
-                const deleted = await UsersModel.findOne(
-                  { deletedAt: { $exists: true }, email: user.email },
-                  { session }
-                )
-
-                if (!deleted) return undefined
-
-                await UsersModel.deleteOne(
-                  { _id: deleted._id, deletedAt: { $exists: true } },
-                  { session }
-                )
-
-                return { data: { ...user, id: deleted._id } }
-              }
-            }
-          }
-        }
-      })
-
-    const id = await signUpAndDelete(restore(false))
+    const id = await signUpAndDelete(restoring(client))
 
     // A later failure rolls the hard delete back, so the deleted user is still there.
-    await expect(restore(true).api.signUpEmail({ body })).rejects.toThrow('account fails')
+    await expect(restoring(client, true).api.signUpEmail({ body })).rejects.toThrow('account fails')
     expect(await UsersModel.countDocuments({ _id: id, deletedAt: { $exists: true } })).toBe(1)
 
-    const { user } = await restore(false).api.signUpEmail({ body })
+    const { user } = await restoring(client).api.signUpEmail({ body })
 
     expect(user.id).toBe(id)
-    expect(sessions.every((session) => session !== undefined)).toBe(true)
+    expect(await UsersModel.countDocuments({ _id: id, deletedAt: { $exists: true } })).toBe(0)
     expect(transactionSession()).toBeUndefined()
+  })
+
+  test('without a client, the restoring hook leaves the deleted user alone', async () => {
+    const id = await signUpAndDelete(restoring(undefined))
+    const { user } = await restoring(undefined).api.signUpEmail({ body })
+
+    expect(user.id).not.toBe(id)
+    expect(await UsersModel.countDocuments({ _id: id, deletedAt: { $exists: true } })).toBe(1)
   })
 
   test('without a client, the operations run one after the other', async () => {
