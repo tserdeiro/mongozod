@@ -1,7 +1,8 @@
 # Adapter de Better Auth
 
-Estado: propuesta, sin implementar. Se verificó con un prototipo contra Better Auth 1.7.28 y
-MongoDB 8.2.6 (ver [Qué se verificó](./verified.md)).
+Estado: implementado el 2026-11-26, en `packages/mongozod/src/adapters/better-auth/`, con Better
+Auth 1.7.28 y MongoDB 8.2.6 (ver [Qué se verificó](./verified.md)). Lo que se decidió al
+implementarlo está en [Decisiones al implementar](#decisiones-al-implementar).
 
 ## Objetivo
 
@@ -275,12 +276,16 @@ export const auth = betterAuth({
       create: {
         before: async (user) => {
           const session = transactionSession()
+
+          // With `client`, the sign up runs in a transaction.
+          if (!session) return undefined
+
           const deleted = await UsersModel.findOne(
             { deletedAt: { $exists: true }, email: user.email },
             { session }
           )
 
-          if (!deleted) return
+          if (!deleted) return undefined
 
           await UsersModel.deleteOne({ _id: deleted._id, deletedAt: { $exists: true } }, { session })
           // Restore the user's organizations here too, with the same session.
@@ -312,6 +317,33 @@ Es el estilo de `txHost.tx` de nestjs-cls, que devuelve la transacción del cont
 
 ## Documentación
 
-Una página en `packages/docs` con la configuración, el ruteo, el schema, los índices de las
-colecciones con `softDelete`, las transacciones y la receta para restaurar, y su lugar en la
-skill.
+Una página en `packages/docs`, `integrations/better-auth.md`, con la configuración, el ruteo, el
+schema, `toAdditionalFields`, los índices de las colecciones con `softDelete`, las transacciones y
+la receta para restaurar, y los errores comunes.
+
+## Decisiones al implementar
+
+- **Opciones**: `db`, `client` y `models`, las acordadas. `models` sugiere en el editor las tablas
+  de Better Auth (`user`, `session`, `account`, `verification`) y acepta cualquier otra, como las
+  de sus plugins.
+- **El chequeo de los modelos** corre cuando Better Auth crea el adapter, en su primera operación:
+  `auth.$context` lo rechaza con el `Error`. Una key de `models` que no es una tabla de Better Auth
+  también lanza un `Error`.
+- **Los tipos de `CustomAdapter`**: Better Auth tipa los resultados con un argumento de tipo de
+  quien llama (`findOne<T>()`), como en cada adapter. Los métodos lo declaran con un overload, sin
+  casts.
+- **Una consulta a la vez**: los joins y los documentos de un `findMany` con joins se leen en
+  orden, porque las operaciones de una transacción comparten su sesión.
+- **Los índices** de las tablas sin modelo toman los nombres y las columnas de Better Auth, con su
+  hash para los nombres largos; los chequeos de portabilidad que Better Auth hace para las
+  migraciones SQL no se repiten. Los errores se informan con `createLogger(options.logger)` de
+  `better-auth`, así respetan el logger de la app.
+- **Una transacción que se repite**: `withTransaction` corre de nuevo el callback cuando MongoDB
+  aborta la transacción por un error transitorio, como un conflicto con un índice que se crea al
+  arrancar. Better Auth corre entonces otra vez el request, y en un signup manda dos cookies de
+  sesión: vale la última, como en un navegador.
+- **`transactionSession()` con `exactOptionalPropertyTypes`**: devuelve `ClientSession | undefined`,
+  y `{ session: transactionSession() }` no compila con esa opción, como cualquier `session`
+  opcional del driver. El hook lo resuelve con un `if (!session)`, que con `client` nunca se cumple
+  dentro de una transacción de Better Auth.
+- **Los errores** son `Error` sin clases propias: un id inválido y un operador que no existe.

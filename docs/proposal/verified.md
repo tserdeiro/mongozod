@@ -941,3 +941,9 @@
     Zod como `validator.input`, y calcula un `defaultValue` declarado como getter en cada signup.
     `additionalFields` se aplica después de los campos de Better Auth y de sus plugins
     (`getAuthTables`), y los reemplaza.
+  - La implementación (2026-11-26): las suites de `@better-auth/test-utils` que corre el oficial
+    (`normalTestSuite`, `authFlowTestSuite`, `transactionsTestSuite`, `joinsTestSuite`,
+    `caseInsensitiveTestSuite` y `uuidTestSuite`, 357 tests) pasan sin `models` y con `client`, con
+    transacciones; el oficial las corre con `transaction: false`. Los tests propios prueban el
+    camino de los modelos, y el consumidor de los `.d.ts` compila la inferencia de
+    `toAdditionalFields` con TypeScript 5.5 y 7.
