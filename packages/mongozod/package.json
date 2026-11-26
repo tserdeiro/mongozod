@@ -1,6 +1,6 @@
 {
   "name": "mongozod",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "MongoDB with the Zod schema as the single source of truth for each document.",
   "keywords": [
     "bson",
