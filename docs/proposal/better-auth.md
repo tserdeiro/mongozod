@@ -347,4 +347,10 @@ la URL es `mongozod.dev/docs/adapters/better-auth`.
   y `{ session: transactionSession() }` no compila con esa opción, como cualquier `session`
   opcional del driver. El hook lo resuelve con un `if (!session)`, que con `client` nunca se cumple
   dentro de una transacción de Better Auth.
+- **Los índices al arrancar y las transacciones**: el adapter crea los índices de las tablas sin
+  modelo al crearse, sin esperar, como el oficial. Si el primer signup escribe en una de esas
+  colecciones mientras su índice se crea, MongoDB aborta la transacción por el cambio de catálogo,
+  y si Better Auth envuelve el error, no se reintenta: ese signup falla una vez. Les pasa igual a
+  los dos adapters. La suite de Better Auth corre sin `client`, como la del oficial, y los tests
+  propios crean los índices una vez antes de las transacciones.
 - **Los errores** son `Error` sin clases propias: un id inválido y un operador que no existe.

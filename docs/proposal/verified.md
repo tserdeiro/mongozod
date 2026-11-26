@@ -943,7 +943,13 @@
     (`getAuthTables`), y los reemplaza.
   - La implementación (2026-11-26): las suites de `@better-auth/test-utils` que corre el oficial
     (`normalTestSuite`, `authFlowTestSuite`, `transactionsTestSuite`, `joinsTestSuite`,
-    `caseInsensitiveTestSuite` y `uuidTestSuite`, 357 tests) pasan sin `models` y con `client`, con
-    transacciones; el oficial las corre con `transaction: false`. Los tests propios prueban el
+    `caseInsensitiveTestSuite` y `uuidTestSuite`, 357 tests) pasan sin `models` y sin `client`, como
+    las corre el oficial (con `transaction: false`); el test de rollback se saltea sin transacciones. Los tests propios prueban el
     camino de los modelos, y el consumidor de los `.d.ts` compila la inferencia de
     `toAdditionalFields` con TypeScript 5.5 y 7.
+  - Con `client`, una transacción que escribe en una colección mientras se crea un índice en ella
+    aborta con «Unable to write to collection … due to catalog changes»
+    (`TransientTransactionError`). Si el error sale de `createUser`, Better Auth lo envuelve en
+    «Failed to create user» sin la etiqueta, y `withTransaction` no lo reintenta: pasó en el CI con
+    las suites, que crean los índices de tablas nuevas mientras corren. Les pasa igual al adapter
+    oficial con `client`, y por eso sus tests corren sin transacciones.

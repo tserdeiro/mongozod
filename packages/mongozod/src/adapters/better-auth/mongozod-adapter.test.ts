@@ -15,9 +15,35 @@ import { transactionSession } from './transaction-session'
 const client = new MongoClient(inject('mongoUri'))
 const db = client.db('mongozod-better-auth')
 
-beforeAll(() => client.connect())
+beforeAll(async () => {
+  await client.connect()
+  await db.dropDatabase()
+  // Builds Better Auth's indexes once, before any transaction: a transaction that writes to a
+  // collection while an index is built on it aborts with a TransientTransactionError, which Better
+  // Auth wraps, so MongoDB does not retry it. The adapters of the tests then find them built.
+  await authWith().$context
+  await vi.waitFor(
+    async () => {
+      // The name of a command is its first key.
+      // oxlint-disable-next-line sort-keys
+      const command = { 'currentOp': true, 'command.createIndexes': { $exists: true } }
+      const { inprog } = await client.db('admin').command(command)
+      const names = (await db.collection('session').indexes()).map((index) => index.name)
+
+      if (inprog.length > 0 || !names.includes('session_token_uidx')) {
+        throw new Error("Better Auth's indexes are still being built")
+      }
+    },
+    { timeout: 10_000 }
+  )
+})
 afterAll(() => client.close())
-beforeEach(() => db.dropDatabase())
+// Empties the collections and keeps their indexes.
+beforeEach(async () => {
+  const collections = await db.listCollections({}, { nameOnly: true }).toArray()
+
+  await Promise.all(collections.map(({ name }) => db.collection(name).deleteMany({})))
+})
 
 const userFields = {
   createdAt: z.date(),

@@ -47,7 +47,11 @@ const { execute } = await testAdapter({
 
     await Promise.all(collections.map(({ name }) => db.collection(name).dropIndexes()))
 
-    const adapter = mongozodAdapter({ client, db })
+    // Without transactions, as the official adapter's tests: its suites build the indexes of new
+    // tables as they run, and a transaction that writes to a collection whose index is being built
+    // aborts with a TransientTransactionError that Better Auth wraps, so MongoDB does not retry it.
+    // The adapter's own tests cover transactions.
+    const adapter = mongozodAdapter({ db })
 
     current = { adapter, key }
 
