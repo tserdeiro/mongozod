@@ -907,3 +907,49 @@
   - `mz.populate` lee las keys del primer nivel del whitelist: un `profile` recortado a `{ label }`
     daba `profile: 1` y la lectura traía `profile.token`. Es el contrato, ahora documentado, con la
     proyección por paths del servidor como salida.
+
+- **El adapter de Better Auth** (2026-11-26, Better Auth 1.7.28, MongoDB 8.2.6, driver 7.7.0 y
+  6.20.0), con un prototipo del adapter y Better Auth real:
+  - `deleteUser` marca `deletedAt` en un usuario con `softDelete` y borra de verdad sus sesiones y
+    cuentas; después el login no lo encuentra, y un signup con el mismo email crea otro usuario.
+  - Restaurar en `user.create.before` con la `session` de la transacción del signup conserva el id,
+    y un fallo posterior deshace el borrado. Sin la sesión, con el modelo o con
+    `ctx.context.adapter`, el insert da E11000 y el fallo posterior pierde el usuario borrado.
+    Un hook que abre su propia transacción falla igual: es otra transacción, que se confirma aparte.
+    `ctx.context.adapter` rechaza un campo fuera del schema de Better Auth (`Field deletedAt not
+    found in model user`).
+  - Con `advanced.database.joins`, un join resuelto a través del modelo devuelve `null` para un
+    usuario borrado.
+  - `mz.objectId()` toma el `ObjectId` de `customTransformInput`; hace falta `customIdGenerator`,
+    como el oficial: el id por defecto de Better Auth no es un `ObjectId`.
+  - Una transacción en un servidor standalone falla con el código 20 (`IllegalOperation`). La sesión
+    de otro `MongoClient` falla con `MongoInvalidArgumentError`. `Db.client` es público en el driver
+    6.20 y 7.
+  - `tryGetCurrentAuthEndpointContext()` da, dentro del adapter, el `path` y la sesión resuelta;
+    no está documentada, y la documentación de Better Auth no dice si `ctx.context.adapter` corre en
+    la transacción.
+  - Los tipos: la inferencia de `auth.$Infer` y de `auth.api` no cambia con el adapter; un modelo
+    entra en `Partial<Record<string, AnyModel>>` sin casts, y una interfaz con los métodos del
+    adapter acepta la `Collection` y `AnyModel` si `insertOne` devuelve `{ insertedId }`.
+  - Mongoose 9.13.1 guarda `{ session }` en un `AsyncLocalStorage` solo dentro de
+    `connection.transaction()`, con `transactionAsyncLocalStorage` (apagado por defecto), y cada
+    operación la toma si sus opciones no tienen la key `session`. Prisma, Drizzle y el driver pasan
+    la transacción a mano; Sequelize (`useCLS`), MikroORM (`@Transactional()`) y nestjs-cls
+    (`txHost.tx`) la guardan en el contexto.
+  - `additionalFields` desde un `z.object` (prototipo de `toAdditionalFields`): Better Auth infiere
+    el tipo de cada campo en `auth.$Infer` y en el body de `signUpEmail`, valida con el schema de
+    Zod como `validator.input`, y calcula un `defaultValue` declarado como getter en cada signup.
+    `additionalFields` se aplica después de los campos de Better Auth y de sus plugins
+    (`getAuthTables`), y los reemplaza.
+  - La implementación (2026-11-26): las suites de `@better-auth/test-utils` que corre el oficial
+    (`normalTestSuite`, `authFlowTestSuite`, `transactionsTestSuite`, `joinsTestSuite`,
+    `caseInsensitiveTestSuite` y `uuidTestSuite`, 357 tests) pasan sin `models` y sin `client`, como
+    las corre el oficial (con `transaction: false`); el test de rollback se saltea sin transacciones. Los tests propios prueban el
+    camino de los modelos, y el consumidor de los `.d.ts` compila la inferencia de
+    `toAdditionalFields` con TypeScript 5.5 y 7.
+  - Con `client`, una transacción que escribe en una colección mientras se crea un índice en ella
+    aborta con «Unable to write to collection … due to catalog changes»
+    (`TransientTransactionError`). Si el error sale de `createUser`, Better Auth lo envuelve en
+    «Failed to create user» sin la etiqueta, y `withTransaction` no lo reintenta: pasó en el CI con
+    las suites, que crean los índices de tablas nuevas mientras corren. Les pasa igual al adapter
+    oficial con `client`, y por eso sus tests corren sin transacciones.

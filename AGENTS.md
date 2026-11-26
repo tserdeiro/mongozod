@@ -23,8 +23,8 @@ documents of the topics you touch and the roadmap for the order of the work.
 ## Repository
 
 The [repository structure](docs/proposal/structure.md) describes each folder. The package is
-published as `mongozod`, and the official plugins are subpaths of it, such as
-`mongozod/plugins/soft-delete`.
+published as `mongozod`, and the official plugins and adapters are subpaths of it, such as
+`mongozod/plugins/soft-delete` and `mongozod/adapters/better-auth`.
 
 The [tooling](docs/proposal/structure.md#herramientas) runs from the root with pnpm:
 

@@ -1,0 +1,12 @@
+{
+  // The consumer of the Better Auth adapter. Better Auth's declarations use the Fetch API types,
+  // such as HeadersInit, which a project takes from the DOM library, and reference the modules of
+  // other runtimes, such as bun:sqlite, so its declarations are not checked: the usage still
+  // compiles against those of mongozod and Better Auth.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "lib": ["ES2022", "ESNext.Disposable", "DOM"],
+    "skipLibCheck": true
+  },
+  "files": ["better-auth.ts"]
+}

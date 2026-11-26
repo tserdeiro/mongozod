@@ -11,6 +11,7 @@ export default defineConfig({
   entry: [
     'src/cli.ts',
     'src/index.ts',
+    'src/adapters/better-auth.ts',
     'src/mzod.ts',
     'src/plugins/auto-index.ts',
     'src/plugins/soft-delete.ts'

@@ -62,6 +62,8 @@ El detalle de cada tema está en su documento:
 - [Tipos](./types.md): escrituras, lecturas, filtros, updates, proyecciones y paths con punto.
 - [Inputs de los endpoints](./inputs.md): los constructores de `mz` y lo que reemplazan.
 - [Plugins](./plugins/README.md): el contrato y los plugins oficiales, cada uno con su documento.
+- [Adapter de Better Auth](./better-auth.md): las operaciones de Better Auth a través de los
+  modelos, con sus plugins.
 - [Estructura del repo](./structure.md): las carpetas, las convenciones y las herramientas.
 - [Documentación](./documentation.md): el README, las páginas, lo que leen los agentes y el sitio.
 - [Ejemplos](./examples.md): las aplicaciones de recetas, de punta a punta, y cómo se comprueban.
