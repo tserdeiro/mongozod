@@ -317,9 +317,10 @@ Es el estilo de `txHost.tx` de nestjs-cls, que devuelve la transacción del cont
 
 ## Documentación
 
-Una página en `packages/docs`, `integrations/better-auth.md`, con la configuración, el ruteo, el
+Una página en `packages/docs`, `adapters/better-auth.md`, con la configuración, el ruteo, el
 schema, `toAdditionalFields`, los índices de las colecciones con `softDelete`, las transacciones y
-la receta para restaurar, y los errores comunes.
+la receta para restaurar, y los errores comunes. La carpeta se llama como el subpath, `adapters/`, igual que `plugins/`, así
+la URL es `mongozod.dev/docs/adapters/better-auth`.
 
 ## Decisiones al implementar
 

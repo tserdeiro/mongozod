@@ -93,7 +93,7 @@ packages/docs/
 │   ├── soft-delete.md
 │   ├── auto-index.md            `autoIndex`, los índices en la primera operación
 │   └── writing-plugins.md       `definePlugin`
-├── integrations/
+├── adapters/
 │   └── better-auth.md           el adapter de Better Auth, `toAdditionalFields` y `transactionSession`
 ├── mongoose/
 │   ├── index.md                 migrar modelo por modelo sobre la misma conexión, con el «Copy prompt»

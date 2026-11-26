@@ -94,7 +94,7 @@ function typeOf(field: core.$ZodType): DBFieldAttribute['type'] {
  *     }
  *   })
  *
- * @see https://mongozod.dev/docs/integrations/better-auth#additional-fields
+ * @see https://mongozod.dev/docs/adapters/better-auth#additional-fields
  */
 export function toAdditionalFields<S extends core.$ZodObject, const M extends Mask<S>>(
   model: { readonly schema: S },

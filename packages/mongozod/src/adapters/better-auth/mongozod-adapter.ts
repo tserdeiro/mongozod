@@ -120,7 +120,7 @@ async function abortTransaction(
  *     })
  *   })
  *
- * @see https://mongozod.dev/docs/integrations/better-auth
+ * @see https://mongozod.dev/docs/adapters/better-auth
  */
 export function mongozodAdapter({ client, db, models = {} }: MongozodAdapterOptions) {
   const builds = indexBuilds()

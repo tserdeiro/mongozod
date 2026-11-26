@@ -37,7 +37,7 @@ const sessions = new AsyncLocalStorage<ClientSession>()
  *     }
  *   })
  *
- * @see https://mongozod.dev/docs/integrations/better-auth#transactions
+ * @see https://mongozod.dev/docs/adapters/better-auth#transactions
  */
 export function transactionSession(): ClientSession | undefined {
   return sessions.getStore()
