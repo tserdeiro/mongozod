@@ -1,5 +1,11 @@
 # mongozod
 
+## 0.7.1
+
+### Patch Changes
+
+- 20dcbba: The Better Auth adapter reads a `json` field stored as text, as the official adapter stores it, as its value, as Better Auth does with its default. A write of the field stores the value, so no migration is needed.
+
 ## 0.7.0
 
 ### Minor Changes
