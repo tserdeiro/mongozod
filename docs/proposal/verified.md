@@ -953,3 +953,8 @@
     «Failed to create user» sin la etiqueta, y `withTransaction` no lo reintenta: pasó en el CI con
     las suites, que crean los índices de tablas nuevas mientras corren. Les pasa igual al adapter
     oficial con `client`, y por eso sus tests corren sin transacciones.
+  - 0.6.0 colgaba `/oauth2/register` con `client`: `currentOp` mostró el `createIndexes` de
+    `oauthClientResources` esperando el lock exclusivo de la colección, que tenía la transacción del
+    registro, y la transacción esperaba la creación. Un test lo reproduce con una tabla que existe,
+    se lee y se escribe en una transacción, y con el arreglo pasa; los tests de OAuth y MCP de
+    AdsGPT también.

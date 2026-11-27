@@ -109,7 +109,7 @@ interface FieldIndex {
 
 interface IndexesConfig {
   db: Db
-  /** Builds a field index without waiting: false inside a transaction, which takes no index build. */
+  /** Builds the indexes: false in the adapter of a transaction, which waits for no index build. */
   build: boolean
   logger: Parameters<typeof createLogger>[0]
   /** The stored name of a Better Auth table. */
@@ -287,9 +287,47 @@ export function betterAuthIndexes(config: IndexesConfig, builds: IndexBuilds) {
       .catch(() => undefined)
   }
 
-  const fieldIndexes = config.build ? Object.keys(schema).flatMap(fieldIndexesOf) : []
+  /** Builds the `indexes` of a table without a model, once: a failed build is tried again later. */
+  function buildTable(modelKey: string) {
+    const model = config.modelName(modelKey)
+
+    return Promise.all(
+      indexesOf(modelKey).map((index) => {
+        const columns = index.columns.map((column) => (column === 'id' ? '_id' : column))
+        const definition = JSON.stringify([model, index.name, columns, index.unique])
+        const started = builds.tables.get(definition)
+
+        if (started) return started
+
+        const build = Promise.resolve().then(() =>
+          db
+            .collection(model)
+            .createIndex(Object.fromEntries(columns.map((column) => [column, 1])), {
+              name: index.name,
+              unique: index.unique
+            })
+        )
+
+        builds.tables.set(definition, build)
+        build.catch(() => {
+          if (builds.tables.get(definition) === build) builds.tables.delete(definition)
+        })
+
+        return build
+      })
+    )
+  }
+
+  const tables = Object.keys(schema).filter((modelKey) => !config.routed(modelKey))
+  const fieldIndexes = config.build ? tables.flatMap(fieldIndexesOf) : []
 
   for (const index of fieldIndexes) buildFieldIndex(index)
+
+  // Started now, without waiting, so a table first written in a transaction has them too. A write
+  // waits for them below, where the build fails as it would have.
+  if (config.build) {
+    for (const modelKey of tables) buildTable(modelKey).catch(() => undefined)
+  }
 
   return {
     /** Builds again the field indexes that failed for a moment. */
@@ -301,38 +339,16 @@ export function betterAuthIndexes(config: IndexesConfig, builds: IndexBuilds) {
       }
     },
 
-    /** Creates the `indexes` of a table without a model, once, before its first write. */
+    /**
+     * Waits for the `indexes` of a table without a model before its first write, as the official
+     * adapter. Not inside a transaction: a build takes the collection's exclusive lock, which waits
+     * for a transaction that read or wrote the collection to end, and the transaction would wait
+     * for the build.
+     */
     async table(modelKey: string) {
-      if (config.routed(modelKey)) return
+      if (!config.build || config.routed(modelKey)) return
 
-      const model = config.modelName(modelKey)
-
-      await Promise.all(
-        indexesOf(modelKey).map((index) => {
-          const columns = index.columns.map((column) => (column === 'id' ? '_id' : column))
-          const definition = JSON.stringify([model, index.name, columns, index.unique])
-          const started = builds.tables.get(definition)
-
-          if (started) return started
-
-          const build = Promise.resolve().then(() =>
-            db
-              .collection(model)
-              .createIndex(Object.fromEntries(columns.map((column) => [column, 1])), {
-                name: index.name,
-                unique: index.unique
-              })
-          )
-
-          builds.tables.set(definition, build)
-          // A failed build is tried again by the next write.
-          build.catch(() => {
-            if (builds.tables.get(definition) === build) builds.tables.delete(definition)
-          })
-
-          return build
-        })
-      )
+      await buildTable(modelKey)
     }
   }
 }
