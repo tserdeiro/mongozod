@@ -353,4 +353,11 @@ la URL es `mongozod.dev/docs/adapters/better-auth`.
   y si Better Auth envuelve el error, no se reintenta: ese signup falla una vez. Les pasa igual a
   los dos adapters. La suite de Better Auth corre sin `client`, como la del oficial, y los tests
   propios crean los índices una vez antes de las transacciones.
+- **Los índices y las transacciones**: el adapter de una transacción no crea ni espera índices.
+  Una creación de índices toma el lock exclusivo de la colección, que espera a que termine una
+  transacción que la leyó o la escribió, y la transacción esperaba a la creación: el registro de un
+  cliente OAuth (`/oauth2/register`, que lee y escribe `oauthClientResource` en una transacción) se
+  colgaba hasta que vencía la transacción. Los índices de tabla de las tablas sin modelo empiezan a
+  crearse al crearse el adapter, como los de campo, y una escritura fuera de una transacción los
+  espera, como el oficial. Lo encontró la migración de AdsGPT.
 - **Los errores** son `Error` sin clases propias: un id inválido y un operador que no existe.
