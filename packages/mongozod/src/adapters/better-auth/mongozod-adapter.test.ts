@@ -320,3 +320,44 @@ describe('the models', () => {
     await expect(auth.$context).rejects.toThrow('Better Auth has no table "users"')
   })
 })
+
+describe('indexes and transactions', () => {
+  test('a transaction never waits for an index build on a table it already reads', async () => {
+    const fresh = client.db('mongozod-better-auth-index-locks')
+
+    await fresh.dropDatabase()
+
+    const auth = betterAuth({
+      database: mongozodAdapter({ client, db: fresh }),
+      logger: { disabled: true },
+      plugins: [
+        {
+          id: 'resources',
+          schema: {
+            resource: {
+              fields: {
+                clientId: { required: true, type: 'string' },
+                resourceId: { required: true, type: 'string' }
+              },
+              indexes: [{ fields: ['clientId', 'resourceId'], unique: true }]
+            }
+          }
+        }
+      ]
+    })
+    const { adapter } = await auth.$context
+    const where = [{ field: 'clientId', value: 'client' }]
+
+    // The collection exists, as when another index of the table was built first.
+    await fresh.createCollection('resource')
+
+    // As the OAuth provider registers a client: reading the table takes its lock in the
+    // transaction, which an index build would wait for until the transaction ends.
+    await adapter.transaction(async (trx) => {
+      await trx.findOne({ model: 'resource', where })
+      await trx.create({ data: { clientId: 'client', resourceId: 'mcp' }, model: 'resource' })
+    })
+
+    expect(await fresh.collection('resource').countDocuments()).toBe(1)
+  }, 20_000)
+})
