@@ -185,6 +185,23 @@ export default function HomePage() {
         ))}
       </section>
 
+      <section className="flex flex-col gap-4">
+        <h2 className="text-2xl font-semibold tracking-tight">Integrations</h2>
+        <div className="grid gap-4 md:grid-cols-3">
+          <Link
+            href="/docs/adapters/better-auth"
+            className="bg-fd-card hover:bg-fd-accent rounded-xl border p-5 transition-colors"
+          >
+            <h3 className="mb-2 font-semibold">Better Auth</h3>
+            <p className="text-fd-muted-foreground text-sm">
+              A database adapter that sends the tables you choose through MongoZod models, so their
+              schemas and plugins, such as soft delete, apply to the users and organizations Better
+              Auth manages.
+            </p>
+          </Link>
+        </div>
+      </section>
+
       <footer className="text-fd-muted-foreground flex flex-col gap-2 border-t pt-6 text-xs">
         <p>
           by{' '}
