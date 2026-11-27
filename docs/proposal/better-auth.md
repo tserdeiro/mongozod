@@ -363,7 +363,12 @@ la URL es `mongozod.dev/docs/adapters/better-auth`.
 - **Los campos `json`** se guardan como valores (`supportsJSON: true`), como guarda MongoDB
   cualquier objeto: es lo que el contrato de Better Auth declara para una base con JSON nativo, y
   el schema de un modelo los toma como un `z.object()`. El adapter oficial deja la opción en su
-  default, `false`, y los guarda como texto: quien viene de él convierte esos campos en valores. Los
+  default, `false`, y los guarda como texto. Por retrocompatibilidad, el
+  adapter lee un campo `json` guardado como texto como su valor, con el mismo parseo que Better Auth
+  hace con el default (`safeJSONParse`, que también convierte las fechas ISO en `Date`), y una
+  escritura del campo lo guarda como valor: nadie corre una migración. Un string que no es JSON queda
+  como está, en vez del `null` de Better Auth, para no perder un valor guardado. `safeJSONParse` es
+  de `@better-auth/core`, que mongozod no tiene como dependencia: el parseo va inline. Los
   campos `json` son de los plugins, como la `metadata` y los `customClaims` de `oauth-provider`, y
   de los `additionalFields`; la `metadata` de `organization` es un `string` que el plugin serializa,
   y no cambia. Lo encontró AdsGPT con los `utms` del usuario: con el default, el modelo recibía el

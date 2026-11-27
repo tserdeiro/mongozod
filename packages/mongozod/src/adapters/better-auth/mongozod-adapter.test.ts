@@ -241,6 +241,40 @@ describe('the tables with a model', () => {
       await adapter.findOne({ model: 'account', where: [{ field: 'userId', value: user.id }] })
     ).toMatchObject({ scopes: { read: true } })
   })
+
+  test('a json field stored as text, as the official adapter stores it, reads as its value', async () => {
+    const auth = betterAuth({
+      account: { additionalFields: { scopes: { required: false, type: 'json' } } },
+      advanced: { database: { generateId: () => crypto.randomUUID() } },
+      database: mongozodAdapter({ db, models: { user: UsersModel } }),
+      emailAndPassword: { enabled: true },
+      logger: { disabled: true }
+    })
+    const { user } = await auth.api.signUpEmail({ body })
+    const { adapter } = await auth.$context
+    const accounts = db.collection('account')
+    const read = async () => {
+      const account = await adapter.findOne<{ scopes: unknown }>({
+        model: 'account',
+        where: [{ field: 'userId', value: user.id }]
+      })
+
+      return account?.scopes
+    }
+
+    await accounts.updateOne(
+      {},
+      { $set: { scopes: '{"read":true,"grantedAt":"2026-01-01T00:00:00.000Z"}' } }
+    )
+    expect(await read()).toEqual({ grantedAt: new Date('2026-01-01T00:00:00.000Z'), read: true })
+
+    await accounts.updateOne({}, { $set: { scopes: 'null' } })
+    expect(await read()).toBeNull()
+
+    // A string that is not JSON stays as it is.
+    await accounts.updateOne({}, { $set: { scopes: 'read' } })
+    expect(await read()).toBe('read')
+  })
 })
 
 /**
