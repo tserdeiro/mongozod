@@ -3,6 +3,7 @@ import type { Graph } from 'schema-dts'
 
 import { JsonLd } from '@/components/json-ld'
 import { LayerStack } from '@/components/layer-stack/layer-stack'
+import { betterAuthPath } from '@/components/layer-stack/logos'
 import {
   appName,
   githubUrl,
@@ -13,6 +14,7 @@ import {
   websiteId
 } from '@/lib/shared'
 import { ServerCodeBlock } from 'fumadocs-ui/components/codeblock.rsc'
+import { ArrowRight } from 'lucide-react'
 import Link from 'next/link'
 
 export const metadata: Metadata = {
@@ -183,6 +185,37 @@ export default function HomePage() {
             <p className="text-fd-muted-foreground text-sm">{feature.body}</p>
           </Link>
         ))}
+      </section>
+
+      <section className="flex flex-col gap-4">
+        <h2 className="text-2xl font-semibold tracking-tight">Integrations</h2>
+        <Link
+          href="/docs/adapters/better-auth"
+          className="group bg-fd-card hover:bg-fd-accent flex flex-col gap-5 rounded-xl border p-5 transition-colors md:flex-row md:items-center md:gap-6 md:p-6"
+        >
+          <div className="bg-fd-background flex size-16 shrink-0 items-center justify-center rounded-xl border">
+            <svg viewBox="0 0 24 24" aria-hidden="true" className="size-8 fill-current">
+              <path d={betterAuthPath} />
+            </svg>
+          </div>
+          <div className="flex flex-1 flex-col gap-2">
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+              <h3 className="text-lg font-semibold">Better Auth</h3>
+              <code className="text-fd-muted-foreground bg-fd-muted rounded-md px-2 py-0.5 text-xs">
+                mongozod/adapters/better-auth
+              </code>
+            </div>
+            <p className="text-fd-muted-foreground text-sm">
+              A database adapter that sends the tables you choose through MongoZod models, so their
+              schemas and plugins, such as soft delete, apply to the users and organizations Better
+              Auth manages.
+            </p>
+          </div>
+          <ArrowRight
+            aria-hidden="true"
+            className="text-fd-muted-foreground group-hover:text-fd-foreground hidden size-5 shrink-0 transition-transform group-hover:translate-x-1 md:block"
+          />
+        </Link>
       </section>
 
       <footer className="text-fd-muted-foreground flex flex-col gap-2 border-t pt-6 text-xs">

@@ -145,10 +145,11 @@ las docs. Las que dicen «falta» no tienen página todavía.
 | How do I migrate from Mongoose?                                  | Migrating from Mongoose                      |
 | Mongoose populate, virtuals or timestamps equivalent             | Cheatsheet                                   |
 | Mongoose soft delete plugin alternative                          | Soft delete                                  |
-| **Frameworks**                                                   |                                              |
+| **Frameworks e integraciones**                                   |                                              |
 | MongoDB with Zod in Next.js                                      | Falta: su página, al terminar el ejemplo     |
 | MongoDB with Zod in TanStack Start                               | Falta: su página, al terminar el ejemplo     |
 | MongoDB with Zod and tRPC                                        | Falta: su página, al terminar el ejemplo     |
+| Better Auth MongoDB adapter with Zod                             | Better Auth                                  |
 | **Agentes de IA y performance**                                  |                                              |
 | Which MongoDB library works well with AI coding agents?          | AI agents                                    |
 | Is Mongoose slow? / Lightweight alternative to Mongoose          | Falta: depende del benchmark                 |
@@ -261,6 +262,18 @@ Lo hace el maintainer, salvo el `package.json`.
 
 - [ ] **Buscadores**: las consultas y las páginas indexadas en Search Console y en Bing Webmaster
       Tools.
+- [x] **Enlace a Why MongoZod en la home**: la inspección de URLs de Search Console del
+      2026-11-27 dio indexadas todas las páginas, pero las que no tenían impresiones (Why MongoZod,
+      Security, Pagination, Populate, Sync y Differences) tenían su último rastreo el 23 y 24 de
+      octubre, antes de los cambios del 2026-11-03, y las que sí tenían, de esa misma semana. La
+      home, la página que Google rastrea más seguido, solo enlazaba Quick start, Migrating from
+      Mongoose y las tarjetas. Acordado ese día: la navegación de la home suma «Why MongoZod» con
+      `links` de `HomeLayout`, y el maintainer pide la indexación de esas páginas en Search Console.
+- [x] **Better Auth en la home**: acordado el 2026-11-27. Una sección «Integrations» al final de la
+      home enlaza la página del adapter con una tarjeta con la marca de Better Auth, de Simple Icons
+      como las de Zod y MongoDB, y el subpath del adapter. Sumará las páginas por framework a medida
+      que estén. No enlaza a better-auth.com: la página del adapter ya lo hace, y lo que suma es el enlace de Better Auth a mongozod
+      ([better-auth/better-auth#13009](https://github.com/better-auth/better-auth/pull/13009)).
 - [ ] **Motores de IA**: las visitas que llegan desde `chatgpt.com`, `perplexity.ai` y similares,
       en los referidos de Google Analytics.
 - [ ] **Citas**: hacer las preguntas de B en ChatGPT, Claude y Perplexity antes de empezar y cada
