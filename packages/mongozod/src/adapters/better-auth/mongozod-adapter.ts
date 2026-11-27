@@ -411,6 +411,8 @@ export function mongozodAdapter({ client, db, models = {} }: MongozodAdapterOpti
     mapKeysTransformInput: { id: '_id' },
     mapKeysTransformOutput: { _id: 'id' },
     supportsArrays: true,
+    // MongoDB stores a `json` field as a value, which a model's schema takes, such as a `z.object()`.
+    supportsJSON: true,
     supportsNumericIds: false
   }
 

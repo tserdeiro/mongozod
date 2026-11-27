@@ -360,4 +360,12 @@ la URL es `mongozod.dev/docs/adapters/better-auth`.
   colgaba hasta que vencía la transacción. Los índices de tabla de las tablas sin modelo empiezan a
   crearse al crearse el adapter, como los de campo, y una escritura fuera de una transacción los
   espera, como el oficial. Lo encontró la migración de AdsGPT.
+- **Los campos `json`** se guardan como valores (`supportsJSON: true`), como guarda MongoDB
+  cualquier objeto: es lo que el contrato de Better Auth declara para una base con JSON nativo, y
+  el schema de un modelo los toma como un `z.object()`. El adapter oficial deja la opción en su
+  default, `false`, y los guarda como texto: quien viene de él convierte esos campos en valores. Los
+  campos `json` son de los plugins, como la `metadata` y los `customClaims` de `oauth-provider`, y
+  de los `additionalFields`; la `metadata` de `organization` es un `string` que el plugin serializa,
+  y no cambia. Lo encontró AdsGPT con los `utms` del usuario: con el default, el modelo recibía el
+  texto y su `z.object()` lo rechazaba.
 - **Los errores** son `Error` sin clases propias: un id inválido y un operador que no existe.
