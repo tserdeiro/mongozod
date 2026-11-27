@@ -102,10 +102,8 @@ stored as a value, as MongoDB stores any object, so the model of its table takes
 such as a `z.object()`.
 
 > [!NOTE]
-> The official adapter and MongoZod 0.6 store a `json` field as text. The adapter still reads that
-> text as its value, as Better Auth does, and a write of the field stores the value. Code
-> that reads such a field outside Better Auth, through a model or the driver, sees the text until
-> then.
+> Coming from the official adapter, which stores a `json` field as text, needs no migration: the
+> adapter reads that text as its value, and a write of the field stores the value.
 
 Better Auth writes `createdAt` and `updatedAt` itself, so the model of one of its tables leaves
 [`timestamps`](../guides/timestamps.md) off.

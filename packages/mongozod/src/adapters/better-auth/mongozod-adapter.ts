@@ -407,10 +407,10 @@ export function mongozodAdapter({ client, db, models = {} }: MongozodAdapterOpti
       return ids.generate()
     },
     customTransformOutput({ data, field, fieldAttributes }) {
-      // Backward compatibility: a `json` field stored as text, as the official adapter and mongozod
-      // 0.6 store it, reads as its value, as Better Auth reads it with `supportsJSON: false`
-      // (`safeJSONParse`, which also turns ISO dates into `Date`s). A write of the field stores the value.
-      // A string that is not JSON stays as it is.
+      // Backward compatibility: a `json` field stored as text, as the official adapter stores it,
+      // reads as its value, as Better Auth reads it with `supportsJSON: false` (`safeJSONParse`,
+      // which also turns ISO dates into `Date`s). A write of the field stores the value. A string
+      // that is not JSON stays as it is.
       if (fieldAttributes.type === 'json' && typeof data === 'string') {
         try {
           return JSON.parse(data, (_, value: unknown) =>

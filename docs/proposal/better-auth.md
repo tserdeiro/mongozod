@@ -363,7 +363,7 @@ la URL es `mongozod.dev/docs/adapters/better-auth`.
 - **Los campos `json`** se guardan como valores (`supportsJSON: true`), como guarda MongoDB
   cualquier objeto: es lo que el contrato de Better Auth declara para una base con JSON nativo, y
   el schema de un modelo los toma como un `z.object()`. El adapter oficial deja la opción en su
-  default, `false`, y los guarda como texto, igual que mongozod 0.6. Por retrocompatibilidad, el
+  default, `false`, y los guarda como texto. Por retrocompatibilidad, el
   adapter lee un campo `json` guardado como texto como su valor, con el mismo parseo que Better Auth
   hace con el default (`safeJSONParse`, que también convierte las fechas ISO en `Date`), y una
   escritura del campo lo guarda como valor: nadie corre una migración. Un string que no es JSON queda
