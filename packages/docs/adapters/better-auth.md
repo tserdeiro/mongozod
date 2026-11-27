@@ -97,6 +97,14 @@ Better Auth only sees the fields it knows: its reads return the fields of its sc
 takes from its body the ones of `additionalFields`. A field of the model it does not know, such as
 `deletedAt`, is optional or has a `.default()`, or every sign up fails.
 
+A `json` field, such as an object of `additionalFields` or the `metadata` of an OAuth client, is
+stored as a value, as MongoDB stores any object, so the model of its table takes it with a schema
+such as a `z.object()`.
+
+> [!WARNING]
+> The official adapter stores a `json` field as text. When you move from it, turn the text of those
+> fields into values, as `JSON.parse` does, or Better Auth reads them back as strings.
+
 Better Auth writes `createdAt` and `updatedAt` itself, so the model of one of its tables leaves
 [`timestamps`](../guides/timestamps.md) off.
 

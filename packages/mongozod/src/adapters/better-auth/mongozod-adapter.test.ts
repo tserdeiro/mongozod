@@ -191,6 +191,56 @@ describe('the tables with a model', () => {
     expect(session?.userId).toBeInstanceOf(ObjectId)
     expect((await auth.api.signInEmail({ body })).user.id).toBe(user.id)
   })
+
+  test('a json field is stored as a value, with a model and without one', async () => {
+    const JsonUsers = mongozod({
+      collection: 'user',
+      db,
+      schema: z.object({
+        _id: z.string(),
+        ...userFields,
+        preferences: z.object({ theme: z.string() }).optional()
+      })
+    })
+    const auth = betterAuth({
+      account: { additionalFields: { scopes: { required: false, type: 'json' } } },
+      advanced: { database: { generateId: () => crypto.randomUUID() } },
+      database: mongozodAdapter({ client, db, models: { user: JsonUsers } }),
+      emailAndPassword: { enabled: true },
+      logger: { disabled: true },
+      user: { additionalFields: { preferences: { required: false, type: 'json' } } }
+    })
+    const { user } = await auth.api.signUpEmail({
+      body: { ...body, preferences: { theme: 'dark' } }
+    })
+    const { adapter } = await auth.$context
+
+    expect(user).toMatchObject({ preferences: { theme: 'dark' } })
+    expect(await JsonUsers.findOne({ _id: user.id })).toMatchObject({
+      preferences: { theme: 'dark' }
+    })
+
+    await adapter.update({
+      model: 'user',
+      update: { preferences: { theme: 'light' } },
+      where: [{ field: 'id', value: user.id }]
+    })
+    await adapter.update({
+      model: 'account',
+      update: { scopes: { read: true } },
+      where: [{ field: 'userId', value: user.id }]
+    })
+
+    expect(await JsonUsers.findOne({ _id: user.id })).toMatchObject({
+      preferences: { theme: 'light' }
+    })
+    expect(await db.collection('account').findOne({ userId: user.id })).toMatchObject({
+      scopes: { read: true }
+    })
+    expect(
+      await adapter.findOne({ model: 'account', where: [{ field: 'userId', value: user.id }] })
+    ).toMatchObject({ scopes: { read: true } })
+  })
 })
 
 /**
