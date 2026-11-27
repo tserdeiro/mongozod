@@ -270,9 +270,9 @@ Lo hace el maintainer, salvo el `package.json`.
       Mongoose y las tarjetas. Acordado ese día: la navegación de la home suma «Why MongoZod» con
       `links` de `HomeLayout`, y el maintainer pide la indexación de esas páginas en Search Console.
 - [x] **Better Auth en la home**: acordado el 2026-11-27. Una sección «Integrations» al final de la
-      home enlaza la página del adapter con una tarjeta como las de las features, y sumará las
-      páginas por framework a medida que estén. No enlaza a better-auth.com: la página del adapter
-      ya lo hace, y lo que suma es el enlace de Better Auth a mongozod
+      home enlaza la página del adapter con una tarjeta con la marca de Better Auth, de Simple Icons
+      como las de Zod y MongoDB, y el subpath del adapter. Sumará las páginas por framework a medida
+      que estén. No enlaza a better-auth.com: la página del adapter ya lo hace, y lo que suma es el enlace de Better Auth a mongozod
       ([better-auth/better-auth#13009](https://github.com/better-auth/better-auth/pull/13009)).
 - [ ] **Motores de IA**: las visitas que llegan desde `chatgpt.com`, `perplexity.ai` y similares,
       en los referidos de Google Analytics.
