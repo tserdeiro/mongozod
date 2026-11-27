@@ -69,6 +69,9 @@ export interface MongozodAdapterOptions {
   models?: Partial<Record<Table, AnyModel>>
 }
 
+/** The ISO 8601 dates that Better Auth's `safeJSONParse` turns into `Date`s. */
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$/
+
 /** NoSuchTransaction (251) and TransactionCommitted (256): the server has nothing open to abort. */
 const ABORT_SETTLED_CODES = new Set([251, 256])
 
@@ -404,6 +407,23 @@ export function mongozodAdapter({ client, db, models = {} }: MongozodAdapterOpti
       return ids.generate()
     },
     customTransformOutput({ data, field, fieldAttributes }) {
+      // Backward compatibility: a `json` field stored as text, as the official adapter and mongozod
+      // 0.6 store it, reads as its value, as Better Auth reads it with `supportsJSON: false`
+      // (`safeJSONParse`, which also turns ISO dates into `Date`s). A write of the field stores the value.
+      // A string that is not JSON stays as it is.
+      if (fieldAttributes.type === 'json' && typeof data === 'string') {
+        try {
+          return JSON.parse(data, (_, value: unknown) =>
+            typeof value === 'string' && ISO_DATE.test(value) && !Number.isNaN(Date.parse(value))
+              ? new Date(value)
+              : value
+          )
+        } catch (error) {
+          if (error instanceof SyntaxError) return data
+
+          throw error
+        }
+      }
       if (field !== 'id' && fieldAttributes.references?.field !== 'id') return data
 
       return Array.isArray(data) ? data.map(idToString) : idToString(data)

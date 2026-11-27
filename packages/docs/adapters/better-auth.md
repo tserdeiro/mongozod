@@ -101,9 +101,11 @@ A `json` field, such as an object of `additionalFields` or the `metadata` of an 
 stored as a value, as MongoDB stores any object, so the model of its table takes it with a schema
 such as a `z.object()`.
 
-> [!WARNING]
-> The official adapter stores a `json` field as text. When you move from it, turn the text of those
-> fields into values, as `JSON.parse` does, or Better Auth reads them back as strings.
+> [!NOTE]
+> The official adapter and MongoZod 0.6 store a `json` field as text. The adapter still reads that
+> text as its value, as Better Auth does, and a write of the field stores the value. Code
+> that reads such a field outside Better Auth, through a model or the driver, sees the text until
+> then.
 
 Better Auth writes `createdAt` and `updatedAt` itself, so the model of one of its tables leaves
 [`timestamps`](../guides/timestamps.md) off.
