@@ -261,6 +261,13 @@ Lo hace el maintainer, salvo el `package.json`.
 
 - [ ] **Buscadores**: las consultas y las páginas indexadas en Search Console y en Bing Webmaster
       Tools.
+- [x] **Enlace a Why MongoZod en la home**: la inspección de URLs de Search Console del
+      2026-11-27 dio indexadas todas las páginas, pero las que no tenían impresiones (Why MongoZod,
+      Security, Pagination, Populate, Sync y Differences) tenían su último rastreo el 23 y 24 de
+      octubre, antes de los cambios del 2026-11-03, y las que sí tenían, de esa misma semana. La
+      home, la página que Google rastrea más seguido, solo enlazaba Quick start, Migrating from
+      Mongoose y las tarjetas. Acordado ese día: la navegación de la home suma «Why MongoZod» con
+      `links` de `HomeLayout`, y el maintainer pide la indexación de esas páginas en Search Console.
 - [ ] **Motores de IA**: las visitas que llegan desde `chatgpt.com`, `perplexity.ai` y similares,
       en los referidos de Google Analytics.
 - [ ] **Citas**: hacer las preguntas de B en ChatGPT, Claude y Perplexity antes de empezar y cada
